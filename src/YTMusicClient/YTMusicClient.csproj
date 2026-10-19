@@ -18,6 +18,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+    <AppxBundle>Never</AppxBundle>
+    <Platform>x64</Platform>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240627000" />
@@ -28,5 +30,3 @@
     <PackageReference Include="YoutubeExplode" Version="6.4.3" />
   </ItemGroup>
 </Project>
-<AppxBundle>Never</AppxBundle>
-<Platform>x64</Platform>
