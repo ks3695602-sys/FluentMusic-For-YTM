@@ -80,7 +80,7 @@ jobs:
       - name: Build & Publish MSIX
         shell: pwsh
         run: |
-          dotnet publish ${{ env.PROJECT_PATH }} `
+          dotnet build src/YTMusicClient/YTMusicClient.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
