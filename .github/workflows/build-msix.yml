@@ -1,4 +1,4 @@
-name: Build MSIX Package
+﻿name: Build MSIX Package
 
 on:
   push:
@@ -87,3 +87,4 @@ jobs:
         files: |
           ${{ github.workspace }}/Artifacts/MSIX/**/*.msix
           ${{ github.workspace }}/Artifacts/MSIX/**/*.msixbundle
+

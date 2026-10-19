@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Builds the YT Music Client as a sideloadable MSIX package.
 .DESCRIPTION
@@ -94,3 +94,4 @@ Write-Host '===========================================' -ForegroundColor Green
 Write-Host '  Build complete!' -ForegroundColor Green
 Write-Host "  Artifacts: $ArtifactsDir" -ForegroundColor Green
 Write-Host '===========================================' -ForegroundColor Green
+
