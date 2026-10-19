@@ -1,0 +1,89 @@
+name: Build MSIX Package
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  PROJECT_PATH: 'src/YTMusicClient/YTMusicClient.csproj'
+  CONFIGURATION: 'Release'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [x64]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet packages
+      run: dotnet restore ${{ env.PROJECT_PATH }} --runtime win-${{ matrix.platform }}
+
+    - name: Generate self-signed certificate
+      run: |
+        $cert = New-SelfSignedCertificate `
+          -Type Custom `
+          -Subject "CN=YTMusicClient" `
+          -KeyUsage DigitalSignature `
+          -FriendlyName "YT Music Client CI Certificate" `
+          -CertStoreLocation "Cert:\CurrentUser\My" `
+          -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+
+        $password = ConvertTo-SecureString -String "CIBuild123!" -Force -AsPlainText
+        $certPath = "${{ github.workspace }}\Certificates\YTMusicClient_CI.pfx"
+        New-Item -ItemType Directory -Force -Path "${{ github.workspace }}\Certificates" | Out-Null
+        Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
+          -FilePath $certPath -Password $password | Out-Null
+
+        echo "CERT_PATH=$certPath" >> $env:GITHUB_ENV
+        echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
+      shell: pwsh
+
+    - name: Build & Publish MSIX
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} `
+          -c ${{ env.CONFIGURATION }} `
+          -r win-${{ matrix.platform }} `
+          --self-contained true `
+          -o "${{ github.workspace }}\Artifacts" `
+          -p:Platform=${{ matrix.platform }} `
+          -p:GenerateAppxPackageOnBuild=true `
+          -p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\" `
+          -p:AppxPackageSigningEnabled=true `
+          -p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
+          -p:PackageCertificatePassword=CIBuild123!
+      shell: pwsh
+
+    - name: Upload MSIX artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: YTMusicClient-${{ matrix.platform }}
+        path: |
+          ${{ github.workspace }}/Artifacts/MSIX/**/*.msix
+          ${{ github.workspace }}/Artifacts/MSIX/**/*.msixbundle
+          ${{ github.workspace }}/Artifacts/**/*.exe
+        if-no-files-found: warn
+
+    - name: Upload to Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ${{ github.workspace }}/Artifacts/MSIX/**/*.msix
+          ${{ github.workspace }}/Artifacts/MSIX/**/*.msixbundle

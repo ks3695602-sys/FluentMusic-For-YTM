@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="YTMusicClient.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:YTMusicClient.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Global Converters -->
+            <converters:TimeSpanToStringConverter x:Key="TimeSpanConverter" />
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+            <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
+            <converters:BoolToGlyphConverter x:Key="PlayPauseGlyph" TrueGlyph="&#xE769;" FalseGlyph="&#xE768;" />
+            <converters:ActiveLyricOpacityConverter x:Key="LyricOpacityConverter" />
+            <converters:ActiveLyricFontSizeConverter x:Key="LyricFontSizeConverter" />
+
+            <!-- Acrylic brush for player bar -->
+            <AcrylicBrush x:Key="PlayerBarAcrylicBrush"
+                          TintColor="{ThemeResource SystemChromeMediumColor}"
+                          TintOpacity="0.8"
+                          FallbackColor="{ThemeResource SystemChromeMediumColor}" />
+
+            <!-- Custom colors -->
+            <Color x:Key="AccentRed">#FFE53935</Color>
+            <SolidColorBrush x:Key="AccentRedBrush" Color="{StaticResource AccentRed}" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
