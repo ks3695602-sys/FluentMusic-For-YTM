@@ -55,37 +55,23 @@ jobs:
         echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
       shell: pwsh
 
-    - name: Build & Publish MSIX
-      - name: Build & Publish MSIX
+- name: Build & Publish MSIX
   shell: pwsh
   run: |
     dotnet publish ${{ env.PROJECT_PATH }} `
       -c Release `
       -r win-x64 `
       --self-contained true `
+      -o "${{ github.workspace }}\Artifacts" `
       -p:RuntimeIdentifier=win-x64 `
       -p:RuntimeIdentifiers=win-x64 `
       -p:Platform=x64 `
       -p:PlatformTarget=x64 `
-      -o "${{ github.workspace }}\Artifacts" `
       -p:GenerateAppxPackageOnBuild=true `
       -p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\" `
       -p:AppxPackageSigningEnabled=true `
       -p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
       -p:PackageCertificatePassword=CIBuild123!
-  -p:RuntimeIdentifier=win-x64 `
-  -p:RuntimeIdentifiers=win-x64 `
-  -p:Platform=x64 `
-  -p:PlatformTarget=x64 `
-          -o "${{ github.workspace }}\Artifacts" `
-          -p:Platform=${{ matrix.platform }} `
-          -p:GenerateAppxPackageOnBuild=true `
-          -p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\" `
-          -p:AppxPackageSigningEnabled=true `
-          -p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
-          -p:PackageCertificatePassword=CIBuild123!
-      shell: pwsh
-
     - name: Upload MSIX artifact
       uses: actions/upload-artifact@v4
       with:
