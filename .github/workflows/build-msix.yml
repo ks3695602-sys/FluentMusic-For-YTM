@@ -56,11 +56,23 @@ jobs:
       shell: pwsh
 
     - name: Build & Publish MSIX
-      run: |
-        dotnet publish ${{ env.PROJECT_PATH }} `
-  -c Release `
-  -r win-x64 `
-  --self-contained true `
+      - name: Build & Publish MSIX
+  shell: pwsh
+  run: |
+    dotnet publish ${{ env.PROJECT_PATH }} `
+      -c Release `
+      -r win-x64 `
+      --self-contained true `
+      -p:RuntimeIdentifier=win-x64 `
+      -p:RuntimeIdentifiers=win-x64 `
+      -p:Platform=x64 `
+      -p:PlatformTarget=x64 `
+      -o "${{ github.workspace }}\Artifacts" `
+      -p:GenerateAppxPackageOnBuild=true `
+      -p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\" `
+      -p:AppxPackageSigningEnabled=true `
+      -p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
+      -p:PackageCertificatePassword=CIBuild123!
   -p:RuntimeIdentifier=win-x64 `
   -p:RuntimeIdentifiers=win-x64 `
   -p:Platform=x64 `
