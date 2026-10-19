@@ -28,3 +28,5 @@
     <PackageReference Include="YoutubeExplode" Version="6.4.3" />
   </ItemGroup>
 </Project>
+<AppxBundle>Never</AppxBundle>
+<Platform>x64</Platform>
