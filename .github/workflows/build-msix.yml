@@ -54,24 +54,29 @@ jobs:
               "2.5.29.19={text}"
             )
 
+          # Trust the certificate in TrustedPeople
+          $store = New-Object System.Security.Cryptography.X509Certificates.X509Store "TrustedPeople", "CurrentUser"
+          $store.Open("ReadWrite")
+          $store.Add($cert)
+          $store.Close()
+
           $password = ConvertTo-SecureString `
             -String "CIBuild123!" `
             -Force `
             -AsPlainText
 
-          $certPath = "${{ github.workspace }}\Certificates\YTMusicClient_CI.pfx"
-
-          New-Item `
-            -ItemType Directory `
-            -Force `
-            -Path "${{ github.workspace }}\Certificates" | Out-Null
+          $certDir = "${{ github.workspace }}\Certificates"
+          New-Item -ItemType Directory -Force -Path $certDir | Out-Null
+          $certPath = "$certDir\YTMusicClient_CI.pfx"
 
           Export-PfxCertificate `
             -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
             -FilePath $certPath `
-            -Password $password | Out-Null
+            -Password $password `
+            -CryptoAlgorithmOption TripleDES_SHA1 | Out-Null
 
           echo "CERT_PATH=$certPath" >> $env:GITHUB_ENV
+          echo "CERT_THUMBPRINT=$($cert.Thumbprint)" >> $env:GITHUB_ENV
 
       - name: Build & Package MSIX
         shell: pwsh
@@ -84,6 +89,7 @@ jobs:
             /p:UapAppxPackageBuildMode=SideloadOnly `
             /p:AppxBundle=Never `
             /p:AppxPackageSigningEnabled=true `
+            /p:PackageCertificateThumbprint="${{ env.CERT_THUMBPRINT }}" `
             /p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
             /p:PackageCertificatePassword="CIBuild123!"
 
