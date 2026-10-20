@@ -53,7 +53,7 @@
                         <Border CornerRadius="6" Width="48" Height="48">
                             <Image Stretch="UniformToFill">
                                 <Image.Source>
-                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl}"
+                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
                                                  DecodePixelWidth="48" />
                                 </Image.Source>
                             </Image>

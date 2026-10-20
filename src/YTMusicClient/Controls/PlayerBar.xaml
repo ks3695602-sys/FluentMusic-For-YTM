@@ -25,7 +25,7 @@
             <Border CornerRadius="6" Width="56" Height="56">
                 <Image Stretch="UniformToFill">
                     <Image.Source>
-                        <BitmapImage UriSource="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay}"
+                        <BitmapImage UriSource="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay, Converter={StaticResource StringToUriConverter}}"
                                      DecodePixelWidth="56" />
                     </Image.Source>
                 </Image>

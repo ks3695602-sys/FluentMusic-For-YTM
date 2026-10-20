@@ -80,6 +80,7 @@ jobs:
       - name: Build & Publish MSIX
         shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/Artifacts/MSIX" | Out-Null
           dotnet publish src/YTMusicClient/YTMusicClient.csproj `
             -c Release `
             -r win-x64 `

@@ -50,7 +50,7 @@
                         <Border CornerRadius="6" Width="56" Height="56">
                             <Image Stretch="UniformToFill">
                                 <Image.Source>
-                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl}"
+                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
                                                  DecodePixelWidth="56" />
                                 </Image.Source>
                             </Image>
@@ -68,7 +68,7 @@
                         <TextBlock Grid.Column="2" VerticalAlignment="Center"
                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                                    Style="{StaticResource CaptionTextBlockStyle}">
-                            <Run Text="{x:Bind Duration}" />
+                            <Run Text="{x:Bind Duration, Converter={StaticResource TimeSpanConverter}}" />
                         </TextBlock>
                     </Grid>
                 </DataTemplate>

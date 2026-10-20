@@ -17,12 +17,7 @@
             <converters:BoolToGlyphConverter x:Key="PlayPauseGlyph" TrueGlyph="&#xE769;" FalseGlyph="&#xE768;" />
             <converters:ActiveLyricOpacityConverter x:Key="LyricOpacityConverter" />
             <converters:ActiveLyricFontSizeConverter x:Key="LyricFontSizeConverter" />
-
-            <!-- Acrylic brush for player bar -->
-            <AcrylicBrush x:Key="PlayerBarAcrylicBrush"
-                          TintColor="{ThemeResource SystemChromeMediumColor}"
-                          TintOpacity="0.8"
-                          FallbackColor="{ThemeResource SystemChromeMediumColor}" />
+            <converters:StringToUriConverter x:Key="StringToUriConverter" />
 
             <!-- Custom colors -->
             <Color x:Key="AccentRed">#FFE53935</Color>

@@ -36,7 +36,7 @@
                             <Border Grid.Row="0" CornerRadius="8">
                                 <Image Stretch="UniformToFill">
                                     <Image.Source>
-                                        <BitmapImage UriSource="{x:Bind ThumbnailUrl}"
+                                        <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
                                                      DecodePixelWidth="180" />
                                     </Image.Source>
                                 </Image>
