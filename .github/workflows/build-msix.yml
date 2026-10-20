@@ -15,23 +15,19 @@ on:
 
 env:
   DOTNET_VERSION: "8.0.x"
-  PROJECT_PATH: "src/YTMusicClient/YTMusicClient.csproj"
+  SOLUTION_NAME: "YTMusicClient.sln"
   CONFIGURATION: "Release"
+  PLATFORM: "x64"
 
 jobs:
   build:
     runs-on: windows-latest
 
-    strategy:
-      matrix:
-        platform:
-          - x64
-
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
@@ -39,10 +35,10 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Restore NuGet packages
+      - name: Restore Dependencies
         shell: pwsh
         run: |
-          dotnet restore ${{ env.PROJECT_PATH }} --runtime win-x64
+          dotnet restore ${{ env.SOLUTION_NAME }} /p:Platform=${{ env.PLATFORM }}
 
       - name: Generate self-signed certificate
         shell: pwsh
@@ -77,30 +73,28 @@ jobs:
 
           echo "CERT_PATH=$certPath" >> $env:GITHUB_ENV
 
-      - name: Build & Publish MSIX
+      - name: Build & Package MSIX
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/Artifacts/MSIX" | Out-Null
-          dotnet publish src/YTMusicClient/YTMusicClient.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained true `
-            -p:Platform=x64 `
-            -p:PlatformTarget=x64 `
-            -p:GenerateAppxPackageOnBuild=true `
-            -p:AppxPackageDir="${{ github.workspace }}/Artifacts/MSIX/" `
-            -p:AppxPackageSigningEnabled=true `
-            -p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
-            -p:PackageCertificatePassword=CIBuild123!
+          dotnet build ${{ env.SOLUTION_NAME }} `
+            --configuration ${{ env.CONFIGURATION }} `
+            --no-restore `
+            /p:Platform=${{ env.PLATFORM }} `
+            /p:GenerateAppxPackageOnBuild=true `
+            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /p:AppxBundle=Never `
+            /p:AppxPackageSigningEnabled=true `
+            /p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
+            /p:PackageCertificatePassword="CIBuild123!"
 
       - name: Upload MSIX Artifact
         uses: actions/upload-artifact@v4
         with:
           name: YTMusicClient-x64
           path: |
-            ${{ github.workspace }}/Artifacts/MSIX/**/*.msix
-            ${{ github.workspace }}/Artifacts/MSIX/**/*.msixbundle
-            ${{ github.workspace }}/Artifacts/**/*.exe
+            **/AppPackages/**/*.msix
+            **/AppPackages/**/*.msixbundle
+            **/AppPackages/**/*_Test/*
           if-no-files-found: warn
 
       - name: Upload Release Assets
@@ -108,5 +102,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ github.workspace }}/Artifacts/MSIX/**/*.msix
-            ${{ github.workspace }}/Artifacts/MSIX/**/*.msixbundle
+            **/AppPackages/**/*.msix
+            **/AppPackages/**/*.msixbundle

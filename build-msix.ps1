@@ -3,7 +3,7 @@
     Builds the YT Music Client as a sideloadable MSIX package.
 .DESCRIPTION
     This script generates a self-signed test certificate, builds the project,
-    and produces an MSIX package in the /Artifacts folder.
+    and produces an MSIX package in the AppPackages folder.
 .PARAMETER Configuration
     Build configuration (Debug or Release). Default: Release.
 .PARAMETER CertPassword
@@ -17,8 +17,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ProjectRoot = $PSScriptRoot
-$ProjectFile = Join-Path $ProjectRoot 'src\YTMusicClient\YTMusicClient.csproj'
-$ArtifactsDir = Join-Path $ProjectRoot 'Artifacts'
+$SolutionFile = Join-Path $ProjectRoot 'YTMusicClient.sln'
 $CertDir = Join-Path $ProjectRoot 'Certificates'
 $CertPath = Join-Path $CertDir 'YTMusicClient_TestCert.pfx'
 
@@ -28,13 +27,11 @@ Write-Host '===========================================' -ForegroundColor Cyan
 Write-Host ''
 
 # Step 1: Create directories
-Write-Host '[1/5] Creating output directories...' -ForegroundColor Yellow
-New-Item -ItemType Directory -Force -Path $ArtifactsDir | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $ArtifactsDir 'MSIX') | Out-Null
+Write-Host '[1/4] Preparing certificate directory...' -ForegroundColor Yellow
 New-Item -ItemType Directory -Force -Path $CertDir | Out-Null
 
 # Step 2: Generate self-signed certificate
-Write-Host '[2/5] Generating self-signed test certificate...' -ForegroundColor Yellow
+Write-Host '[2/4] Generating self-signed test certificate...' -ForegroundColor Yellow
 if (-not (Test-Path $CertPath)) {
     $cert = New-SelfSignedCertificate `
         -Type Custom `
@@ -55,48 +52,27 @@ if (-not (Test-Path $CertPath)) {
 }
 
 # Step 3: Restore NuGet packages
-Write-Host '[3/5] Restoring NuGet packages...' -ForegroundColor Yellow
-dotnet restore $ProjectFile --runtime win-x64
+Write-Host '[3/4] Restoring dependencies...' -ForegroundColor Yellow
+dotnet restore $SolutionFile /p:Platform=x64
 if ($LASTEXITCODE -ne 0) { throw 'NuGet restore failed.' }
 
-# Step 4: Build the project
-Write-Host '[4/5] Building project...' -ForegroundColor Yellow
-dotnet build $ProjectFile `
-    -c $Configuration `
-    -r win-x64 `
-    --self-contained true `
-    --no-restore
-if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+# Step 4: Build & Package MSIX
+Write-Host '[4/4] Building solution & generating MSIX package...' -ForegroundColor Yellow
+dotnet build $SolutionFile `
+    --configuration $Configuration `
+    --no-restore `
+    /p:Platform=x64 `
+    /p:GenerateAppxPackageOnBuild=true `
+    /p:UapAppxPackageBuildMode=SideloadOnly `
+    /p:AppxBundle=Never `
+    /p:AppxPackageSigningEnabled=true `
+    /p:PackageCertificateKeyFile="$CertPath" `
+    /p:PackageCertificatePassword="$CertPassword"
 
-# Step 5: Publish MSIX
-Write-Host '[5/5] Publishing MSIX package...' -ForegroundColor Yellow
-$msixDir = (Join-Path $ArtifactsDir 'MSIX').Replace('\', '/') + '/'
-dotnet publish $ProjectFile `
-    -c $Configuration `
-    -r win-x64 `
-    --self-contained true `
-    -p:Platform=x64 `
-    -p:PlatformTarget=x64 `
-    -p:GenerateAppxPackageOnBuild=true `
-    -p:AppxPackageDir="$msixDir" `
-    -p:AppxPackageSigningEnabled=true `
-    -p:PackageCertificateKeyFile="$CertPath" `
-    -p:PackageCertificatePassword="$CertPassword"
-if ($LASTEXITCODE -ne 0) {
-    Write-Host 'MSIX signing failed, trying unsigned...' -ForegroundColor Yellow
-    dotnet publish $ProjectFile `
-        -c $Configuration `
-        -r win-x64 `
-        --self-contained true `
-        -p:Platform=x64 `
-        -p:PlatformTarget=x64 `
-        -p:GenerateAppxPackageOnBuild=true `
-        -p:AppxPackageDir="$msixDir"
-    if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
-}
+if ($LASTEXITCODE -ne 0) { throw 'Build & Packaging failed.' }
 
 Write-Host ''
 Write-Host '===========================================' -ForegroundColor Green
-Write-Host '  Build complete!' -ForegroundColor Green
-Write-Host "  Artifacts: $ArtifactsDir" -ForegroundColor Green
+Write-Host '  Build & Packaging complete!' -ForegroundColor Green
+Write-Host '  Check src/YTMusicClient/AppPackages for your installable .msix' -ForegroundColor Green
 Write-Host '===========================================' -ForegroundColor Green
