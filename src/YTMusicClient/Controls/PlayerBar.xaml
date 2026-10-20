@@ -16,7 +16,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- Song Info -->
-        <Grid ColumnSpacing="12" Visibility="{x:Bind ViewModel.HasSong, Mode=OneWay}">
+        <Grid ColumnSpacing="12" Visibility="{x:Bind ViewModel.HasSong, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="56" />
                 <ColumnDefinition Width="*" />
@@ -57,7 +57,7 @@
                               FontSize="18" />
                 </Button>
 
-                <Button Style="{StaticResource SubtleButtonStyle}" IsEnabled="False">
+                <Button Background="Transparent" BorderThickness="0" IsEnabled="False">
                     <FontIcon Glyph="&#xE893;" FontSize="16" /> <!-- Next -->
                 </Button>
             </StackPanel>
@@ -89,10 +89,9 @@
         <!-- Volume Control -->
         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right"
                     VerticalAlignment="Center" Spacing="8">
-            <Button Style="{StaticResource SubtleButtonStyle}"
+            <Button Background="Transparent" BorderThickness="0"
                     Command="{x:Bind ViewModel.ToggleMuteCommand}">
-                <FontIcon Glyph="{x:Bind ViewModel.IsMuted, Mode=OneWay, Converter={StaticResource PlayPauseGlyph}}"
-                          FontSize="16" />
+                <FontIcon Glyph="&#xE767;" FontSize="16" />
             </Button>
             <Slider Minimum="0" Maximum="1"
                     Value="{x:Bind ViewModel.Volume, Mode=TwoWay}"

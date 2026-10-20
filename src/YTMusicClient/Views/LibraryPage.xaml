@@ -31,12 +31,9 @@
         </Grid>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
-            <RadioButton Content="All" IsChecked="True" GroupName="Filter"
-                         Style="{StaticResource DefaultToggleButtonStyle}" />
-            <RadioButton Content="Songs" GroupName="Filter"
-                         Style="{StaticResource DefaultToggleButtonStyle}" />
-            <RadioButton Content="Playlists" GroupName="Filter"
-                         Style="{StaticResource DefaultToggleButtonStyle}" />
+            <RadioButton Content="All" IsChecked="True" GroupName="Filter" />
+            <RadioButton Content="Songs" GroupName="Filter" />
+            <RadioButton Content="Playlists" GroupName="Filter" />
         </StackPanel>
 
         <ListView Grid.Row="2"
@@ -80,7 +77,6 @@
 
             <ListView.Header>
                 <TextBlock Text="No liked songs yet. Play a song and tap the heart!"
-                           Visibility="{x:Bind ViewModel.LikedSongs.Count, Mode=OneWay, TargetNullValue=Visible, FallbackValue=Visible}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            Margin="0,24,0,0" />
             </ListView.Header>

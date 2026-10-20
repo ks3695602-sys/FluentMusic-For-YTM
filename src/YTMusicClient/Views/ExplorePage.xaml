@@ -27,7 +27,7 @@
         <!-- Loading -->
         <ProgressRing Grid.Row="2"
                       IsActive="{x:Bind ViewModel.IsSearching, Mode=OneWay}"
-                      Visibility="{x:Bind ViewModel.IsSearching, Mode=OneWay}"
+                      Visibility="{x:Bind ViewModel.IsSearching, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
                       Width="40" Height="40"
                       VerticalAlignment="Top" Margin="0,32,0,0" />
 
