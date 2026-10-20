@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Builds the YT Music Client as a sideloadable MSIX package.
 .DESCRIPTION
@@ -30,6 +30,7 @@ Write-Host ''
 # Step 1: Create directories
 Write-Host '[1/5] Creating output directories...' -ForegroundColor Yellow
 New-Item -ItemType Directory -Force -Path $ArtifactsDir | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $ArtifactsDir 'MSIX') | Out-Null
 New-Item -ItemType Directory -Force -Path $CertDir | Out-Null
 
 # Step 2: Generate self-signed certificate
@@ -69,23 +70,28 @@ if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 
 # Step 5: Publish MSIX
 Write-Host '[5/5] Publishing MSIX package...' -ForegroundColor Yellow
+$msixDir = (Join-Path $ArtifactsDir 'MSIX').Replace('\', '/') + '/'
 dotnet publish $ProjectFile `
     -c $Configuration `
     -r win-x64 `
     --self-contained true `
-    -o $ArtifactsDir `
+    -p:Platform=x64 `
+    -p:PlatformTarget=x64 `
     -p:GenerateAppxPackageOnBuild=true `
-    -p:AppxPackageDir=$ArtifactsDir\ `
+    -p:AppxPackageDir="$msixDir" `
     -p:AppxPackageSigningEnabled=true `
-    -p:PackageCertificateKeyFile=$CertPath `
-    -p:PackageCertificatePassword=$CertPassword
+    -p:PackageCertificateKeyFile="$CertPath" `
+    -p:PackageCertificatePassword="$CertPassword"
 if ($LASTEXITCODE -ne 0) {
     Write-Host 'MSIX signing failed, trying unsigned...' -ForegroundColor Yellow
     dotnet publish $ProjectFile `
         -c $Configuration `
         -r win-x64 `
         --self-contained true `
-        -o $ArtifactsDir
+        -p:Platform=x64 `
+        -p:PlatformTarget=x64 `
+        -p:GenerateAppxPackageOnBuild=true `
+        -p:AppxPackageDir="$msixDir"
     if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 }
 
@@ -94,4 +100,3 @@ Write-Host '===========================================' -ForegroundColor Green
 Write-Host '  Build complete!' -ForegroundColor Green
 Write-Host "  Artifacts: $ArtifactsDir" -ForegroundColor Green
 Write-Host '===========================================' -ForegroundColor Green
-

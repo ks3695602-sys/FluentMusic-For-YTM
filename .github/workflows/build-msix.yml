@@ -1,4 +1,4 @@
-﻿name: Build MSIX Package
+name: Build MSIX Package
 
 on:
   push:
@@ -80,17 +80,14 @@ jobs:
       - name: Build & Publish MSIX
         shell: pwsh
         run: |
-          dotnet build src/YTMusicClient/YTMusicClient.csproj `
+          dotnet publish src/YTMusicClient/YTMusicClient.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
-            -o "${{ github.workspace }}\Artifacts" `
-            -p:RuntimeIdentifier=win-x64 `
-            -p:RuntimeIdentifiers=win-x64 `
             -p:Platform=x64 `
             -p:PlatformTarget=x64 `
             -p:GenerateAppxPackageOnBuild=true `
-            -p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\" `
+            -p:AppxPackageDir="${{ github.workspace }}/Artifacts/MSIX/" `
             -p:AppxPackageSigningEnabled=true `
             -p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
             -p:PackageCertificatePassword=CIBuild123!
