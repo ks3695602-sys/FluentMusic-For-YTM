@@ -22,36 +22,3 @@ public class ActiveAccentBrushConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
-
-public class ActiveLyricColorConverter : IValueConverter
-{
-    private static readonly SolidColorBrush ActiveBrush = new(Colors.White);
-    private static readonly SolidColorBrush InactiveBrush = new(ColorHelper.FromArgb(120, 200, 200, 210));
-
-    public object Convert(object value, Type targetType, object parameter, string language)
-    {
-        if (value is bool b && b)
-            return ActiveBrush;
-        return InactiveBrush;
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, string language)
-    {
-        throw new NotImplementedException();
-    }
-}
-
-public class BoolToSemiBoldConverter : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, string language)
-    {
-        if (value is bool b && b)
-            return Microsoft.UI.Text.FontWeights.Bold;
-        return Microsoft.UI.Text.FontWeights.Normal;
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, string language)
-    {
-        throw new NotImplementedException();
-    }
-}

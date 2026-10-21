@@ -156,8 +156,6 @@
                                     <TextBlock Text="{x:Bind Text}"
                                                FontSize="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource LyricFontSizeConverter}}"
                                                Opacity="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource LyricOpacityConverter}}"
-                                               FontWeight="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource BoolToSemiBoldConverter}}"
-                                               Foreground="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource ActiveLyricColorConverter}}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>

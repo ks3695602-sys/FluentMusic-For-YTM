@@ -17,6 +17,7 @@ public partial class ShellViewModel : ObservableObject
 
     public PlayerBarViewModel PlayerBar { get; }
     public LyricsViewModel Lyrics { get; }
+    public IMediaPlaybackService PlaybackService => _playbackService;
 
     public ShellViewModel(
         INavigationService navigationService,

@@ -20,8 +20,6 @@
             <converters:StringToUriConverter x:Key="StringToUriConverter" />
             <converters:RepeatModeToGlyphConverter x:Key="RepeatModeGlyphConverter" />
             <converters:ActiveAccentBrushConverter x:Key="ActiveAccentBrushConverter" />
-            <converters:ActiveLyricColorConverter x:Key="ActiveLyricColorConverter" />
-            <converters:BoolToSemiBoldConverter x:Key="BoolToSemiBoldConverter" />
             <converters:HexToBrushConverter x:Key="HexToBrushConverter" />
 
             <!-- Apple Music signature colors -->
