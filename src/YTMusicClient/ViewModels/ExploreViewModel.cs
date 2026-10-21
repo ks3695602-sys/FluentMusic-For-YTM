@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using YTMusicClient.Helpers;
 using YTMusicClient.Models;
 using YTMusicClient.Services;
 
@@ -53,14 +54,36 @@ public partial class ExploreViewModel : ObservableObject
     {
         if (result == null) return;
 
+        AppLogger.Log($"Explore: PlaySongAsync for: {result.Title} ({result.VideoId})");
+
+        var song = new Song
+        {
+            VideoId = result.VideoId,
+            Title = result.Title,
+            Artist = result.Artist,
+            ThumbnailUrl = result.ThumbnailUrl,
+            Duration = result.Duration,
+            StreamUrl = string.Empty
+        };
+
+        _playbackService.SetCurrentSong(song);
+
         try
         {
-            var song = await _musicService.GetSongDetailsAsync(result.VideoId);
-            await _playbackService.PlayAsync(song);
+            var streamUrl = await _musicService.GetAudioStreamUrlAsync(result.VideoId);
+            if (!string.IsNullOrEmpty(streamUrl))
+            {
+                song.StreamUrl = streamUrl;
+                await _playbackService.PlayAsync(song);
+            }
+            else
+            {
+                AppLogger.Log($"Explore: No stream URL for {result.VideoId}");
+            }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"PlaySong failed: {ex.Message}");
+            AppLogger.LogError($"Explore: PlaySongAsync error for {result.VideoId}", ex);
         }
     }
 }

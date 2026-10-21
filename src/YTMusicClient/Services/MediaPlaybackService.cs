@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Windows.Media;
 using Windows.Media.Playback;
 using Windows.Storage.Streams;
+using YTMusicClient.Helpers;
 using YTMusicClient.Models;
 
 namespace YTMusicClient.Services;
@@ -61,32 +62,39 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         _positionTimer = new System.Threading.Timer(OnPositionTimerTick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(250));
     }
 
+    public void SetCurrentSong(Song song)
+    {
+        CurrentSong = song;
+        AppLogger.Log($"SetCurrentSong: {song.Title} by {song.Artist}");
+        _dispatcherQueue.TryEnqueue(() =>
+        {
+            SongChanged?.Invoke(this, song);
+        });
+    }
+
     public async Task PlayAsync(Song song)
     {
         try
         {
-            CurrentSong = song;
+            SetCurrentSong(song);
 
             if (string.IsNullOrEmpty(song.StreamUrl))
             {
-                Debug.WriteLine("No stream URL available");
+                AppLogger.Log("PlayAsync: No stream URL available");
                 return;
             }
 
+            AppLogger.Log($"PlayAsync: Setting MediaPlayer source to {song.StreamUrl.Substring(0, Math.Min(60, song.StreamUrl.Length))}...");
             _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(song.StreamUrl));
             _mediaPlayer.Play();
+            AppLogger.Log("PlayAsync: MediaPlayer.Play() invoked");
 
             // Update SMTC display
             await UpdateSmtcDisplayAsync(song);
-
-            _dispatcherQueue.TryEnqueue(() =>
-            {
-                SongChanged?.Invoke(this, song);
-            });
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Play failed: {ex.Message}");
+            AppLogger.LogError("PlayAsync failed", ex);
         }
     }
 
@@ -146,6 +154,7 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
 
     private void OnMediaOpened(MediaPlayer sender, object args)
     {
+        AppLogger.Log($"MediaPlayer MediaOpened. Duration: {_mediaPlayer.PlaybackSession.NaturalDuration}");
         _dispatcherQueue.TryEnqueue(() =>
         {
             PlaybackStateChanged?.Invoke(this, _mediaPlayer.PlaybackSession.PlaybackState);
@@ -154,11 +163,12 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
 
     private void OnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
     {
-        Debug.WriteLine($"MediaPlayer Failed: {args.Error} - {args.ErrorMessage} (HResult: 0x{args.ExtendedErrorCode:X8})");
+        AppLogger.Log($"MediaPlayer FAILED: {args.Error} - {args.ErrorMessage} (HResult: 0x{args.ExtendedErrorCode:X8})");
     }
 
     private void OnPlaybackStateChanged(MediaPlaybackSession sender, object args)
     {
+        AppLogger.Log($"PlaybackStateChanged: {sender.PlaybackState}");
         _dispatcherQueue.TryEnqueue(() =>
         {
             PlaybackStateChanged?.Invoke(this, sender.PlaybackState);

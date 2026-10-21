@@ -18,11 +18,44 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
-                <FontIcon Glyph="&#xE8D6;" FontSize="18" Foreground="{StaticResource AccentRedBrush}" />
-                <TextBlock Text="YT Music" Style="{StaticResource CaptionTextBlockStyle}"
-                           VerticalAlignment="Center" FontWeight="SemiBold" />
+
+            <!-- App Logo & Title -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource AccentRedBrush}">
+                    <FontIcon Glyph="&#xE768;" FontSize="12" Foreground="White"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0" />
+                </Border>
+                <TextBlock Text="FluentMusic" Style="{StaticResource BodyStrongTextBlockStyle}"
+                           VerticalAlignment="Center" FontWeight="Bold" />
+            </StackPanel>
+
+            <!-- Drag Region -->
+            <Grid Grid.Column="1" Background="Transparent" />
+
+            <!-- Top-Right Actions (macOS / Liquid Glass style beside caption buttons) -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8" Margin="0,0,140,0">
+                <Button x:Name="TopSettingsButton"
+                        Width="34" Height="34" Padding="0"
+                        CornerRadius="17"
+                        Background="{ThemeResource SubtleFillColorTransparentBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        ToolTipService.ToolTip="Settings"
+                        Click="TopSettingsButton_Click">
+                    <FontIcon Glyph="&#xE713;" FontSize="14" />
+                </Button>
+                <Button x:Name="UserProfileButton"
+                        Width="34" Height="34" Padding="0"
+                        CornerRadius="17"
+                        Background="{ThemeResource SubtleFillColorTransparentBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        ToolTipService.ToolTip="Google Account &amp; Sync"
+                        Click="UserProfileButton_Click">
+                    <FontIcon Glyph="&#xE77B;" FontSize="14" />
+                </Button>
             </StackPanel>
         </Grid>
 
@@ -59,10 +92,6 @@
                         </NavigationViewItem>
                         <NavigationViewItem Content="Library" Tag="library" Icon="Library" />
                     </NavigationView.MenuItems>
-
-                    <NavigationView.FooterMenuItems>
-                        <NavigationViewItem Content="Settings" Tag="settings" Icon="Setting" />
-                    </NavigationView.FooterMenuItems>
 
                     <Frame x:Name="ContentFrame" />
                 </NavigationView>

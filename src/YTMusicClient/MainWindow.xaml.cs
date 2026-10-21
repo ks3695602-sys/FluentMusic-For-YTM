@@ -50,7 +50,9 @@ public sealed partial class MainWindow : Window
 
     private void TrySetBackdrop()
     {
-        if (Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
+        bool isWindows11 = Environment.OSVersion.Version.Build >= 22000;
+
+        if (isWindows11 && Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
         {
             this.SystemBackdrop = new MicaBackdrop
             {
@@ -59,9 +61,21 @@ public sealed partial class MainWindow : Window
         }
         else if (Microsoft.UI.Composition.SystemBackdrops.DesktopAcrylicController.IsSupported())
         {
+            // Windows 10 native frosted acrylic backdrop support
             this.SystemBackdrop = new DesktopAcrylicBackdrop();
         }
-        // else: solid fallback (default behavior)
+    }
+
+    private void TopSettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        NavView.SelectedItem = null;
+        ContentFrame.Navigate(typeof(SettingsPage));
+    }
+
+    private void UserProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        NavView.SelectedItem = null;
+        ContentFrame.Navigate(typeof(SettingsPage));
     }
 
     private void NavView_Loaded(object sender, RoutedEventArgs e)

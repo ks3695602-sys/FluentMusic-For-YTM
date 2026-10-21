@@ -6,50 +6,74 @@
     xmlns:models="using:YTMusicClient.Models"
     NavigationCacheMode="Enabled">
 
-    <ScrollViewer Padding="36,24">
-        <StackPanel Spacing="24">
-            <!-- Greeting -->
-            <TextBlock Text="{x:Bind ViewModel.Greeting, Mode=OneWay}"
-                       Style="{StaticResource TitleLargeTextBlockStyle}"
-                       FontWeight="Bold" />
+    <ScrollViewer Padding="36,16,36,36">
+        <StackPanel Spacing="20">
+            <!-- Apple Spotlight-Style Centered Pill Search Bar -->
+            <Grid HorizontalAlignment="Stretch" Margin="0,8,0,12">
+                <AutoSuggestBox x:Name="HomeSearchBox"
+                                PlaceholderText="Search songs, albums, artists..."
+                                QueryIcon="Find"
+                                Height="44"
+                                Width="520"
+                                HorizontalAlignment="Center"
+                                CornerRadius="22"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                QuerySubmitted="HomeSearchBox_QuerySubmitted" />
+            </Grid>
 
-            <!-- Quick Picks -->
-            <TextBlock Text="Trending Now" Style="{StaticResource SubtitleTextBlockStyle}" />
+            <!-- Greeting Header -->
+            <StackPanel Spacing="2">
+                <TextBlock Text="{x:Bind ViewModel.Greeting, Mode=OneWay}"
+                           Style="{StaticResource TitleLargeTextBlockStyle}"
+                           FontWeight="Bold" FontSize="30" />
+                <TextBlock Text="Trending Hits &amp; Recommended for you"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Style="{StaticResource CaptionTextBlockStyle}" />
+            </StackPanel>
 
+            <!-- Loading Indicator -->
             <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
                           Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
-                          Width="40" Height="40" />
+                          Width="36" Height="36" HorizontalAlignment="Left" />
 
+            <!-- Trending Music Grid -->
             <GridView ItemsSource="{x:Bind ViewModel.TrendingSongs, Mode=OneWay}"
                       SelectionMode="None"
                       IsItemClickEnabled="True"
                       ItemClick="TrendingItem_Click">
                 <GridView.ItemTemplate>
                     <DataTemplate x:DataType="models:SearchResult">
-                        <Grid Width="180" Padding="8" RowSpacing="8">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="180" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="10"
+                                Margin="4,4,12,12"
+                                Width="196">
+                            <StackPanel Spacing="10">
+                                <Border CornerRadius="10" Height="176" Width="176">
+                                    <Image Stretch="UniformToFill">
+                                        <Image.Source>
+                                            <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
+                                                         DecodePixelWidth="176" />
+                                        </Image.Source>
+                                    </Image>
+                                </Border>
 
-                            <Border Grid.Row="0" CornerRadius="8">
-                                <Image Stretch="UniformToFill">
-                                    <Image.Source>
-                                        <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
-                                                     DecodePixelWidth="180" />
-                                    </Image.Source>
-                                </Image>
-                            </Border>
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="{x:Bind Title}"
+                                               MaxLines="1" TextTrimming="CharacterEllipsis"
+                                               Style="{StaticResource BodyStrongTextBlockStyle}"
+                                               FontSize="13" />
 
-                            <TextBlock Grid.Row="1" Text="{x:Bind Title}"
-                                       MaxLines="2" TextTrimming="CharacterEllipsis"
-                                       Style="{StaticResource BodyStrongTextBlockStyle}" />
-
-                            <TextBlock Grid.Row="2" Text="{x:Bind Artist}"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       Style="{StaticResource CaptionTextBlockStyle}" />
-                        </Grid>
+                                    <TextBlock Text="{x:Bind Artist}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                               MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </DataTemplate>
                 </GridView.ItemTemplate>
             </GridView>

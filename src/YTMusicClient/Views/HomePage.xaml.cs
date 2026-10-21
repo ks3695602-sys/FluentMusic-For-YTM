@@ -26,6 +26,19 @@ public sealed partial class HomePage : Page
         }
     }
 
+    private void HomeSearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        if (!string.IsNullOrWhiteSpace(args.QueryText))
+        {
+            var exploreVm = App.Services.GetRequiredService<ExploreViewModel>();
+            exploreVm.SearchQuery = args.QueryText;
+            exploreVm.SearchCommand.Execute(null);
+
+            var navService = App.Services.GetRequiredService<INavigationService>();
+            navService.NavigateTo(typeof(ExplorePage));
+        }
+    }
+
     private async void TrendingItem_Click(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is SearchResult result)

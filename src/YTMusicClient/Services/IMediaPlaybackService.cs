@@ -18,6 +18,7 @@ public interface IMediaPlaybackService
     event EventHandler<TimeSpan>? PositionChanged;
 
     Task PlayAsync(Song song);
+    void SetCurrentSong(Song song);
     void Pause();
     void Resume();
     void TogglePlayPause();
