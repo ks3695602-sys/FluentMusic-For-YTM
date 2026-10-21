@@ -87,7 +87,7 @@ jobs:
           dotnet build ${{ env.SOLUTION_NAME }} `
             --configuration ${{ env.CONFIGURATION }} `
             --no-restore `
-            /fl /flp:logfile=build.log;verbosity=normal `
+            /fl "/flp:logfile=build.log;verbosity=normal" `
             /p:Platform=${{ env.PLATFORM }} `
             /p:GenerateAppxPackageOnBuild=true `
             /p:UapAppxPackageBuildMode=SideloadOnly `
