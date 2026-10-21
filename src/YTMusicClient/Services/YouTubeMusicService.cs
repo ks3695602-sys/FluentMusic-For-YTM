@@ -99,8 +99,25 @@ public class YouTubeMusicService : IYouTubeMusicService
                             });
                         }
                     }
-                    AppLogger.Log($"BravePipe search SUCCESS: {results.Count} tracks found");
-                    return results;
+
+                    // Validate query relevance before accepting BravePipe tracks
+                    var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "by", "the", "a", "an", "and", "in", "of", "to", "for", "on", "with" };
+                    var queryWords = query.Split(new[] { ' ', '-', '_', ',', '.' }, StringSplitOptions.RemoveEmptyEntries)
+                                          .Where(w => w.Length >= 2 && !stopWords.Contains(w))
+                                          .ToList();
+
+                    bool isRelevant = queryWords.Count == 0 || results.Any(r =>
+                        queryWords.Any(w => r.Title.Contains(w, StringComparison.OrdinalIgnoreCase) ||
+                                            r.Artist.Contains(w, StringComparison.OrdinalIgnoreCase)));
+
+                    if (isRelevant && results.Count > 0)
+                    {
+                        AppLogger.Log($"BravePipe search SUCCESS: {results.Count} relevant tracks found");
+                        return results;
+                    }
+
+                    AppLogger.Log($"BravePipe results lacked relevance to '{query}'. Clearing and falling back to YouTube.");
+                    results.Clear();
                 }
             }
         }

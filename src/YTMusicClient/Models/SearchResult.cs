@@ -16,4 +16,5 @@ public class SearchResult
     public string GradientEnd { get; set; } = "#181A20";
     public string Subtitle => string.IsNullOrEmpty(Album) ? $"Song · {Artist}" : $"{Artist} — {Album}";
     public string AudioQuality { get; set; } = "256 kbps · AAC · Hi-Res";
+    public SearchResult Self => this;
 }

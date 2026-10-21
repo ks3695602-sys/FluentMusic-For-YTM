@@ -20,4 +20,5 @@ public class Song
     // Dynamic Ambient Gradient Colors
     public string GradientColorStart { get; set; } = "#3B2028";
     public string GradientColorEnd { get; set; } = "#1B1C22";
+    public Song Self => this;
 }
