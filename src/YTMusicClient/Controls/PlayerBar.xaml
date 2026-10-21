@@ -127,9 +127,9 @@
             <!-- 3. Right: Equalizer + More Options + Lyrics + Queue + Volume -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
                 <!-- Animated Live Equalizer Waveform -->
-                <TextBlock Text="ıllı" FontSize="13" Foreground="{StaticResource AccentRedBrush}"
-                           FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,4,0"
-                           Visibility="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                <FontIcon Glyph="&#xE995;" FontSize="13" Foreground="{StaticResource AccentRedBrush}"
+                          VerticalAlignment="Center" Margin="0,0,4,0"
+                          Visibility="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
                 <!-- God-Tier More Options Button (WinUI 3 MenuFlyout) -->
                 <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
