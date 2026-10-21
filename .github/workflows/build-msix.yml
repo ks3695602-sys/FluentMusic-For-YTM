@@ -19,6 +19,9 @@ env:
   CONFIGURATION: "Release"
   PLATFORM: "x64"
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -92,7 +95,26 @@ jobs:
             /p:PackageCertificateThumbprint="${{ env.CERT_THUMBPRINT }}" `
             /p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
             /p:PackageCertificatePassword="CIBuild123!" `
-            -fl -flp:logfile=build.log;verbosity=normal
+            -fl -flp:logfile=build.log;verbosity=detailed
+
+      - name: Push Diagnostics to ci-debug Branch on Failure
+        if: failure()
+        shell: pwsh
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B ci-debug
+          New-Item -ItemType Directory -Force -Path "ci_debug" | Out-Null
+          if (Test-Path "build.log") { Copy-Item "build.log" "ci_debug\" }
+          Get-ChildItem -Path . -Recurse -Filter "output.json" | ForEach-Object {
+            Copy-Item $_.FullName "ci_debug\"
+          }
+          Get-ChildItem -Path . -Recurse -Filter "input.json" | ForEach-Object {
+            Copy-Item $_.FullName "ci_debug\"
+          }
+          git add -f ci_debug
+          git commit -m "chore: save CI failure diagnostics"
+          git push -f origin ci-debug
 
       - name: Inspect Diagnostics on Failure
         if: failure()
