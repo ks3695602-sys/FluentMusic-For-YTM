@@ -1,4 +1,7 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using YTMusicClient.Helpers;
@@ -16,14 +19,17 @@ public partial class HomeViewModel : ObservableObject
     private bool _isLoading;
 
     [ObservableProperty]
-    private string _greeting = "Good Morning";
+    private string _greeting = "Good Evening";
 
     [ObservableProperty]
-    private string _searchQuery = string.Empty;
+    private string _searchQuery = "nights off";
 
+    [ObservableProperty]
+    private bool _isAppleMusicSource = true;
+
+    public ObservableCollection<SearchResult> TopResults { get; } = new();
+    public ObservableCollection<SearchResult> TopArtists { get; } = new();
     public ObservableCollection<SearchResult> TrendingSongs { get; } = new();
-    public ObservableCollection<SearchResult> RecentlyPlayed { get; } = new();
-    public ObservableCollection<SearchResult> SearchSuggestions { get; } = new();
 
     public HomeViewModel(IYouTubeMusicService musicService, IMediaPlaybackService playbackService)
     {
@@ -44,17 +50,45 @@ public partial class HomeViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task LoadTrendingAsync()
+    public async Task SearchAsync(string? query = null)
     {
-        if (IsLoading) return;
-        IsLoading = true;
+        var targetQuery = !string.IsNullOrWhiteSpace(query) ? query : SearchQuery;
+        if (string.IsNullOrWhiteSpace(targetQuery)) return;
 
+        IsLoading = true;
         try
         {
+            AppLogger.Log($"HomeViewModel.SearchAsync for: '{targetQuery}'");
+            var results = await _musicService.SearchAsync(targetQuery);
+
+            TopResults.Clear();
             TrendingSongs.Clear();
-            var results = await _musicService.GetTrendingAsync();
-            foreach (var r in results)
+            TopArtists.Clear();
+
+            // First 6 tracks for Top Results 2x3 grid
+            foreach (var r in results.Take(6))
+            {
+                TopResults.Add(r);
+            }
+
+            // Next tracks for albums/songs grid
+            foreach (var r in results.Skip(6))
+            {
                 TrendingSongs.Add(r);
+            }
+
+            // Unique artists for Circular Artist Row
+            var distinctArtists = results
+                .GroupBy(r => r.Artist)
+                .Select(g => g.First())
+                .Take(6);
+
+            foreach (var a in distinctArtists)
+            {
+                TopArtists.Add(a);
+            }
+
+            AppLogger.Log($"SearchAsync populated: TopResults={TopResults.Count}, Artists={TopArtists.Count}, Trending={TrendingSongs.Count}");
         }
         finally
         {
@@ -63,13 +97,20 @@ public partial class HomeViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task PlaySongAsync(SearchResult? result)
+    public async Task LoadTrendingAsync()
+    {
+        if (TopResults.Count > 0) return;
+        await SearchAsync("Top Hits 2026");
+    }
+
+    [RelayCommand]
+    public async Task PlaySongAsync(SearchResult? result)
     {
         if (result == null) return;
 
         AppLogger.Log($"PlaySongAsync invoked for: {result.Title} ({result.VideoId})");
 
-        // 1. Instant optimistic UI feedback: show song in bottom player bar immediately
+        // Instant optimistic feedback in floating player
         var song = new Song
         {
             VideoId = result.VideoId,
@@ -82,7 +123,7 @@ public partial class HomeViewModel : ObservableObject
 
         _playbackService.SetCurrentSong(song);
 
-        // 2. Fetch audio stream URL with fallback engine
+        // Fetch streaming audio from BravePipe / YouTube / Fallback
         try
         {
             var streamUrl = await _musicService.GetAudioStreamUrlAsync(result.VideoId);

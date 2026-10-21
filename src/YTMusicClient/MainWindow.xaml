@@ -4,101 +4,212 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:YTMusicClient.Controls"
-    Title="YT Music">
+    Title="FluentMusic">
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="48" /> <!-- TitleBar -->
-            <RowDefinition Height="*" />  <!-- Content -->
-            <RowDefinition Height="Auto" /> <!-- Player Bar -->
+            <RowDefinition Height="44" /> <!-- Custom Unified TitleBar -->
+            <RowDefinition Height="*" />  <!-- Main App Body -->
         </Grid.RowDefinitions>
 
-        <!-- Custom TitleBar -->
-        <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0">
+        <!-- Custom Unified TitleBar -->
+        <Grid Grid.Row="0" Padding="16,0,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="220" /> <!-- App Branding aligns with sidebar -->
+                <ColumnDefinition Width="*" />   <!-- Center Draggable Region ONLY -->
+                <ColumnDefinition Width="Auto" /> <!-- Top-Right Actions -->
             </Grid.ColumnDefinitions>
 
-            <!-- App Logo & Title -->
+            <!-- App Logo & Title (Left aligned) -->
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
-                <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource AccentRedBrush}">
-                    <FontIcon Glyph="&#xE768;" FontSize="12" Foreground="White"
+                <Border Width="26" Height="26" CornerRadius="13" Background="{StaticResource AccentRedBrush}">
+                    <FontIcon Glyph="&#xE768;" FontSize="11" Foreground="White"
                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0" />
                 </Border>
                 <TextBlock Text="FluentMusic" Style="{StaticResource BodyStrongTextBlockStyle}"
-                           VerticalAlignment="Center" FontWeight="Bold" />
+                           VerticalAlignment="Center" FontWeight="Bold" FontSize="14" />
             </StackPanel>
 
-            <!-- Drag Region -->
-            <Grid Grid.Column="1" Background="Transparent" />
+            <!-- ONLY DragRegion is passed to SetTitleBar so buttons remain clickable! -->
+            <Grid x:Name="DragRegion" Grid.Column="1" Background="Transparent" />
 
-            <!-- Top-Right Actions (macOS / Liquid Glass style beside caption buttons) -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8" Margin="0,0,140,0">
+            <!-- Top-Right Actions (Interactive buttons outside the draggable region) -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6" Margin="0,0,140,0">
                 <Button x:Name="TopSettingsButton"
-                        Width="34" Height="34" Padding="0"
-                        CornerRadius="17"
+                        Width="32" Height="32" Padding="0"
+                        CornerRadius="16"
                         Background="{ThemeResource SubtleFillColorTransparentBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1"
                         ToolTipService.ToolTip="Settings"
                         Click="TopSettingsButton_Click">
-                    <FontIcon Glyph="&#xE713;" FontSize="14" />
+                    <FontIcon Glyph="&#xE713;" FontSize="13" />
                 </Button>
                 <Button x:Name="UserProfileButton"
-                        Width="34" Height="34" Padding="0"
-                        CornerRadius="17"
+                        Width="32" Height="32" Padding="0"
+                        CornerRadius="16"
                         Background="{ThemeResource SubtleFillColorTransparentBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1"
-                        ToolTipService.ToolTip="Google Account &amp; Sync"
+                        ToolTipService.ToolTip="Account / Settings"
                         Click="UserProfileButton_Click">
-                    <FontIcon Glyph="&#xE77B;" FontSize="14" />
+                    <FontIcon Glyph="&#xE77B;" FontSize="13" />
                 </Button>
             </StackPanel>
         </Grid>
 
-        <!-- Main content: NavigationView + Lyrics SplitView -->
-        <SplitView x:Name="LyricsSplitView"
-                   Grid.Row="1"
-                   IsPaneOpen="{x:Bind ViewModel.IsLyricsPanelOpen, Mode=TwoWay}"
-                   PanePlacement="Right"
-                   OpenPaneLength="380"
-                   DisplayMode="Inline"
-                   PaneBackground="Transparent">
+        <!-- Main Body: Left Sidebar + Right Content Area with Floating Player -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" /> <!-- macOS Left Sidebar -->
+                <ColumnDefinition Width="*" />   <!-- Content Area with Floating Overlay -->
+            </Grid.ColumnDefinitions>
 
-            <!-- Lyrics Pane -->
-            <SplitView.Pane>
-                <controls:LyricsPanel x:Name="LyricsPanelControl" />
-            </SplitView.Pane>
+            <!-- Left Sidebar (macOS Apple Music Style) -->
+            <Border Grid.Column="0"
+                    Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="0,0,1,0">
+                <Grid Padding="12,12,12,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-            <!-- NavigationView Content -->
-            <SplitView.Content>
-                <NavigationView x:Name="NavView"
-                                IsBackButtonVisible="Collapsed"
-                                IsSettingsVisible="False"
-                                PaneDisplayMode="Left"
-                                IsPaneToggleButtonVisible="True"
-                                SelectionChanged="NavView_SelectionChanged"
-                                Loaded="NavView_Loaded">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="6">
+                            <!-- Main Navigation -->
+                            <Button x:Name="NavSearchBtn"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1" CornerRadius="8" Padding="12,8"
+                                    Click="NavSearchBtn_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE721;" FontSize="14" Foreground="{StaticResource AccentRedBrush}" />
+                                    <TextBlock Text="Search" FontWeight="SemiBold" FontSize="13" />
+                                </StackPanel>
+                            </Button>
 
-                    <NavigationView.MenuItems>
-                        <NavigationViewItem Content="Home" Tag="home" Icon="Home" />
-                        <NavigationViewItem Content="Explore" Tag="explore">
-                            <NavigationViewItem.Icon>
-                                <FontIcon Glyph="&#xF6FA;" />
-                            </NavigationViewItem.Icon>
-                        </NavigationViewItem>
-                        <NavigationViewItem Content="Library" Tag="library" Icon="Library" />
-                    </NavigationView.MenuItems>
+                            <Button x:Name="NavHomeBtn"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="8" Padding="12,8"
+                                    Click="NavHomeBtn_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE80F;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="Home" FontSize="13" />
+                                </StackPanel>
+                            </Button>
 
-                    <Frame x:Name="ContentFrame" />
-                </NavigationView>
-            </SplitView.Content>
-        </SplitView>
+                            <Button x:Name="NavExploreBtn"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="8" Padding="12,8"
+                                    Click="NavExploreBtn_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xF6FA;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="Explore / New" FontSize="13" />
+                                </StackPanel>
+                            </Button>
 
-        <!-- Bottom Player Bar -->
-        <controls:PlayerBar x:Name="PlayerBarControl" Grid.Row="2" />
+                            <!-- Section Header: Library -->
+                            <TextBlock Text="LIBRARY"
+                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                       FontSize="11" FontWeight="Bold" Margin="12,16,0,4" />
+
+                            <Button x:Name="NavLibraryBtn"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="8" Padding="12,7"
+                                    Click="NavLibraryBtn_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE81C;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="Recently Added" FontSize="13" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="8" Padding="12,7"
+                                    Click="NavLibraryBtn_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE77B;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="Artists" FontSize="13" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="8" Padding="12,7"
+                                    Click="NavLibraryBtn_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE93C;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="Albums" FontSize="13" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="8" Padding="12,7"
+                                    Click="NavLibraryBtn_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE8D6;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="Songs" FontSize="13" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Section Header: Playlists -->
+                            <TextBlock Text="PLAYLISTS"
+                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                       FontSize="11" FontWeight="Bold" Margin="12,16,0,4" />
+
+                            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="8" Padding="12,7">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE8D6;" FontSize="13" Foreground="{StaticResource AccentRedBrush}" />
+                                    <TextBlock Text="Favorite Songs" FontSize="13" />
+                                </StackPanel>
+                            </Button>
+
+                            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="8" Padding="12,7">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE90B;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="Top Hits 2026" FontSize="13" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Bottom User Profile (macOS Apple Music Style) -->
+                    <Border Grid.Row="1" Margin="0,12,0,0" Padding="8"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" CornerRadius="8">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32" Height="32" CornerRadius="16" Background="#3A3D45">
+                                <TextBlock Text="FM" FontWeight="Bold" FontSize="12" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Fluent User" FontWeight="SemiBold" FontSize="12" />
+                                <TextBlock Text="Free Listening" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="10" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Right Content Frame + Floating Acrylic Player Overlay -->
+            <Grid Grid.Column="1">
+                <!-- Content Frame (Layer 0: content scrolls all the way to bottom!) -->
+                <Frame x:Name="ContentFrame" />
+
+                <!-- Floating Liquid Glass Player Bar (Layer 1: Hovers centered above content!) -->
+                <controls:PlayerBar x:Name="PlayerBarControl"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Bottom"
+                                    Margin="0,0,0,22" />
+            </Grid>
+        </Grid>
     </Grid>
 </Window>

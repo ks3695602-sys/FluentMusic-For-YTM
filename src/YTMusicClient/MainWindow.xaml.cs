@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -18,9 +19,9 @@ public sealed partial class MainWindow : Window
         ViewModel = App.Services.GetRequiredService<ShellViewModel>();
         this.InitializeComponent();
 
-        // Custom TitleBar
+        // Custom TitleBar - ONLY DragRegion is draggable so buttons receive mouse clicks!
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
+        SetTitleBar(DragRegion);
 
         // Set App Window Icon
         try
@@ -46,6 +47,9 @@ public sealed partial class MainWindow : Window
         // Register the navigation frame
         var navService = App.Services.GetRequiredService<INavigationService>();
         navService.Frame = ContentFrame;
+
+        // Navigate to Home by default
+        ContentFrame.Navigate(typeof(HomePage));
     }
 
     private void TrySetBackdrop()
@@ -68,37 +72,31 @@ public sealed partial class MainWindow : Window
 
     private void TopSettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        NavView.SelectedItem = null;
         ContentFrame.Navigate(typeof(SettingsPage));
     }
 
     private void UserProfileButton_Click(object sender, RoutedEventArgs e)
     {
-        NavView.SelectedItem = null;
         ContentFrame.Navigate(typeof(SettingsPage));
     }
 
-    private void NavView_Loaded(object sender, RoutedEventArgs e)
+    private void NavSearchBtn_Click(object sender, RoutedEventArgs e)
     {
-        // Navigate to Home by default
         ContentFrame.Navigate(typeof(HomePage));
-        NavView.SelectedItem = NavView.MenuItems[0];
     }
 
-    private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void NavHomeBtn_Click(object sender, RoutedEventArgs e)
     {
-        if (args.SelectedItemContainer is NavigationViewItem item)
-        {
-            var tag = item.Tag?.ToString();
-            var pageType = tag switch
-            {
-                "home" => typeof(HomePage),
-                "explore" => typeof(ExplorePage),
-                "library" => typeof(LibraryPage),
-                "settings" => typeof(SettingsPage),
-                _ => typeof(HomePage)
-            };
-            ContentFrame.Navigate(pageType);
-        }
+        ContentFrame.Navigate(typeof(HomePage));
+    }
+
+    private void NavExploreBtn_Click(object sender, RoutedEventArgs e)
+    {
+        ContentFrame.Navigate(typeof(ExplorePage));
+    }
+
+    private void NavLibraryBtn_Click(object sender, RoutedEventArgs e)
+    {
+        ContentFrame.Navigate(typeof(LibraryPage));
     }
 }

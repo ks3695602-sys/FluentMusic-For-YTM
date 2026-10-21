@@ -6,77 +6,229 @@
     xmlns:models="using:YTMusicClient.Models"
     NavigationCacheMode="Enabled">
 
-    <ScrollViewer Padding="36,16,36,36">
-        <StackPanel Spacing="20">
-            <!-- Apple Spotlight-Style Centered Pill Search Bar -->
-            <Grid HorizontalAlignment="Stretch" Margin="0,8,0,12">
-                <AutoSuggestBox x:Name="HomeSearchBox"
-                                PlaceholderText="Search songs, albums, artists..."
-                                QueryIcon="Find"
-                                Height="44"
-                                Width="520"
-                                HorizontalAlignment="Center"
-                                CornerRadius="22"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                QuerySubmitted="HomeSearchBox_QuerySubmitted" />
-            </Grid>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /> <!-- Top Search Header bar -->
+            <RowDefinition Height="*" />    <!-- Scrollable Content -->
+        </Grid.RowDefinitions>
 
-            <!-- Greeting Header -->
-            <StackPanel Spacing="2">
-                <TextBlock Text="{x:Bind ViewModel.Greeting, Mode=OneWay}"
-                           Style="{StaticResource TitleLargeTextBlockStyle}"
-                           FontWeight="Bold" FontSize="30" />
-                <TextBlock Text="Trending Hits &amp; Recommended for you"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Style="{StaticResource CaptionTextBlockStyle}" />
-            </StackPanel>
+        <!-- Top Search Bar & Segmented Capsule Header (Exact Image 4 Style) -->
+        <Grid Grid.Row="0" Padding="32,8,32,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-            <!-- Loading Indicator -->
-            <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
-                          Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
-                          Width="36" Height="36" HorizontalAlignment="Left" />
+            <!-- Centered Slim Search Pill -->
+            <Border Grid.Column="1"
+                    Width="380" Height="32"
+                    CornerRadius="16"
+                    Background="#26282E"
+                    BorderBrush="#383C45"
+                    BorderThickness="1">
+                <Grid Padding="10,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <FontIcon Glyph="&#xE721;" FontSize="11" Foreground="#888888" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBox x:Name="SearchInputBox"
+                             Grid.Column="1"
+                             Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
+                             PlaceholderText="Search music, songs, artists..."
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0,4,0,0"
+                             FontSize="12"
+                             VerticalAlignment="Center"
+                             KeyDown="SearchInputBox_KeyDown" />
+                </Grid>
+            </Border>
 
-            <!-- Trending Music Grid -->
-            <GridView ItemsSource="{x:Bind ViewModel.TrendingSongs, Mode=OneWay}"
-                      SelectionMode="None"
-                      IsItemClickEnabled="True"
-                      ItemClick="TrendingItem_Click">
-                <GridView.ItemTemplate>
-                    <DataTemplate x:DataType="models:SearchResult">
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="14"
-                                Padding="10"
-                                Margin="4,4,12,12"
-                                Width="196">
-                            <StackPanel Spacing="10">
-                                <Border CornerRadius="10" Height="176" Width="176">
-                                    <Image Stretch="UniformToFill">
-                                        <Image.Source>
-                                            <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
-                                                         DecodePixelWidth="176" />
-                                        </Image.Source>
-                                    </Image>
+            <!-- Right Segmented Source Toggle [ Apple Music | Library ] -->
+            <Border Grid.Column="2" HorizontalAlignment="Right"
+                    Background="#24262C" BorderBrush="#353840" BorderThickness="1"
+                    CornerRadius="14" Padding="3">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                    <Button Content="Online"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                            BorderThickness="0" CornerRadius="12" Padding="12,3" FontSize="11" FontWeight="SemiBold" />
+                    <Button Content="Library"
+                            Background="Transparent"
+                            BorderThickness="0" CornerRadius="12" Padding="12,3" FontSize="11"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Main Scrollable Content (Exact Apple Music Search Result Layout) -->
+        <ScrollViewer Grid.Row="1" Padding="32,0,32,0">
+            <StackPanel Spacing="28">
+
+                <!-- Section 1: Top Results > (2-Row x 3-Column Card Grid) -->
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <TextBlock Text="Top Results"
+                                   FontWeight="Bold" FontSize="18" />
+                        <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Loading Indicator -->
+                    <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                                  Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                                  Width="32" Height="32" HorizontalAlignment="Left" />
+
+                    <!-- 2x3 Top Results Cards Grid -->
+                    <GridView ItemsSource="{x:Bind ViewModel.TopResults, Mode=OneWay}"
+                              SelectionMode="None"
+                              IsItemClickEnabled="True"
+                              ItemClick="TrackCard_Click">
+                        <GridView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid MaximumRowsOrColumns="3" Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </GridView.ItemsPanel>
+                        <GridView.ItemTemplate>
+                            <DataTemplate x:DataType="models:SearchResult">
+                                <Border Width="240" Height="64"
+                                        Background="#202227"
+                                        BorderBrush="#32353E"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        Padding="8"
+                                        Margin="0,0,12,12">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="48" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Album Artwork -->
+                                        <Border CornerRadius="6" Width="48" Height="48">
+                                            <Image Stretch="UniformToFill">
+                                                <Image.Source>
+                                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
+                                                                 DecodePixelWidth="48" />
+                                                </Image.Source>
+                                            </Image>
+                                        </Border>
+
+                                        <!-- Track Metadata -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock Text="{x:Bind Title}"
+                                                       FontWeight="SemiBold" FontSize="13"
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Artist}"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       FontSize="11"
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+
+                                        <!-- Trailing Action Button -->
+                                        <Button Grid.Column="2" Background="Transparent" BorderThickness="0"
+                                                Padding="6" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE712;" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                        </Button>
+                                    </Grid>
                                 </Border>
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                    </GridView>
+                </StackPanel>
 
-                                <StackPanel Spacing="3">
-                                    <TextBlock Text="{x:Bind Title}"
-                                               MaxLines="1" TextTrimming="CharacterEllipsis"
-                                               Style="{StaticResource BodyStrongTextBlockStyle}"
-                                               FontSize="13" />
+                <!-- Section 2: Artists (Circular Photos with Names Underneath) -->
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <TextBlock Text="Artists"
+                                   FontWeight="Bold" FontSize="18" />
+                        <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
 
+                    <ListView ItemsSource="{x:Bind ViewModel.TopArtists, Mode=OneWay}"
+                              SelectionMode="None"
+                              IsItemClickEnabled="True"
+                              ItemClick="ArtistItem_Click">
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="24" />
+                            </ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:SearchResult">
+                                <StackPanel Width="106" Spacing="8" HorizontalAlignment="Center">
+                                    <!-- Circular Artist Avatar -->
+                                    <Border Width="96" Height="96" CornerRadius="48"
+                                            Background="#25272E" BorderBrush="#3A3D46" BorderThickness="1"
+                                            HorizontalAlignment="Center">
+                                        <Image Stretch="UniformToFill">
+                                            <Image.Source>
+                                                <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
+                                                             DecodePixelWidth="96" />
+                                            </Image.Source>
+                                        </Image>
+                                    </Border>
+                                    <!-- Artist Name -->
                                     <TextBlock Text="{x:Bind Artist}"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                               FontWeight="SemiBold" FontSize="12"
+                                               HorizontalAlignment="Center"
                                                MaxLines="1" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </GridView.ItemTemplate>
-            </GridView>
-        </StackPanel>
-    </ScrollViewer>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+
+                <!-- Section 3: Albums & Songs -->
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <TextBlock Text="Trending &amp; Albums"
+                                   FontWeight="Bold" FontSize="18" />
+                        <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <GridView ItemsSource="{x:Bind ViewModel.TrendingSongs, Mode=OneWay}"
+                              SelectionMode="None"
+                              IsItemClickEnabled="True"
+                              ItemClick="TrackCard_Click">
+                        <GridView.ItemTemplate>
+                            <DataTemplate x:DataType="models:SearchResult">
+                                <Border Background="#202227"
+                                        BorderBrush="#30333C"
+                                        BorderThickness="1"
+                                        CornerRadius="10"
+                                        Padding="8"
+                                        Margin="0,0,14,14"
+                                        Width="160">
+                                    <StackPanel Spacing="8">
+                                        <Border CornerRadius="8" Width="144" Height="144">
+                                            <Image Stretch="UniformToFill">
+                                                <Image.Source>
+                                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
+                                                                 DecodePixelWidth="144" />
+                                                </Image.Source>
+                                            </Image>
+                                        </Border>
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="{x:Bind Title}"
+                                                       FontWeight="SemiBold" FontSize="12"
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Artist}"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       FontSize="11"
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                    </GridView>
+                </StackPanel>
+
+                <!-- Crucial Bottom Spacer so content scrolls completely above the floating player! -->
+                <Border Height="110" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </Page>

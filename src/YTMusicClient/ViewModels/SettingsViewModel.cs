@@ -10,7 +10,7 @@ public partial class SettingsViewModel : ObservableObject
     private ElementTheme _currentTheme = ElementTheme.Default;
 
     [ObservableProperty]
-    private string _appVersion = "1.0.1";
+    private string _appVersion = "1.0.2";
 
     [ObservableProperty]
     private bool _isCompactMode;
