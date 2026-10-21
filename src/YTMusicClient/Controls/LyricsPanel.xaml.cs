@@ -10,8 +10,8 @@ public sealed partial class LyricsPanel : UserControl
 
     public LyricsPanel()
     {
-        this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<LyricsViewModel>();
+        this.InitializeComponent();
         ViewModel.ActiveLyricChanged += OnActiveLyricChanged;
     }
 

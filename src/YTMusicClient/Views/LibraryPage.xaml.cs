@@ -11,8 +11,8 @@ public sealed partial class LibraryPage : Page
 
     public LibraryPage()
     {
-        this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<LibraryViewModel>();
+        this.InitializeComponent();
     }
 
     private async void LikedSong_Click(object sender, ItemClickEventArgs e)

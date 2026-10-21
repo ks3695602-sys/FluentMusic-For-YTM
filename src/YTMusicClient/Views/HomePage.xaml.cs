@@ -13,8 +13,8 @@ public sealed partial class HomePage : Page
 
     public HomePage()
     {
-        this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<HomeViewModel>();
+        this.InitializeComponent();
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)

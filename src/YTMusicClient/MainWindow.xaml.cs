@@ -15,13 +15,26 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
-        this.InitializeComponent();
-
         ViewModel = App.Services.GetRequiredService<ShellViewModel>();
+        this.InitializeComponent();
 
         // Custom TitleBar
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
+
+        // Set App Window Icon
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "WindowIcon.ico");
+            if (System.IO.File.Exists(iconPath))
+            {
+                appWindow.SetIcon(iconPath);
+            }
+        }
+        catch { }
 
         // Configure backdrop: Mica Alt -> Mica -> Acrylic -> fallback
         TrySetBackdrop();

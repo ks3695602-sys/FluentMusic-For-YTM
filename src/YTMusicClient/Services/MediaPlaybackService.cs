@@ -44,6 +44,8 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         _mediaPlayer.AudioCategory = MediaPlayerAudioCategory.Media;
         _mediaPlayer.PlaybackSession.PlaybackStateChanged += OnPlaybackStateChanged;
         _mediaPlayer.MediaEnded += OnMediaEnded;
+        _mediaPlayer.MediaOpened += OnMediaOpened;
+        _mediaPlayer.MediaFailed += OnMediaFailed;
 
         // Configure SMTC
         _smtc = _mediaPlayer.SystemMediaTransportControls;
@@ -77,7 +79,10 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
             // Update SMTC display
             await UpdateSmtcDisplayAsync(song);
 
-            SongChanged?.Invoke(this, song);
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                SongChanged?.Invoke(this, song);
+            });
         }
         catch (Exception ex)
         {
@@ -121,7 +126,14 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
 
             if (!string.IsNullOrEmpty(song.ThumbnailUrl))
             {
-                updater.Thumbnail = RandomAccessStreamReference.CreateFromUri(new Uri(song.ThumbnailUrl));
+                try
+                {
+                    updater.Thumbnail = RandomAccessStreamReference.CreateFromUri(new Uri(song.ThumbnailUrl));
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"SMTC thumbnail set failed: {ex.Message}");
+                }
             }
 
             updater.Update();
@@ -130,6 +142,19 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         {
             Debug.WriteLine($"SMTC update failed: {ex.Message}");
         }
+    }
+
+    private void OnMediaOpened(MediaPlayer sender, object args)
+    {
+        _dispatcherQueue.TryEnqueue(() =>
+        {
+            PlaybackStateChanged?.Invoke(this, _mediaPlayer.PlaybackSession.PlaybackState);
+        });
+    }
+
+    private void OnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
+    {
+        Debug.WriteLine($"MediaPlayer Failed: {args.Error} - {args.ErrorMessage} (HResult: 0x{args.ExtendedErrorCode:X8})");
     }
 
     private void OnPlaybackStateChanged(MediaPlaybackSession sender, object args)
@@ -189,6 +214,8 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         _smtc.ButtonPressed -= OnSmtcButtonPressed;
         _mediaPlayer.PlaybackSession.PlaybackStateChanged -= OnPlaybackStateChanged;
         _mediaPlayer.MediaEnded -= OnMediaEnded;
+        _mediaPlayer.MediaOpened -= OnMediaOpened;
+        _mediaPlayer.MediaFailed -= OnMediaFailed;
         _mediaPlayer.Dispose();
     }
 }

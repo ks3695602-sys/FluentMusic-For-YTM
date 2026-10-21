@@ -11,8 +11,8 @@ public sealed partial class ExplorePage : Page
 
     public ExplorePage()
     {
-        this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<ExploreViewModel>();
+        this.InitializeComponent();
     }
 
     private async void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)

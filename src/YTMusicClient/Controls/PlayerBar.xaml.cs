@@ -10,7 +10,7 @@ public sealed partial class PlayerBar : UserControl
 
     public PlayerBar()
     {
-        this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<PlayerBarViewModel>();
+        this.InitializeComponent();
     }
 }

@@ -11,12 +11,14 @@ public sealed partial class SettingsPage : Page
 
     public SettingsPage()
     {
-        this.InitializeComponent();
         ViewModel = App.Services.GetRequiredService<SettingsViewModel>();
+        this.InitializeComponent();
     }
 
     private void ThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (ViewModel == null) return;
+
         if (sender is ComboBox combo && combo.SelectedItem is ComboBoxItem item)
         {
             var tag = item.Tag?.ToString() ?? "Default";

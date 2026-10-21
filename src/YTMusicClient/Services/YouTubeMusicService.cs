@@ -74,11 +74,35 @@ public class YouTubeMusicService : IYouTubeMusicService
         try
         {
             var manifest = await _youtube.Videos.Streams.GetManifestAsync(videoId, ct);
-            var streamInfo = manifest.GetAudioOnlyStreams()
+
+            // 1. Prefer MP4/M4A AAC audio streams (natively supported by Windows Media Player without extra codecs)
+            var audioStream = manifest.GetAudioOnlyStreams()
+                .Where(s => s.Container == Container.Mp4)
                 .OrderByDescending(s => s.Bitrate)
                 .FirstOrDefault();
 
-            return streamInfo?.Url ?? string.Empty;
+            if (audioStream != null)
+            {
+                return audioStream.Url;
+            }
+
+            // 2. Fallback to muxed MP4 streams (contains AAC audio)
+            var muxedStream = manifest.GetMuxedStreams()
+                .Where(s => s.Container == Container.Mp4)
+                .OrderByDescending(s => s.Bitrate)
+                .FirstOrDefault();
+
+            if (muxedStream != null)
+            {
+                return muxedStream.Url;
+            }
+
+            // 3. Last-resort fallback: highest bitrate audio-only stream (e.g. WebM/Opus)
+            var fallbackStream = manifest.GetAudioOnlyStreams()
+                .OrderByDescending(s => s.Bitrate)
+                .FirstOrDefault();
+
+            return fallbackStream?.Url ?? string.Empty;
         }
         catch (Exception ex)
         {
