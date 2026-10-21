@@ -95,7 +95,8 @@ jobs:
             /p:PackageCertificateThumbprint="${{ env.CERT_THUMBPRINT }}" `
             /p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
             /p:PackageCertificatePassword="CIBuild123!" `
-            -fl -flp:logfile=build.log;verbosity=detailed
+            -bl:msbuild.binlog `
+            -fl -flp:logfile=build.log;verbosity=diagnostic
 
       - name: Push Diagnostics to ci-debug Branch on Failure
         if: failure()
@@ -106,6 +107,7 @@ jobs:
           git checkout -B ci-debug
           New-Item -ItemType Directory -Force -Path "ci_debug" | Out-Null
           if (Test-Path "build.log") { Copy-Item "build.log" "ci_debug\" }
+          if (Test-Path "msbuild.binlog") { Copy-Item "msbuild.binlog" "ci_debug\" }
           Get-ChildItem -Path . -Recurse -Filter "output.json" | ForEach-Object {
             Copy-Item $_.FullName "ci_debug\"
           }
@@ -113,9 +115,11 @@ jobs:
             Copy-Item $_.FullName "ci_debug\"
           }
           try {
+            Push-Location "src\YTMusicClient"
             $compiler = (Get-ChildItem -Path "C:\Users\runneradmin\.nuget\packages\microsoft.windowsappsdk" -Recurse -Filter "XamlCompiler.exe" | Select-Object -First 1).FullName
-            Write-Host "Directly executing XamlCompiler: $compiler"
-            $directLog = & $compiler "src\YTMusicClient\obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\input.json" "src\YTMusicClient\obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\output.json" 2>&1
+            Write-Host "Directly executing XamlCompiler: $compiler in $(Get-Location)"
+            $directLog = & $compiler "obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\input.json" "obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\output.json" 2>&1
+            Pop-Location
             $directLog | Out-File -FilePath "ci_debug\direct_compiler.log" -Encoding utf8
           } catch {
             $_ | Out-File -FilePath "ci_debug\direct_compiler.log" -Encoding utf8

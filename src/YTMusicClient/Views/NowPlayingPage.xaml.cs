@@ -60,6 +60,8 @@ public sealed partial class NowPlayingPage : Page
         VideoModeBtn.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
     }
 
+    private WebView2? _videoPlayerWebView;
+
     private async void VideoModeBtn_Click(object sender, RoutedEventArgs e)
     {
         SongStageContainer.Visibility = Visibility.Collapsed;
@@ -73,9 +75,19 @@ public sealed partial class NowPlayingPage : Page
             var currentSong = PlayerViewModel.PlaybackService.CurrentSong;
             if (currentSong != null && !string.IsNullOrEmpty(currentSong.VideoId))
             {
-                await VideoPlayerWebView.EnsureCoreWebView2Async();
+                if (_videoPlayerWebView == null)
+                {
+                    _videoPlayerWebView = new WebView2
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
+                    };
+                    VideoHostBorder.Child = _videoPlayerWebView;
+                }
+
+                await _videoPlayerWebView.EnsureCoreWebView2Async();
                 var embedUrl = $"https://www.youtube.com/embed/{currentSong.VideoId}?autoplay=1&controls=1";
-                VideoPlayerWebView.Source = new Uri(embedUrl);
+                _videoPlayerWebView.Source = new Uri(embedUrl);
             }
         }
         catch { }
