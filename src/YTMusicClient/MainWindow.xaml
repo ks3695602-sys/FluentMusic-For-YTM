@@ -265,12 +265,7 @@
                                                             <ColumnDefinition Width="Auto" />
                                                         </Grid.ColumnDefinitions>
                                                         <Border CornerRadius="4" Width="34" Height="34">
-                                                            <Image Stretch="UniformToFill">
-                                                                <Image.Source>
-                                                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
-                                                                                 DecodePixelWidth="34" />
-                                                                </Image.Source>
-                                                            </Image>
+                                                            <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" />
                                                         </Border>
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                             <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12"
@@ -307,12 +302,7 @@
                                                             <ColumnDefinition Width="*" />
                                                         </Grid.ColumnDefinitions>
                                                         <Border CornerRadius="4" Width="34" Height="34">
-                                                            <Image Stretch="UniformToFill">
-                                                                <Image.Source>
-                                                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
-                                                                                 DecodePixelWidth="34" />
-                                                                </Image.Source>
-                                                            </Image>
+                                                            <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" />
                                                         </Border>
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                             <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12"

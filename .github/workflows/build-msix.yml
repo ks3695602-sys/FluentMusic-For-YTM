@@ -94,9 +94,7 @@ jobs:
             /p:AppxPackageSigningEnabled=true `
             /p:PackageCertificateThumbprint="${{ env.CERT_THUMBPRINT }}" `
             /p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
-            /p:PackageCertificatePassword="CIBuild123!" `
-            -bl:msbuild.binlog `
-            -fl -flp:logfile=build.log;verbosity=diagnostic
+            /p:PackageCertificatePassword="CIBuild123!"
 
       - name: Push Diagnostics to ci-debug Branch on Failure
         if: failure()

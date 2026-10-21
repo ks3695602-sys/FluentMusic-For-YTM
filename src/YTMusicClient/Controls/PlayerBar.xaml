@@ -2,7 +2,18 @@
 <UserControl
     x:Class="YTMusicClient.Controls.PlayerBar"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:YTMusicClient.Converters">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <converters:ActiveAccentBrushConverter x:Key="ActiveAccentBrushConverter" />
+            <converters:RepeatModeToGlyphConverter x:Key="RepeatModeGlyphConverter" />
+            <converters:BoolToGlyphConverter x:Key="PlayPauseGlyph" TrueGlyph="&#xE769;" FalseGlyph="&#xE768;" />
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+            <converters:StringToUriConverter x:Key="StringToUriConverter" />
+        </ResourceDictionary>
+    </UserControl.Resources>
 
     <!-- Exact Apple Music Floating Liquid Glass Capsule Player -->
     <Border Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
@@ -85,12 +96,7 @@
 
                         <!-- Square Album Art -->
                         <Border CornerRadius="4" Width="32" Height="32" VerticalAlignment="Center">
-                            <Image Stretch="UniformToFill">
-                                <Image.Source>
-                                    <BitmapImage UriSource="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay, Converter={StaticResource StringToUriConverter}}"
-                                                 DecodePixelWidth="32" />
-                                </Image.Source>
-                            </Image>
+                            <Image Source="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay}" Stretch="UniformToFill" />
                         </Border>
 
                         <!-- Track Title & Artist -->
