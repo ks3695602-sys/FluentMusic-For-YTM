@@ -94,13 +94,12 @@ jobs:
             /p:PackageCertificatePassword="CIBuild123!" `
             -fl -flp:logfile=build.log;verbosity=normal
 
-      - name: Report Build Errors
+      - name: Upload Build Log on Failure
         if: failure()
-        shell: pwsh
-        run: |
-          if (Test-Path build.log) {
-            Get-Content build.log | Select-String -Pattern "error " -Context 1,1 | ForEach-Object { Write-Error $_ }
-          }
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-failure-log
+          path: build.log
 
       - name: Upload MSIX Artifact
         uses: actions/upload-artifact@v4
