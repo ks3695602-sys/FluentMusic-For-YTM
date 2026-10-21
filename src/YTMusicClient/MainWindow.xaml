@@ -273,8 +273,7 @@
                                                             <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                        FontSize="10" MaxLines="1" TextTrimming="CharacterEllipsis" />
                                                         </StackPanel>
-                                                        <Button Grid.Column="2" Click="RemoveQueueItem_Click" Tag="{x:Bind Self}"
-                                                                Background="Transparent" BorderThickness="0" Padding="4">
+                                                        <Button Grid.Column="2" Background="Transparent" BorderThickness="0" Padding="4">
                                                             <FontIcon Glyph="&#xE711;" FontSize="10" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                                                         </Button>
                                                     </Grid>
