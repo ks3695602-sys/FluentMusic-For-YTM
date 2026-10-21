@@ -25,14 +25,12 @@ public sealed partial class PlayerBar : UserControl
 
     private void CenterLcdPill_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        var navService = App.Services.GetService(typeof(INavigationService)) as INavigationService;
-        navService?.NavigateTo(typeof(NowPlayingPage));
+        LyricsToggled?.Invoke(this, EventArgs.Empty);
     }
 
     private void OpenFullScreen_Click(object sender, RoutedEventArgs e)
     {
-        var navService = App.Services.GetService(typeof(INavigationService)) as INavigationService;
-        navService?.NavigateTo(typeof(NowPlayingPage));
+        LyricsToggled?.Invoke(this, EventArgs.Empty);
     }
 
     private void LyricsButton_Click(object sender, RoutedEventArgs e)
