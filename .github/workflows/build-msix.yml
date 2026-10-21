@@ -87,6 +87,7 @@ jobs:
           dotnet build ${{ env.SOLUTION_NAME }} `
             --configuration ${{ env.CONFIGURATION }} `
             --no-restore `
+            /fl /flp:logfile=build.log;verbosity=normal `
             /p:Platform=${{ env.PLATFORM }} `
             /p:GenerateAppxPackageOnBuild=true `
             /p:UapAppxPackageBuildMode=SideloadOnly `
@@ -114,7 +115,7 @@ jobs:
           }
           try {
             Push-Location "src\YTMusicClient"
-            $compiler = (Get-ChildItem -Path "C:\Users\runneradmin\.nuget\packages\microsoft.windowsappsdk" -Recurse -Filter "XamlCompiler.exe" | Select-Object -First 1).FullName
+            $compiler = (Get-ChildItem -Path "C:\Users\runneradmin\.nuget\packages\microsoft.windowsappsdk" -Recurse -Filter "XamlCompiler.exe" | Where-Object { $_.FullName -like "*net472*" } | Select-Object -First 1).FullName
             Write-Host "Directly executing XamlCompiler: $compiler in $(Get-Location)"
             $directLog = & $compiler "obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\input.json" "obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\output.json" 2>&1
             Pop-Location
