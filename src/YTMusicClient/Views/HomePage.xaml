@@ -115,12 +115,12 @@
                                         Margin="0,0,14,14">
                                     <Border.ContextFlyout>
                                         <MenuFlyout>
-                                            <MenuFlyoutItem Text="Play Now" Icon="Play" Click="MenuPlayNow_Click" Tag="{x:Bind}" />
-                                            <MenuFlyoutItem Text="Play Next" Icon="Next" Click="MenuPlayNext_Click" Tag="{x:Bind}" />
-                                            <MenuFlyoutItem Text="Add to Queue" Icon="Add" Click="MenuAddToQueue_Click" Tag="{x:Bind}" />
+                                            <MenuFlyoutItem Text="Play Now" Click="MenuPlayNow_Click" Tag="{x:Bind}" />
+                                            <MenuFlyoutItem Text="Play Next" Click="MenuPlayNext_Click" Tag="{x:Bind}" />
+                                            <MenuFlyoutItem Text="Add to Queue" Click="MenuAddToQueue_Click" Tag="{x:Bind}" />
                                             <MenuFlyoutSeparator />
-                                            <MenuFlyoutItem Text="Go to Artist" Icon="Contact" Click="MenuGoToArtist_Click" Tag="{x:Bind}" />
-                                            <MenuFlyoutItem Text="Copy Link" Icon="Copy" Click="MenuCopyLink_Click" Tag="{x:Bind}" />
+                                            <MenuFlyoutItem Text="Go to Artist" Click="MenuGoToArtist_Click" Tag="{x:Bind}" />
+                                            <MenuFlyoutItem Text="Copy Link" Click="MenuCopyLink_Click" Tag="{x:Bind}" />
                                         </MenuFlyout>
                                     </Border.ContextFlyout>
 
@@ -158,12 +158,12 @@
                                             <FontIcon Glyph="&#xE712;" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                                             <Button.Flyout>
                                                 <MenuFlyout Placement="BottomEdgeAlignedRight">
-                                                    <MenuFlyoutItem Text="Play Now" Icon="Play" Click="MenuPlayNow_Click" Tag="{x:Bind}" />
-                                                    <MenuFlyoutItem Text="Play Next" Icon="Next" Click="MenuPlayNext_Click" Tag="{x:Bind}" />
-                                                    <MenuFlyoutItem Text="Add to Queue" Icon="Add" Click="MenuAddToQueue_Click" Tag="{x:Bind}" />
+                                                    <MenuFlyoutItem Text="Play Now" Click="MenuPlayNow_Click" Tag="{x:Bind}" />
+                                                    <MenuFlyoutItem Text="Play Next" Click="MenuPlayNext_Click" Tag="{x:Bind}" />
+                                                    <MenuFlyoutItem Text="Add to Queue" Click="MenuAddToQueue_Click" Tag="{x:Bind}" />
                                                     <MenuFlyoutSeparator />
-                                                    <MenuFlyoutItem Text="Go to Artist" Icon="Contact" Click="MenuGoToArtist_Click" Tag="{x:Bind}" />
-                                                    <MenuFlyoutItem Text="Copy Link" Icon="Copy" Click="MenuCopyLink_Click" Tag="{x:Bind}" />
+                                                    <MenuFlyoutItem Text="Go to Artist" Click="MenuGoToArtist_Click" Tag="{x:Bind}" />
+                                                    <MenuFlyoutItem Text="Copy Link" Click="MenuCopyLink_Click" Tag="{x:Bind}" />
                                                 </MenuFlyout>
                                             </Button.Flyout>
                                         </Button>

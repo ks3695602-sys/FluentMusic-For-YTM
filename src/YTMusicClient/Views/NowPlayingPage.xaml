@@ -57,10 +57,10 @@
                 <FontIcon Glyph="&#xE712;" FontSize="14" />
                 <Button.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
-                        <MenuFlyoutItem Text="Play Next" Icon="Next" Click="PlayNext_Click" />
-                        <MenuFlyoutItem Text="Add to Queue" Icon="Add" Click="AddToQueue_Click" />
+                        <MenuFlyoutItem Text="Play Next" Click="PlayNext_Click" />
+                        <MenuFlyoutItem Text="Add to Queue" Click="AddToQueue_Click" />
                         <MenuFlyoutSeparator />
-                        <MenuFlyoutSubItem Text="Playback Speed" Icon="Clock">
+                        <MenuFlyoutSubItem Text="Playback Speed">
                             <MenuFlyoutItem Text="0.5x" Click="Speed_Click" Tag="0.5" />
                             <MenuFlyoutItem Text="0.75x" Click="Speed_Click" Tag="0.75" />
                             <MenuFlyoutItem Text="1.0x (Normal)" Click="Speed_Click" Tag="1.0" />
@@ -69,7 +69,7 @@
                             <MenuFlyoutItem Text="2.0x" Click="Speed_Click" Tag="2.0" />
                         </MenuFlyoutSubItem>
                         <MenuFlyoutSeparator />
-                        <MenuFlyoutItem Text="Copy YouTube Music Link" Icon="Copy" Click="CopyLink_Click" />
+                        <MenuFlyoutItem Text="Copy YouTube Music Link" Click="CopyLink_Click" />
                     </MenuFlyout>
                 </Button.Flyout>
             </Button>

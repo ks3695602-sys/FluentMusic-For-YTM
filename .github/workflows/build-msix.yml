@@ -91,7 +91,16 @@ jobs:
             /p:AppxPackageSigningEnabled=true `
             /p:PackageCertificateThumbprint="${{ env.CERT_THUMBPRINT }}" `
             /p:PackageCertificateKeyFile="${{ env.CERT_PATH }}" `
-            /p:PackageCertificatePassword="CIBuild123!"
+            /p:PackageCertificatePassword="CIBuild123!" `
+            -fl -flp:logfile=build.log;verbosity=normal
+
+      - name: Report Build Errors
+        if: failure()
+        shell: pwsh
+        run: |
+          if (Test-Path build.log) {
+            Get-Content build.log | Select-String -Pattern "error " -Context 1,1 | ForEach-Object { Write-Error $_ }
+          }
 
       - name: Upload MSIX Artifact
         uses: actions/upload-artifact@v4

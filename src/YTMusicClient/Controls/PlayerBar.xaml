@@ -137,7 +137,7 @@
                     <FontIcon Glyph="&#xE712;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <Button.Flyout>
                         <MenuFlyout Placement="TopEdgeAlignedRight">
-                            <MenuFlyoutSubItem Text="Playback Speed" Icon="Clock">
+                            <MenuFlyoutSubItem Text="Playback Speed">
                                 <MenuFlyoutItem Text="0.5x" Click="SpeedOption_Click" Tag="0.5" />
                                 <MenuFlyoutItem Text="0.75x" Click="SpeedOption_Click" Tag="0.75" />
                                 <MenuFlyoutItem Text="1.0x (Normal)" Click="SpeedOption_Click" Tag="1.0" />
@@ -146,12 +146,12 @@
                                 <MenuFlyoutItem Text="2.0x" Click="SpeedOption_Click" Tag="2.0" />
                             </MenuFlyoutSubItem>
                             <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="Repeat Track (Loop One)" Icon="RepeatOne" Click="RepeatOption_Click" Tag="2" />
-                            <MenuFlyoutItem Text="Repeat All" Icon="RepeatAll" Click="RepeatOption_Click" Tag="1" />
+                            <MenuFlyoutItem Text="Repeat Track (Loop One)" Click="RepeatOption_Click" Tag="2" />
+                            <MenuFlyoutItem Text="Repeat All" Click="RepeatOption_Click" Tag="1" />
                             <MenuFlyoutItem Text="Repeat Off" Click="RepeatOption_Click" Tag="0" />
                             <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="Open Full Screen Player" Icon="FullScreen" Click="OpenFullScreen_Click" />
-                            <MenuFlyoutItem Text="Copy Stream URL" Icon="Link" Click="CopyStreamUrl_Click" />
+                            <MenuFlyoutItem Text="Open Full Screen Player" Click="OpenFullScreen_Click" />
+                            <MenuFlyoutItem Text="Copy Stream URL" Click="CopyStreamUrl_Click" />
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
