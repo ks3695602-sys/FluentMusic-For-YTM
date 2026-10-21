@@ -1,4 +1,8 @@
+using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
 using Windows.Media;
 using Windows.Media.Playback;
 using Windows.Storage.Streams;
@@ -31,11 +35,29 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         set => _mediaPlayer.IsMuted = value;
     }
 
+    public double PlaybackRate
+    {
+        get => _mediaPlayer.PlaybackSession.PlaybackRate;
+        set
+        {
+            var clamped = Math.Clamp(value, 0.25, 3.0);
+            _mediaPlayer.PlaybackSession.PlaybackRate = clamped;
+            AppLogger.Log($"PlaybackRate set to {clamped}x");
+        }
+    }
+
+    public bool IsShuffleEnabled { get; set; }
+    public int RepeatMode { get; set; } // 0 = Off, 1 = Repeat All, 2 = Repeat One
+
+    public ObservableCollection<Song> UpNext { get; } = new();
+    public ObservableCollection<Song> History { get; } = new();
+
     public Song? CurrentSong { get; private set; }
 
     public event EventHandler<Song>? SongChanged;
     public event EventHandler<MediaPlaybackState>? PlaybackStateChanged;
     public event EventHandler<TimeSpan>? PositionChanged;
+    public event EventHandler? QueueChanged;
 
     public MediaPlaybackService()
     {
@@ -80,7 +102,24 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
 
             if (string.IsNullOrEmpty(song.StreamUrl))
             {
-                AppLogger.Log("PlayAsync: No stream URL available");
+                // If stream URL is not preloaded, fetch via YouTubeMusicService
+                try
+                {
+                    var musicService = App.Services.GetService(typeof(IYouTubeMusicService)) as IYouTubeMusicService;
+                    if (musicService != null)
+                    {
+                        song.StreamUrl = await musicService.GetAudioStreamUrlAsync(song.VideoId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.LogError("Failed to resolve stream URL in PlayAsync", ex);
+                }
+            }
+
+            if (string.IsNullOrEmpty(song.StreamUrl))
+            {
+                AppLogger.Log("PlayAsync: No stream URL available for " + song.Title);
                 return;
             }
 
@@ -98,9 +137,17 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         }
     }
 
-    public void Pause() => _mediaPlayer.Pause();
+    public void Pause()
+    {
+        AppLogger.Log("Pause invoked");
+        _mediaPlayer.Pause();
+    }
 
-    public void Resume() => _mediaPlayer.Play();
+    public void Resume()
+    {
+        AppLogger.Log("Resume invoked");
+        _mediaPlayer.Play();
+    }
 
     public void TogglePlayPause()
     {
@@ -112,14 +159,109 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
 
     public void Stop()
     {
+        AppLogger.Log("Stop invoked");
         _mediaPlayer.Pause();
         _mediaPlayer.PlaybackSession.Position = TimeSpan.Zero;
     }
 
     public void Seek(TimeSpan position)
     {
-        if (position >= TimeSpan.Zero && position <= Duration)
-            _mediaPlayer.PlaybackSession.Position = position;
+        AppLogger.Log($"Seek to: {position}");
+        _mediaPlayer.PlaybackSession.Position = position;
+    }
+
+    public async Task PlayNextAsync()
+    {
+        if (UpNext.Count > 0)
+        {
+            if (CurrentSong != null)
+            {
+                History.Add(CurrentSong);
+            }
+
+            var nextSong = UpNext[0];
+            UpNext.RemoveAt(0);
+
+            _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
+            await PlayAsync(nextSong);
+        }
+        else if (RepeatMode == 1 && History.Count > 0)
+        {
+            // Repeat All: move history to queue and restart
+            foreach (var h in History)
+            {
+                UpNext.Add(h);
+            }
+            History.Clear();
+            if (CurrentSong != null)
+            {
+                UpNext.Add(CurrentSong);
+            }
+            if (UpNext.Count > 0)
+            {
+                var first = UpNext[0];
+                UpNext.RemoveAt(0);
+                _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
+                await PlayAsync(first);
+            }
+        }
+        else
+        {
+            AppLogger.Log("PlayNextAsync: Queue is empty");
+        }
+    }
+
+    public async Task PlayPreviousAsync()
+    {
+        if (Position > TimeSpan.FromSeconds(3))
+        {
+            Seek(TimeSpan.Zero);
+            return;
+        }
+
+        if (History.Count > 0)
+        {
+            var prevSong = History.Last();
+            History.RemoveAt(History.Count - 1);
+
+            if (CurrentSong != null)
+            {
+                UpNext.Insert(0, CurrentSong);
+            }
+
+            _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
+            await PlayAsync(prevSong);
+        }
+        else
+        {
+            Seek(TimeSpan.Zero);
+        }
+    }
+
+    public void Enqueue(Song song)
+    {
+        UpNext.Add(song);
+        _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
+        AppLogger.Log($"Enqueue: Added '{song.Title}' to queue. Total: {UpNext.Count}");
+    }
+
+    public void EnqueueNext(Song song)
+    {
+        UpNext.Insert(0, song);
+        _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
+        AppLogger.Log($"EnqueueNext: Inserted '{song.Title}' as next track. Total: {UpNext.Count}");
+    }
+
+    public void RemoveFromQueue(Song song)
+    {
+        UpNext.Remove(song);
+        _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
+    }
+
+    public void ClearQueue()
+    {
+        UpNext.Clear();
+        _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
     }
 
     private async Task UpdateSmtcDisplayAsync(Song song)
@@ -138,10 +280,7 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                 {
                     updater.Thumbnail = RandomAccessStreamReference.CreateFromUri(new Uri(song.ThumbnailUrl));
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"SMTC thumbnail set failed: {ex.Message}");
-                }
+                catch { }
             }
 
             updater.Update();
@@ -177,15 +316,25 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
 
     private void OnMediaEnded(MediaPlayer sender, object args)
     {
-        _dispatcherQueue.TryEnqueue(() =>
+        _dispatcherQueue.TryEnqueue(async () =>
         {
             PlaybackStateChanged?.Invoke(this, MediaPlaybackState.None);
+
+            if (RepeatMode == 2)
+            {
+                Seek(TimeSpan.Zero);
+                Resume();
+            }
+            else
+            {
+                await PlayNextAsync();
+            }
         });
     }
 
     private void OnSmtcButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
     {
-        _dispatcherQueue.TryEnqueue(() =>
+        _dispatcherQueue.TryEnqueue(async () =>
         {
             switch (args.Button)
             {
@@ -197,6 +346,12 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                     break;
                 case SystemMediaTransportControlsButton.Stop:
                     Stop();
+                    break;
+                case SystemMediaTransportControlsButton.Next:
+                    await PlayNextAsync();
+                    break;
+                case SystemMediaTransportControlsButton.Previous:
+                    await PlayPreviousAsync();
                     break;
             }
         });

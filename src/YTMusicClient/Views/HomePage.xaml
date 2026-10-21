@@ -12,27 +12,31 @@
             <RowDefinition Height="*" />    <!-- Scrollable Content -->
         </Grid.RowDefinitions>
 
-        <!-- Top Search Bar & Segmented Capsule Header (Exact Image 4 Style) -->
-        <Grid Grid.Row="0" Padding="32,8,32,16">
+        <!-- Top Search Bar & Segmented Capsule Header (Exact Apple Music Style) -->
+        <Grid Grid.Row="0" Padding="32,10,32,14">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Centered Slim Search Pill -->
+            <!-- Centered Slim Search Pill with Inline Clear Button -->
             <Border Grid.Column="1"
-                    Width="380" Height="32"
-                    CornerRadius="16"
-                    Background="#26282E"
-                    BorderBrush="#383C45"
+                    Width="400" Height="34"
+                    CornerRadius="17"
+                    Background="#22252C"
+                    BorderBrush="#383D48"
                     BorderThickness="1">
-                <Grid Padding="10,0">
+                <Grid Padding="12,0,8,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <FontIcon Glyph="&#xE721;" FontSize="11" Foreground="#888888" VerticalAlignment="Center" Margin="0,0,8,0" />
+
+                    <FontIcon Glyph="&#xE721;" FontSize="12" Foreground="{StaticResource AccentRedBrush}"
+                              VerticalAlignment="Center" Margin="0,0,8,0" />
+
                     <TextBox x:Name="SearchInputBox"
                              Grid.Column="1"
                              Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
@@ -43,18 +47,29 @@
                              FontSize="12"
                              VerticalAlignment="Center"
                              KeyDown="SearchInputBox_KeyDown" />
+
+                    <!-- Inline Clear Button (Appears only when typing) -->
+                    <Button x:Name="ClearSearchBtn"
+                            Grid.Column="2"
+                            Click="ClearSearchBtn_Click"
+                            Visibility="{x:Bind ViewModel.HasSearchText, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                            Background="Transparent" BorderThickness="0"
+                            Width="24" Height="24" CornerRadius="12" Padding="0">
+                        <FontIcon Glyph="&#xE711;" FontSize="10" Foreground="#888888" />
+                    </Button>
                 </Grid>
             </Border>
 
-            <!-- Right Segmented Source Toggle [ Apple Music | Library ] -->
+            <!-- Right Segmented Source Toggle [ Online | Library ] -->
             <Border Grid.Column="2" HorizontalAlignment="Right"
-                    Background="#24262C" BorderBrush="#353840" BorderThickness="1"
+                    Background="#22252C" BorderBrush="#353942" BorderThickness="1"
                     CornerRadius="14" Padding="3">
                 <StackPanel Orientation="Horizontal" Spacing="2">
                     <Button Content="Online"
                             Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                             BorderThickness="0" CornerRadius="12" Padding="12,3" FontSize="11" FontWeight="SemiBold" />
                     <Button Content="Library"
+                            Click="LibraryShortcut_Click"
                             Background="Transparent"
                             BorderThickness="0" CornerRadius="12" Padding="12,3" FontSize="11"
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -62,11 +77,11 @@
             </Border>
         </Grid>
 
-        <!-- Main Scrollable Content (Exact Apple Music Search Result Layout) -->
+        <!-- Main Scrollable Content -->
         <ScrollViewer Grid.Row="1" Padding="32,0,32,0">
             <StackPanel Spacing="28">
 
-                <!-- Section 1: Top Results > (2-Row x 3-Column Card Grid) -->
+                <!-- Section 1: Top Results > (2-Row x 3-Column Dynamic Gradient Grid) -->
                 <StackPanel Spacing="12">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <TextBlock Text="Top Results"
@@ -91,26 +106,37 @@
                         </GridView.ItemsPanel>
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="models:SearchResult">
-                                <Border Width="240" Height="64"
-                                        Background="#202227"
-                                        BorderBrush="#32353E"
+                                <Border Width="270" Height="68"
+                                        Background="{x:Bind GradientStart, Converter={StaticResource HexToBrushConverter}}"
+                                        BorderBrush="{StaticResource GlassBorderBrush}"
                                         BorderThickness="1"
-                                        CornerRadius="10"
+                                        CornerRadius="12"
                                         Padding="8"
-                                        Margin="0,0,12,12">
+                                        Margin="0,0,14,14">
+                                    <Border.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Play Now" Icon="Play" Click="MenuPlayNow_Click" Tag="{x:Bind}" />
+                                            <MenuFlyoutItem Text="Play Next" Icon="Next" Click="MenuPlayNext_Click" Tag="{x:Bind}" />
+                                            <MenuFlyoutItem Text="Add to Queue" Icon="Add" Click="MenuAddToQueue_Click" Tag="{x:Bind}" />
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Go to Artist" Icon="Contact" Click="MenuGoToArtist_Click" Tag="{x:Bind}" />
+                                            <MenuFlyoutItem Text="Copy Link" Icon="Copy" Click="MenuCopyLink_Click" Tag="{x:Bind}" />
+                                        </MenuFlyout>
+                                    </Border.ContextFlyout>
+
                                     <Grid ColumnSpacing="10">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="48" />
+                                            <ColumnDefinition Width="52" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
 
                                         <!-- Album Artwork -->
-                                        <Border CornerRadius="6" Width="48" Height="48">
+                                        <Border CornerRadius="6" Width="52" Height="52">
                                             <Image Stretch="UniformToFill">
                                                 <Image.Source>
                                                     <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
-                                                                 DecodePixelWidth="48" />
+                                                                 DecodePixelWidth="52" />
                                                 </Image.Source>
                                             </Image>
                                         </Border>
@@ -118,18 +144,28 @@
                                         <!-- Track Metadata -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                                             <TextBlock Text="{x:Bind Title}"
-                                                       FontWeight="SemiBold" FontSize="13"
+                                                       FontWeight="SemiBold" FontSize="12.5"
                                                        MaxLines="1" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{x:Bind Artist}"
+                                            <TextBlock Text="{x:Bind Subtitle}"
                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                        FontSize="11"
                                                        MaxLines="1" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
 
-                                        <!-- Trailing Action Button -->
+                                        <!-- Trailing Action Menu Button -->
                                         <Button Grid.Column="2" Background="Transparent" BorderThickness="0"
                                                 Padding="6" VerticalAlignment="Center">
                                             <FontIcon Glyph="&#xE712;" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                            <Button.Flyout>
+                                                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                                    <MenuFlyoutItem Text="Play Now" Icon="Play" Click="MenuPlayNow_Click" Tag="{x:Bind}" />
+                                                    <MenuFlyoutItem Text="Play Next" Icon="Next" Click="MenuPlayNext_Click" Tag="{x:Bind}" />
+                                                    <MenuFlyoutItem Text="Add to Queue" Icon="Add" Click="MenuAddToQueue_Click" Tag="{x:Bind}" />
+                                                    <MenuFlyoutSeparator />
+                                                    <MenuFlyoutItem Text="Go to Artist" Icon="Contact" Click="MenuGoToArtist_Click" Tag="{x:Bind}" />
+                                                    <MenuFlyoutItem Text="Copy Link" Icon="Copy" Click="MenuCopyLink_Click" Tag="{x:Bind}" />
+                                                </MenuFlyout>
+                                            </Button.Flyout>
                                         </Button>
                                     </Grid>
                                 </Border>
@@ -157,10 +193,10 @@
                         </ListView.ItemsPanel>
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="models:SearchResult">
-                                <StackPanel Width="106" Spacing="8" HorizontalAlignment="Center">
+                                <StackPanel Width="104" Spacing="8" HorizontalAlignment="Center">
                                     <!-- Circular Artist Avatar -->
                                     <Border Width="96" Height="96" CornerRadius="48"
-                                            Background="#25272E" BorderBrush="#3A3D46" BorderThickness="1"
+                                            Background="#25272E" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1"
                                             HorizontalAlignment="Center">
                                         <Image Stretch="UniformToFill">
                                             <Image.Source>
@@ -180,7 +216,7 @@
                     </ListView>
                 </StackPanel>
 
-                <!-- Section 3: Albums & Songs -->
+                <!-- Section 3: Trending & Albums -->
                 <StackPanel Spacing="14">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <TextBlock Text="Trending &amp; Albums"
@@ -194,10 +230,10 @@
                               ItemClick="TrackCard_Click">
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="models:SearchResult">
-                                <Border Background="#202227"
-                                        BorderBrush="#30333C"
+                                <Border Background="{x:Bind GradientStart, Converter={StaticResource HexToBrushConverter}}"
+                                        BorderBrush="{StaticResource GlassBorderBrush}"
                                         BorderThickness="1"
-                                        CornerRadius="10"
+                                        CornerRadius="12"
                                         Padding="8"
                                         Margin="0,0,14,14"
                                         Width="160">
@@ -226,7 +262,7 @@
                     </GridView>
                 </StackPanel>
 
-                <!-- Crucial Bottom Spacer so content scrolls completely above the floating player! -->
+                <!-- Bottom Spacer so content scrolls completely above the floating player! -->
                 <Border Height="110" />
             </StackPanel>
         </ScrollViewer>

@@ -22,7 +22,10 @@ public partial class HomeViewModel : ObservableObject
     private string _greeting = "Good Evening";
 
     [ObservableProperty]
-    private string _searchQuery = "nights off";
+    private string _searchQuery = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasSearchText;
 
     [ObservableProperty]
     private bool _isAppleMusicSource = true;
@@ -36,6 +39,11 @@ public partial class HomeViewModel : ObservableObject
         _musicService = musicService;
         _playbackService = playbackService;
         UpdateGreeting();
+    }
+
+    partial void OnSearchQueryChanged(string value)
+    {
+        HasSearchText = !string.IsNullOrWhiteSpace(value);
     }
 
     private void UpdateGreeting()
@@ -53,7 +61,11 @@ public partial class HomeViewModel : ObservableObject
     public async Task SearchAsync(string? query = null)
     {
         var targetQuery = !string.IsNullOrWhiteSpace(query) ? query : SearchQuery;
-        if (string.IsNullOrWhiteSpace(targetQuery)) return;
+        if (string.IsNullOrWhiteSpace(targetQuery))
+        {
+            await LoadTrendingAsync();
+            return;
+        }
 
         IsLoading = true;
         try
@@ -97,10 +109,48 @@ public partial class HomeViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public async Task ClearSearchAsync()
+    {
+        SearchQuery = string.Empty;
+        await LoadTrendingAsync();
+    }
+
+    [RelayCommand]
     public async Task LoadTrendingAsync()
     {
-        if (TopResults.Count > 0) return;
-        await SearchAsync("Top Hits 2026");
+        IsLoading = true;
+        try
+        {
+            var results = await _musicService.GetTrendingAsync();
+
+            TopResults.Clear();
+            TrendingSongs.Clear();
+            TopArtists.Clear();
+
+            foreach (var r in results.Take(6))
+            {
+                TopResults.Add(r);
+            }
+
+            foreach (var r in results.Skip(6))
+            {
+                TrendingSongs.Add(r);
+            }
+
+            var distinctArtists = results
+                .GroupBy(r => r.Artist)
+                .Select(g => g.First())
+                .Take(6);
+
+            foreach (var a in distinctArtists)
+            {
+                TopArtists.Add(a);
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     [RelayCommand]
@@ -110,36 +160,82 @@ public partial class HomeViewModel : ObservableObject
 
         AppLogger.Log($"PlaySongAsync invoked for: {result.Title} ({result.VideoId})");
 
-        // Instant optimistic feedback in floating player
         var song = new Song
+        {
+            VideoId = result.VideoId,
+            Title = result.Title,
+            Artist = result.Artist,
+            Album = result.Album,
+            ThumbnailUrl = result.ThumbnailUrl,
+            Duration = result.Duration,
+            AudioQuality = result.AudioQuality,
+            GradientColorStart = result.GradientStart,
+            GradientColorEnd = result.GradientEnd
+        };
+
+        // Contextual Auto-Queue: Queue subsequent songs in TopResults
+        var currentIndex = TopResults.IndexOf(result);
+        if (currentIndex >= 0)
+        {
+            _playbackService.ClearQueue();
+            for (int i = currentIndex + 1; i < TopResults.Count; i++)
+            {
+                var next = TopResults[i];
+                _playbackService.Enqueue(new Song
+                {
+                    VideoId = next.VideoId,
+                    Title = next.Title,
+                    Artist = next.Artist,
+                    ThumbnailUrl = next.ThumbnailUrl,
+                    Duration = next.Duration,
+                    AudioQuality = next.AudioQuality,
+                    GradientColorStart = next.GradientStart,
+                    GradientColorEnd = next.GradientEnd
+                });
+            }
+        }
+
+        // Set optimistic display in PlayerBar immediately
+        _playbackService.SetCurrentSong(song);
+
+        // Fetch streaming audio URL and begin playing
+        var streamUrl = await _musicService.GetAudioStreamUrlAsync(result.VideoId);
+        song.StreamUrl = streamUrl;
+
+        await _playbackService.PlayAsync(song);
+    }
+
+    [RelayCommand]
+    public void PlayNext(SearchResult? result)
+    {
+        if (result == null) return;
+        _playbackService.EnqueueNext(new Song
         {
             VideoId = result.VideoId,
             Title = result.Title,
             Artist = result.Artist,
             ThumbnailUrl = result.ThumbnailUrl,
             Duration = result.Duration,
-            StreamUrl = string.Empty
-        };
+            AudioQuality = result.AudioQuality,
+            GradientColorStart = result.GradientStart,
+            GradientColorEnd = result.GradientEnd
+        });
+    }
 
-        _playbackService.SetCurrentSong(song);
-
-        // Fetch streaming audio from BravePipe / YouTube / Fallback
-        try
+    [RelayCommand]
+    public void AddToQueue(SearchResult? result)
+    {
+        if (result == null) return;
+        _playbackService.Enqueue(new Song
         {
-            var streamUrl = await _musicService.GetAudioStreamUrlAsync(result.VideoId);
-            if (!string.IsNullOrEmpty(streamUrl))
-            {
-                song.StreamUrl = streamUrl;
-                await _playbackService.PlayAsync(song);
-            }
-            else
-            {
-                AppLogger.Log($"PlaySongAsync: No stream available for {result.VideoId}");
-            }
-        }
-        catch (Exception ex)
-        {
-            AppLogger.LogError($"PlaySongAsync failed for {result.VideoId}", ex);
-        }
+            VideoId = result.VideoId,
+            Title = result.Title,
+            Artist = result.Artist,
+            ThumbnailUrl = result.ThumbnailUrl,
+            Duration = result.Duration,
+            AudioQuality = result.AudioQuality,
+            GradientColorStart = result.GradientStart,
+            GradientColorEnd = result.GradientEnd
+        });
     }
 }

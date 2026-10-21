@@ -4,105 +4,183 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Exact Apple Music Floating Acrylic Capsule Player (Image 4 Clone) -->
+    <!-- Exact Apple Music Floating Liquid Glass Capsule Player -->
     <Border Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderBrush="{StaticResource GlassBorderBrush}"
             BorderThickness="1"
-            CornerRadius="24"
-            Width="620"
-            Height="58"
-            Padding="14,6"
+            CornerRadius="26"
+            Width="660"
+            Height="54"
+            Padding="12,5"
             HorizontalAlignment="Center">
 
         <Grid VerticalAlignment="Center">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" /> <!-- Left: Transport Controls -->
-                <ColumnDefinition Width="*" />    <!-- Center: Artwork + Metadata + Mini Scrubber -->
-                <ColumnDefinition Width="Auto" /> <!-- Right: Equalizer + Lyrics + Volume -->
+                <ColumnDefinition Width="Auto" /> <!-- Left: Flat Apple Transport Controls -->
+                <ColumnDefinition Width="*" />    <!-- Center: Dedicated Now-Playing LCD Box -->
+                <ColumnDefinition Width="Auto" /> <!-- Right: Equalizer + Menu + Lyrics + Queue + Volume -->
             </Grid.ColumnDefinitions>
 
-            <!-- 1. Left Transport Controls -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
-                <!-- Previous Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="14" IsEnabled="False">
-                    <FontIcon Glyph="&#xE892;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <!-- 1. Left Transport Controls (Monochrome Apple Glyphs) -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                <!-- Shuffle Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Command="{x:Bind ViewModel.ToggleShuffleCommand}"
+                        ToolTipService.ToolTip="Shuffle">
+                    <FontIcon Glyph="&#xE8B1;" FontSize="13"
+                              Foreground="{x:Bind ViewModel.IsShuffle, Mode=OneWay, Converter={StaticResource ActiveAccentBrushConverter}}" />
                 </Button>
 
-                <!-- Solid Play / Pause Circle Button -->
-                <Button Style="{StaticResource AccentButtonStyle}"
+                <!-- Previous Track Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Command="{x:Bind ViewModel.PreviousTrackCommand}"
+                        ToolTipService.ToolTip="Previous">
+                    <FontIcon Glyph="&#xE892;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                </Button>
+
+                <!-- Clean Play / Pause Button (No Garish Red Circle) -->
+                <Button Background="{ThemeResource SubtleFillColorTransparentBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
                         Command="{x:Bind ViewModel.TogglePlayPauseCommand}"
-                        Width="34" Height="34" CornerRadius="17"
-                        Padding="0">
+                        Width="32" Height="32" CornerRadius="16"
+                        Padding="0"
+                        ToolTipService.ToolTip="Play / Pause">
                     <FontIcon Glyph="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource PlayPauseGlyph}}"
-                              FontSize="14" />
+                              FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                 </Button>
 
-                <!-- Next Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="14" IsEnabled="False">
-                    <FontIcon Glyph="&#xE893;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <!-- Next Track Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Command="{x:Bind ViewModel.NextTrackCommand}"
+                        ToolTipService.ToolTip="Next">
+                    <FontIcon Glyph="&#xE893;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                 </Button>
             </StackPanel>
 
-            <!-- 2. Center: Thumbnail, Song Title, Artist, and Mini Scrubber -->
-            <Grid Grid.Column="1" Margin="14,0" VerticalAlignment="Center">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="38" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <!-- 2. Center: Dedicated "Now Playing LCD Pill" with Zero-Overlap Scrubber -->
+            <Border Grid.Column="1"
+                    Background="#1E2128"
+                    BorderBrush="#303542"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="6,4"
+                    Margin="10,0"
+                    VerticalAlignment="Center"
+                    Cursor="Hand"
+                    PointerPressed="CenterLcdPill_PointerPressed">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <!-- Small Square Artwork -->
-                <Border CornerRadius="6" Width="38" Height="38">
-                    <Image Stretch="UniformToFill">
-                        <Image.Source>
-                            <BitmapImage UriSource="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay, Converter={StaticResource StringToUriConverter}}"
-                                         DecodePixelWidth="38" />
-                        </Image.Source>
-                    </Image>
-                </Border>
+                    <!-- Top Row: Cover Art + Title/Artist + Sleek Quality Badge -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                <!-- Metadata & Scrubber Slider -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0" Spacing="1">
-                    <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
-                               FontWeight="Bold" FontSize="12"
-                               MaxLines="1" TextTrimming="CharacterEllipsis" />
+                        <!-- Square Album Art -->
+                        <Border CornerRadius="4" Width="32" Height="32" VerticalAlignment="Center">
+                            <Image Stretch="UniformToFill">
+                                <Image.Source>
+                                    <BitmapImage UriSource="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay, Converter={StaticResource StringToUriConverter}}"
+                                                 DecodePixelWidth="32" />
+                                </Image.Source>
+                            </Image>
+                        </Border>
 
-                    <TextBlock Text="{x:Bind ViewModel.Artist, Mode=OneWay}"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               FontSize="10"
-                               MaxLines="1" TextTrimming="CharacterEllipsis" />
+                        <!-- Track Title & Artist -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,4,0" Spacing="0">
+                            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                                       FontWeight="SemiBold" FontSize="11"
+                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
 
-                    <!-- Mini Scrubber Slider -->
-                    <Slider Minimum="0" Maximum="100"
-                            Value="{x:Bind ViewModel.ProgressPercent, Mode=TwoWay}"
-                            Height="18" Margin="0,-6,0,0"
-                            IsThumbToolTipEnabled="False" />
-                </StackPanel>
-            </Grid>
+                            <TextBlock Text="{x:Bind ViewModel.Artist, Mode=OneWay}"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       FontSize="9.5"
+                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
 
-            <!-- 3. Right: Equalizer Icon, Lyrics, Volume -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
-                <!-- Animated Equalizer Waveform indicator -->
-                <TextBlock Text="ıllı" FontSize="14" Foreground="{StaticResource AccentRedBrush}"
+                        <!-- Sleek Audio Quality & Source Pill Badge -->
+                        <Border Grid.Column="2" VerticalAlignment="Center" Margin="2,0,4,0"
+                                Background="#1AFFFFFF" BorderBrush="#2CFFFFFF" BorderThickness="1"
+                                CornerRadius="5" Padding="6,1.5">
+                            <TextBlock Text="{x:Bind ViewModel.AudioQualityBadge, Mode=OneWay}"
+                                       FontSize="8" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Bottom Row: Sleek 2.5px Progress Scrubber (Clean bottom edge, ZERO overlap!) -->
+                    <ProgressBar Grid.Row="1" Minimum="0" Maximum="100"
+                                 Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}"
+                                 Height="2.5" Margin="0,3,0,0"
+                                 Foreground="{StaticResource AccentRedBrush}"
+                                 Background="#303542" />
+                </Grid>
+            </Border>
+
+            <!-- 3. Right: Equalizer + More Options + Lyrics + Queue + Volume -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+                <!-- Animated Live Equalizer Waveform -->
+                <TextBlock Text="ıllı" FontSize="13" Foreground="{StaticResource AccentRedBrush}"
                            FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,4,0"
                            Visibility="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
+                <!-- God-Tier More Options Button (WinUI 3 MenuFlyout) -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        ToolTipService.ToolTip="More Options">
+                    <FontIcon Glyph="&#xE712;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button.Flyout>
+                        <MenuFlyout Placement="TopEdgeAlignedRight">
+                            <MenuFlyoutSubItem Text="Playback Speed" Icon="Clock">
+                                <MenuFlyoutItem Text="0.5x" Click="SpeedOption_Click" Tag="0.5" />
+                                <MenuFlyoutItem Text="0.75x" Click="SpeedOption_Click" Tag="0.75" />
+                                <MenuFlyoutItem Text="1.0x (Normal)" Click="SpeedOption_Click" Tag="1.0" />
+                                <MenuFlyoutItem Text="1.25x" Click="SpeedOption_Click" Tag="1.25" />
+                                <MenuFlyoutItem Text="1.5x" Click="SpeedOption_Click" Tag="1.5" />
+                                <MenuFlyoutItem Text="2.0x" Click="SpeedOption_Click" Tag="2.0" />
+                            </MenuFlyoutSubItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Repeat Track (Loop One)" Icon="RepeatOne" Click="RepeatOption_Click" Tag="2" />
+                            <MenuFlyoutItem Text="Repeat All" Icon="RepeatAll" Click="RepeatOption_Click" Tag="1" />
+                            <MenuFlyoutItem Text="Repeat Off" Click="RepeatOption_Click" Tag="0" />
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Open Full Screen Player" Icon="FullScreen" Click="OpenFullScreen_Click" />
+                            <MenuFlyoutItem Text="Copy Stream URL" Icon="Link" Click="CopyStreamUrl_Click" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+
                 <!-- Lyrics Toggle Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="12"
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Click="LyricsButton_Click"
                         ToolTipService.ToolTip="Lyrics">
                     <FontIcon Glyph="&#xE8D6;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Button>
 
-                <!-- Volume Mute Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="12"
-                        Command="{x:Bind ViewModel.ToggleMuteCommand}"
-                        ToolTipService.ToolTip="Mute / Unmute">
-                    <FontIcon Glyph="&#xE767;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <!-- Queue / Up Next Toggle Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Click="QueueButton_Click"
+                        ToolTipService.ToolTip="Up Next Queue">
+                    <FontIcon Glyph="&#xE90B;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Button>
 
-                <!-- Volume Mini Slider -->
+                <!-- Volume Mute Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Command="{x:Bind ViewModel.ToggleMuteCommand}"
+                        ToolTipService.ToolTip="Mute / Unmute">
+                    <FontIcon Glyph="&#xE767;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Button>
+
+                <!-- Compact Volume Slider -->
                 <Slider Minimum="0" Maximum="1"
                         Value="{x:Bind ViewModel.Volume, Mode=TwoWay}"
-                        StepFrequency="0.01" Width="70"
+                        StepFrequency="0.01" Width="60"
                         VerticalAlignment="Center" />
             </StackPanel>
         </Grid>

@@ -18,10 +18,20 @@
             <converters:ActiveLyricOpacityConverter x:Key="LyricOpacityConverter" />
             <converters:ActiveLyricFontSizeConverter x:Key="LyricFontSizeConverter" />
             <converters:StringToUriConverter x:Key="StringToUriConverter" />
+            <converters:RepeatModeToGlyphConverter x:Key="RepeatModeGlyphConverter" />
+            <converters:ActiveAccentBrushConverter x:Key="ActiveAccentBrushConverter" />
+            <converters:ActiveLyricColorConverter x:Key="ActiveLyricColorConverter" />
+            <converters:BoolToSemiBoldConverter x:Key="BoolToSemiBoldConverter" />
+            <converters:HexToBrushConverter x:Key="HexToBrushConverter" />
 
-            <!-- Custom colors -->
-            <Color x:Key="AccentRed">#FFE53935</Color>
+            <!-- Apple Music signature colors -->
+            <Color x:Key="AccentRed">#FFFA2D48</Color>
             <SolidColorBrush x:Key="AccentRedBrush" Color="{StaticResource AccentRed}" />
+
+            <!-- Translucent Glass Materials -->
+            <SolidColorBrush x:Key="LiquidGlassBrush" Color="#18202530" />
+            <SolidColorBrush x:Key="GlassBorderBrush" Color="#22FFFFFF" />
+            <SolidColorBrush x:Key="CardTranslucentBrush" Color="#1E232832" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

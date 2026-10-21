@@ -2,8 +2,10 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using YTMusicClient.Helpers;
+using YTMusicClient.Models;
 using YTMusicClient.Services;
 using YTMusicClient.ViewModels;
 using YTMusicClient.Views;
@@ -19,9 +21,9 @@ public sealed partial class MainWindow : Window
         ViewModel = App.Services.GetRequiredService<ShellViewModel>();
         this.InitializeComponent();
 
-        // Custom TitleBar - ONLY DragRegion is draggable so buttons receive mouse clicks!
+        // Edge-to-edge window shell with draggable sidebar
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(DragRegion);
+        SetTitleBar(SidebarDragArea);
 
         // Set App Window Icon
         try
@@ -37,7 +39,7 @@ public sealed partial class MainWindow : Window
         }
         catch { }
 
-        // Configure backdrop: Mica Alt -> Mica -> Acrylic -> fallback
+        // Configure backdrop: Mica Alt -> Desktop Acrylic fallback
         TrySetBackdrop();
 
         // Set window size and center
@@ -47,6 +49,19 @@ public sealed partial class MainWindow : Window
         // Register the navigation frame
         var navService = App.Services.GetRequiredService<INavigationService>();
         navService.Frame = ContentFrame;
+
+        // Wire PlayerBar drawer toggle events
+        PlayerBarControl.LyricsToggled += (s, e) =>
+        {
+            SwitchDrawerTab(1);
+            RightDrawerSplitView.IsPaneOpen = !RightDrawerSplitView.IsPaneOpen;
+        };
+
+        PlayerBarControl.QueueToggled += (s, e) =>
+        {
+            SwitchDrawerTab(0);
+            RightDrawerSplitView.IsPaneOpen = !RightDrawerSplitView.IsPaneOpen;
+        };
 
         // Navigate to Home by default
         ContentFrame.Navigate(typeof(HomePage));
@@ -65,19 +80,52 @@ public sealed partial class MainWindow : Window
         }
         else if (Microsoft.UI.Composition.SystemBackdrops.DesktopAcrylicController.IsSupported())
         {
-            // Windows 10 native frosted acrylic backdrop support
             this.SystemBackdrop = new DesktopAcrylicBackdrop();
         }
     }
 
-    private void TopSettingsButton_Click(object sender, RoutedEventArgs e)
+    private void SwitchDrawerTab(int tabIndex)
     {
-        ContentFrame.Navigate(typeof(SettingsPage));
+        UpNextView.Visibility = tabIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
+        LyricsView.Visibility = tabIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        HistoryView.Visibility = tabIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+
+        var activeBg = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
+        var inactiveBg = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+
+        TabUpNextBtn.Background = tabIndex == 0 ? activeBg : inactiveBg;
+        TabLyricsBtn.Background = tabIndex == 1 ? activeBg : inactiveBg;
+        TabHistoryBtn.Background = tabIndex == 2 ? activeBg : inactiveBg;
     }
 
-    private void UserProfileButton_Click(object sender, RoutedEventArgs e)
+    private void TabUpNextBtn_Click(object sender, RoutedEventArgs e) => SwitchDrawerTab(0);
+    private void TabLyricsBtn_Click(object sender, RoutedEventArgs e) => SwitchDrawerTab(1);
+    private void TabHistoryBtn_Click(object sender, RoutedEventArgs e) => SwitchDrawerTab(2);
+
+    private void CloseDrawerBtn_Click(object sender, RoutedEventArgs e)
     {
-        ContentFrame.Navigate(typeof(SettingsPage));
+        RightDrawerSplitView.IsPaneOpen = false;
+    }
+
+    private void ClearQueue_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.PlaybackService.ClearQueue();
+    }
+
+    private void RemoveQueueItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is Song song)
+        {
+            ViewModel.PlaybackService.RemoveFromQueue(song);
+        }
+    }
+
+    private async void QueueItem_Click(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is Song song)
+        {
+            await ViewModel.PlaybackService.PlayAsync(song);
+        }
     }
 
     private void NavSearchBtn_Click(object sender, RoutedEventArgs e)
@@ -98,5 +146,15 @@ public sealed partial class MainWindow : Window
     private void NavLibraryBtn_Click(object sender, RoutedEventArgs e)
     {
         ContentFrame.Navigate(typeof(LibraryPage));
+    }
+
+    private void SettingsShortcut_Click(object sender, RoutedEventArgs e)
+    {
+        ContentFrame.Navigate(typeof(SettingsPage));
+    }
+
+    private void UserProfile_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        ContentFrame.Navigate(typeof(SettingsPage));
     }
 }

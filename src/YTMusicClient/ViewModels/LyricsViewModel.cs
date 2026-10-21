@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -33,6 +34,11 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
         _playbackService = playbackService;
         _playbackService.SongChanged += OnSongChanged;
         _playbackService.PositionChanged += OnPositionChanged;
+
+        if (_playbackService.CurrentSong != null)
+        {
+            _ = LoadLyricsAsync(_playbackService.CurrentSong);
+        }
     }
 
     private async void OnSongChanged(object? sender, Song song)
@@ -41,7 +47,7 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async Task LoadLyricsAsync(Song? song)
+    public async Task LoadLyricsAsync(Song? song)
     {
         if (song == null) return;
 
@@ -65,7 +71,7 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
             }
             else
             {
-                StatusMessage = "No lyrics found for this track";
+                StatusMessage = "No synced lyrics available for this song";
             }
         }
         catch (Exception ex)
@@ -75,6 +81,15 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public void SeekToLine(LyricLine? line)
+    {
+        if (line != null)
+        {
+            _playbackService.Seek(line.Timestamp);
         }
     }
 
@@ -97,14 +112,35 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
         {
             // Deactivate previous
             if (ActiveLyricIndex >= 0 && ActiveLyricIndex < Lyrics.Count)
+            {
                 Lyrics[ActiveLyricIndex].IsActive = false;
+                foreach (var w in Lyrics[ActiveLyricIndex].Words)
+                {
+                    w.IsActive = false;
+                }
+            }
 
             // Activate current
             if (newActiveIndex >= 0 && newActiveIndex < Lyrics.Count)
+            {
                 Lyrics[newActiveIndex].IsActive = true;
+            }
 
             ActiveLyricIndex = newActiveIndex;
             ActiveLyricChanged?.Invoke(this, newActiveIndex);
+        }
+
+        // Real-time word-level synchronization for active line
+        if (ActiveLyricIndex >= 0 && ActiveLyricIndex < Lyrics.Count)
+        {
+            var activeLine = Lyrics[ActiveLyricIndex];
+            if (activeLine.HasWords)
+            {
+                foreach (var w in activeLine.Words)
+                {
+                    w.IsActive = position >= w.StartTime;
+                }
+            }
         }
     }
 

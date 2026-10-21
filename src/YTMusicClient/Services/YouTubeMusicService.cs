@@ -20,6 +20,34 @@ public class YouTubeMusicService : IYouTubeMusicService
     private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(8) };
     private const string BravePipeBase = "https://bppcaf.bot-keep.xyz";
 
+    private static readonly string[] DiscoveryQueries = new[]
+    {
+        "Global Top Hits 2026",
+        "Bollywood Romantic Essentials",
+        "Arijit Singh Hits",
+        "Viral Pop Hits 2026",
+        "Lo-Fi Chill Beats",
+        "Synthwave Retro Waves",
+        "Trending Pop Songs",
+        "Indie Acoustic Vibes",
+        "Punjabi Hits 2026",
+        "Hip Hop Chartbusters",
+        "R&B Midnight Melodies",
+        "English Rock Classics"
+    };
+
+    private static readonly (string Start, string End)[] AmbientGradients = new[]
+    {
+        ("#4A1525", "#1B1724"),
+        ("#1A384A", "#141D26"),
+        ("#3D2B14", "#1E1A17"),
+        ("#2D164E", "#181422"),
+        ("#144032", "#13201C"),
+        ("#462014", "#201715"),
+        ("#381442", "#1A1422"),
+        ("#183640", "#131A20")
+    };
+
     public YouTubeMusicService()
     {
         _youtube = new YoutubeClient();
@@ -28,6 +56,7 @@ public class YouTubeMusicService : IYouTubeMusicService
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(string query, CancellationToken ct = default)
     {
         var results = new List<SearchResult>();
+        int gradIndex = 0;
 
         // 1. Try BravePipe / Bot-Keep API first (High Quality & Instant Results)
         try
@@ -54,13 +83,19 @@ public class YouTubeMusicService : IYouTubeMusicService
 
                         if (!string.IsNullOrEmpty(id))
                         {
+                            var (start, end) = AmbientGradients[gradIndex % AmbientGradients.Length];
+                            gradIndex++;
+
                             results.Add(new SearchResult
                             {
                                 VideoId = id,
                                 Title = title,
                                 Artist = artist,
                                 ThumbnailUrl = artwork,
-                                Duration = TimeSpan.FromSeconds(durationSec)
+                                Duration = TimeSpan.FromSeconds(durationSec),
+                                GradientStart = start,
+                                GradientEnd = end,
+                                AudioQuality = "256 kbps · AAC · Hi-Res"
                             });
                         }
                     }
@@ -80,6 +115,9 @@ public class YouTubeMusicService : IYouTubeMusicService
             AppLogger.Log($"Fallback to YoutubeExplode search for: '{query}'");
             await foreach (var result in _youtube.Search.GetVideosAsync(query, ct))
             {
+                var (start, end) = AmbientGradients[gradIndex % AmbientGradients.Length];
+                gradIndex++;
+
                 results.Add(new SearchResult
                 {
                     VideoId = result.Id,
@@ -88,7 +126,10 @@ public class YouTubeMusicService : IYouTubeMusicService
                     ThumbnailUrl = result.Thumbnails.Count > 0
                         ? result.Thumbnails.OrderByDescending(t => t.Resolution.Area).First().Url
                         : string.Empty,
-                    Duration = result.Duration ?? TimeSpan.Zero
+                    Duration = result.Duration ?? TimeSpan.Zero,
+                    GradientStart = start,
+                    GradientEnd = end,
+                    AudioQuality = "256 kbps · AAC · Hi-Res"
                 });
 
                 if (results.Count >= 20) break;
@@ -114,7 +155,10 @@ public class YouTubeMusicService : IYouTubeMusicService
             Artist = "Artist",
             ThumbnailUrl = string.Empty,
             Duration = TimeSpan.Zero,
-            StreamUrl = streamUrl
+            StreamUrl = streamUrl,
+            AudioQuality = "256 kbps · AAC · Hi-Res",
+            AudioCodec = "AAC",
+            AudioSource = "BravePipe / Qobuz"
         };
     }
 
@@ -199,33 +243,22 @@ public class YouTubeMusicService : IYouTubeMusicService
         // 3. Fallback to BravePipe YouTube stream bridge
         try
         {
-            AppLogger.Log($"Trying BravePipe search stream bridge for {videoId}...");
-            var bpSearchUrl = $"{BravePipeBase}/search?q={Uri.EscapeDataString(videoId)}&quality=HIGH";
-            using var req = new HttpRequestMessage(HttpMethod.Get, bpSearchUrl);
+            var bridgeUrl = $"{BravePipeBase}/stream/{Uri.EscapeDataString(videoId)}?quality=HIGH";
+            using var req = new HttpRequestMessage(HttpMethod.Get, bridgeUrl);
             req.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
             using var resp = await _httpClient.SendAsync(req, ct);
             if (resp.IsSuccessStatusCode)
             {
                 var json = await resp.Content.ReadAsStringAsync(ct);
                 using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("tracks", out var tracks) && tracks.GetArrayLength() > 0)
+                if (doc.RootElement.TryGetProperty("url", out var urlProp))
                 {
-                    var firstTrack = tracks[0];
-                    if (firstTrack.TryGetProperty("id", out var trackIdProp))
-                    {
-                        var trackId = trackIdProp.GetString();
-                        if (!string.IsNullOrEmpty(trackId))
-                        {
-                            return await GetAudioStreamUrlAsync(trackId, ct);
-                        }
-                    }
+                    var resolved = urlProp.GetString();
+                    if (!string.IsNullOrEmpty(resolved)) return resolved;
                 }
             }
         }
-        catch (Exception ex)
-        {
-            AppLogger.Log($"BravePipe search bridge fallback failed: {ex.Message}");
-        }
+        catch { }
 
         // 4. Fallback to Piped APIs
         var pipedEndpoints = new[]
@@ -271,7 +304,10 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     public async Task<IReadOnlyList<SearchResult>> GetTrendingAsync(CancellationToken ct = default)
     {
-        // Search popular top tracks via BravePipe / YouTube
-        return await SearchAsync("Top Hits 2026", ct);
+        // Randomly pick a fresh genre from discovery pool every time!
+        var rng = new Random();
+        var selectedQuery = DiscoveryQueries[rng.Next(DiscoveryQueries.Length)];
+        AppLogger.Log($"GetTrendingAsync: Selected fresh discovery query '{selectedQuery}'");
+        return await SearchAsync(selectedQuery, ct);
     }
 }
