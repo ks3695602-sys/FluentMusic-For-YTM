@@ -12,6 +12,7 @@
 
             <!-- Global Converters -->
             <converters:TimeSpanToStringConverter x:Key="TimeSpanConverter" />
+            <converters:TimeSpanToStringConverter x:Key="TimeSpanToString" />
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
             <converters:BoolToGlyphConverter x:Key="PlayPauseGlyph" TrueGlyph="&#xE769;" FalseGlyph="&#xE768;" />

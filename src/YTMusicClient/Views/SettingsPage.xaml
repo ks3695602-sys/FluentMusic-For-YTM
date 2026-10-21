@@ -42,7 +42,7 @@
                         </ComboBox>
                     </Grid>
 
-                    <MenuFlyoutSeparator />
+                    <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
 
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -88,7 +88,7 @@
                                   Width="170" CornerRadius="8" />
                     </Grid>
 
-                    <MenuFlyoutSeparator />
+                    <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
 
                     <Grid>
                         <Grid.ColumnDefinitions>

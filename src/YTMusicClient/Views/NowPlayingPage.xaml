@@ -124,7 +124,7 @@
 
             <!-- Left: Video Mode Container (Hidden by default) -->
             <Grid x:Name="VideoStageContainer" Grid.Column="0" Visibility="Collapsed" VerticalAlignment="Center">
-                <Border CornerRadius="16" Height="280" Background="#111" BorderBrush="#353842" BorderThickness="1">
+                <Border CornerRadius="16" Height="280" Background="#111111" BorderBrush="#353842" BorderThickness="1">
                     <WebView2 x:Name="VideoPlayerWebView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                 </Border>
             </Grid>

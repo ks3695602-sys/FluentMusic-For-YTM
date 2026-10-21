@@ -94,12 +94,28 @@ jobs:
             /p:PackageCertificatePassword="CIBuild123!" `
             -fl -flp:logfile=build.log;verbosity=normal
 
+      - name: Inspect Diagnostics on Failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path . -Recurse -Filter "output.json" | ForEach-Object {
+            Write-Host "=== Output JSON: $($_.FullName) ==="
+            Get-Content $_.FullName
+          }
+          Get-ChildItem -Path . -Recurse -Filter "*.log" | ForEach-Object {
+            Write-Host "=== Found log: $($_.FullName) ==="
+          }
+
       - name: Upload Build Log on Failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: build-failure-log
-          path: build.log
+          path: |
+            build.log
+            **/obj/**/output.json
+            **/obj/**/input.json
+            **/obj/**/intermediatexaml/**/*
 
       - name: Upload MSIX Artifact
         uses: actions/upload-artifact@v4
