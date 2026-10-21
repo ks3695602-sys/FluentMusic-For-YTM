@@ -84,9 +84,8 @@ jobs:
       - name: Build & Package MSIX
         shell: pwsh
         run: |
-          dotnet build ${{ env.SOLUTION_NAME }} `
-            --configuration ${{ env.CONFIGURATION }} `
-            --no-restore `
+          msbuild ${{ env.SOLUTION_NAME }} `
+            /p:Configuration=${{ env.CONFIGURATION }} `
             /p:Platform=${{ env.PLATFORM }} `
             /p:GenerateAppxPackageOnBuild=true `
             /p:UapAppxPackageBuildMode=SideloadOnly `
