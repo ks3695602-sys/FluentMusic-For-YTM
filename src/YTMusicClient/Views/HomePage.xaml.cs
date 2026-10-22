@@ -143,4 +143,25 @@ public sealed partial class HomePage : Page
             ViewModel.AddToQueue(result);
         }
     }
+
+    private async void MenuDownload_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem item && item.DataContext is SearchResult result)
+        {
+            var downloadService = App.Services.GetService(typeof(Services.IDownloadService)) as Services.IDownloadService;
+            if (downloadService != null)
+            {
+                var song = new Song
+                {
+                    VideoId = result.VideoId,
+                    Title = result.Title,
+                    Artist = result.Artist,
+                    Album = result.Album,
+                    ThumbnailUrl = result.ThumbnailUrl,
+                    Duration = result.Duration
+                };
+                await downloadService.DownloadSongAsync(song);
+            }
+        }
+    }
 }

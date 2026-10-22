@@ -66,6 +66,15 @@ public partial class PlayerBarViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private int _selectedDrawerTab; // 0 = Up Next, 1 = Lyrics, 2 = History
 
+    [ObservableProperty]
+    private bool _isDownloading;
+
+    [ObservableProperty]
+    private double _downloadProgress;
+
+    [ObservableProperty]
+    private bool _isCurrentSongDownloaded;
+
     public IMediaPlaybackService PlaybackService => _playbackService;
 
     public PlayerBarViewModel(IMediaPlaybackService playbackService, INavigationService? navService = null)
@@ -91,6 +100,9 @@ public partial class PlayerBarViewModel : ObservableObject, IDisposable
         AudioCodec = !string.IsNullOrEmpty(song.AudioCodec) ? song.AudioCodec : "AAC";
         AudioSource = !string.IsNullOrEmpty(song.AudioSource) ? song.AudioSource : "BravePipe / Qobuz";
         HasSong = true;
+
+        var downloadService = App.Services.GetService(typeof(IDownloadService)) as IDownloadService;
+        IsCurrentSongDownloaded = downloadService?.IsSongDownloaded(song.VideoId) ?? false;
     }
 
     private void OnPlaybackStateChanged(object? sender, MediaPlaybackState state)
@@ -175,6 +187,36 @@ public partial class PlayerBarViewModel : ObservableObject, IDisposable
     {
         var newPosition = TimeSpan.FromSeconds(Duration.TotalSeconds * (percentage / 100.0));
         _playbackService.Seek(newPosition);
+    }
+
+    [RelayCommand]
+    public async Task DownloadCurrentSongAsync()
+    {
+        var song = _playbackService.CurrentSong;
+        if (song == null || IsDownloading) return;
+
+        var downloadService = App.Services.GetService(typeof(IDownloadService)) as IDownloadService;
+        if (downloadService == null) return;
+
+        IsDownloading = true;
+        DownloadProgress = 0;
+
+        try
+        {
+            bool success = await downloadService.DownloadSongAsync(song, p =>
+            {
+                DownloadProgress = p * 100.0;
+            });
+
+            if (success)
+            {
+                IsCurrentSongDownloaded = true;
+            }
+        }
+        finally
+        {
+            IsDownloading = false;
+        }
     }
 
     [RelayCommand]

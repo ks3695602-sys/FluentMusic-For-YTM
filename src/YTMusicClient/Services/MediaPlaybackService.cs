@@ -100,6 +100,17 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         {
             SetCurrentSong(song);
 
+            // Check if playing offline downloaded track
+            if (!string.IsNullOrEmpty(song.LocalFilePath) && System.IO.File.Exists(song.LocalFilePath))
+            {
+                AppLogger.Log($"PlayAsync: Playing offline local file: {song.LocalFilePath}");
+                var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(song.LocalFilePath);
+                _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromStorageFile(file);
+                _mediaPlayer.Play();
+                await UpdateSmtcDisplayAsync(song);
+                return;
+            }
+
             if (string.IsNullOrEmpty(song.StreamUrl))
             {
                 // If stream URL is not preloaded, fetch via YouTubeMusicService

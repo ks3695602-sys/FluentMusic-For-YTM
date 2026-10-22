@@ -4,38 +4,83 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:models="using:YTMusicClient.Models"
+    xmlns:converters="using:YTMusicClient.Converters"
     NavigationCacheMode="Enabled">
 
-    <Grid Padding="36,24" RowSpacing="16">
+    <Page.Resources>
+        <ResourceDictionary>
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+            <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
+            <converters:StringToUriConverter x:Key="StringToUriConverter" />
+            <converters:TimeSpanToStringConverter x:Key="TimeSpanConverter" />
+        </ResourceDictionary>
+    </Page.Resources>
+
+    <Grid Padding="36,24,36,120" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid>
+        <!-- Top Header & Actions -->
+        <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <TextBlock Text="Your Library" Style="{StaticResource TitleLargeTextBlockStyle}"
-                       FontWeight="Bold" />
+            <StackPanel Spacing="4">
+                <TextBlock Text="Your Library" Style="{StaticResource TitleLargeTextBlockStyle}" FontWeight="Bold" FontSize="28" />
+                <TextBlock Text="Your liked music, saved playlists, and synced Google library"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Style="{StaticResource CaptionTextBlockStyle}" />
+            </StackPanel>
 
-            <Button Grid.Column="1" Command="{x:Bind ViewModel.AddToLikedCommand}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <FontIcon Glyph="&#xEB51;" FontSize="16" />
-                    <TextBlock Text="Like Current" />
-                </StackPanel>
-            </Button>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Button Command="{x:Bind ViewModel.SyncWithGoogleCommand}"
+                        CornerRadius="16" Padding="12,7"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE72C;" FontSize="13" />
+                        <TextBlock Text="Sync with Google" />
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{x:Bind ViewModel.AddToLikedCommand}"
+                        Style="{StaticResource AccentButtonStyle}"
+                        CornerRadius="16" Padding="14,7">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xEB51;" FontSize="13" />
+                        <TextBlock Text="Like Current" FontWeight="SemiBold" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
-            <RadioButton Content="All" IsChecked="True" GroupName="Filter" />
-            <RadioButton Content="Songs" GroupName="Filter" />
-            <RadioButton Content="Playlists" GroupName="Filter" />
-        </StackPanel>
+        <!-- Google Sync Status Banner -->
+        <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                CornerRadius="10" Padding="14,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE73E;" FontSize="14" Foreground="#10B981" />
+                    <TextBlock Text="Google Account Connected:" FontSize="13" FontWeight="SemiBold" />
+                    <TextBlock Text="{x:Bind ViewModel.GoogleUserName, Mode=OneWay}" FontSize="13"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="1" Text="Synced with YouTube Music" FontSize="11"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <!-- Liked Songs List -->
         <ListView Grid.Row="2"
                   ItemsSource="{x:Bind ViewModel.LikedSongs, Mode=OneWay}"
                   SelectionMode="None"
@@ -43,14 +88,19 @@
                   ItemClick="LikedSong_Click">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:Song">
-                    <Grid Padding="8,12" ColumnSpacing="16">
+                    <Grid Padding="10,8" Margin="0,3"
+                          Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                          BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                          BorderThickness="1" CornerRadius="10" ColumnSpacing="14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="48" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <Border CornerRadius="6" Width="48" Height="48">
+                        <!-- Cover Art -->
+                        <Border Grid.Column="0" CornerRadius="6" Width="48" Height="48">
                             <Image Stretch="UniformToFill">
                                 <Image.Source>
                                     <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
@@ -59,6 +109,7 @@
                             </Image>
                         </Border>
 
+                        <!-- Title & Artist -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                             <TextBlock Text="{x:Bind Title}" MaxLines="1"
                                        TextTrimming="CharacterEllipsis"
@@ -68,18 +119,19 @@
                                        Style="{StaticResource CaptionTextBlockStyle}" />
                         </StackPanel>
 
-                        <FontIcon Grid.Column="2" Glyph="&#xEB51;"
-                                  Foreground="{StaticResource AccentRedBrush}" FontSize="16"
-                                  VerticalAlignment="Center" />
+                        <!-- Duration -->
+                        <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   Text="{x:Bind Duration, Converter={StaticResource TimeSpanConverter}}"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                   Style="{StaticResource CaptionTextBlockStyle}" />
+
+                        <!-- Heart icon -->
+                        <FontIcon Grid.Column="3" Glyph="&#xEB51;"
+                                  Foreground="{StaticResource AccentRedBrush}" FontSize="15"
+                                  VerticalAlignment="Center" Margin="0,0,8,0" />
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>
-
-            <ListView.Header>
-                <TextBlock Text="No liked songs yet. Play a song and tap the heart!"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Margin="0,24,0,0" />
-            </ListView.Header>
         </ListView>
     </Grid>
 </Page>

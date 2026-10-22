@@ -252,6 +252,8 @@
                                             <MenuFlyoutItem Text="Play Now" Click="MenuPlayNow_Click" />
                                             <MenuFlyoutItem Text="Play Next" Click="MenuPlayNext_Click" />
                                             <MenuFlyoutItem Text="Add to Queue" Click="MenuAddToQueue_Click" />
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Download Track" Click="MenuDownload_Click" />
                                         </MenuFlyout>
                                     </Border.ContextFlyout>
 
@@ -317,6 +319,8 @@
                                             <MenuFlyoutItem Text="Play Now" Click="MenuPlayNow_Click" />
                                             <MenuFlyoutItem Text="Play Next" Click="MenuPlayNext_Click" />
                                             <MenuFlyoutItem Text="Add to Queue" Click="MenuAddToQueue_Click" />
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Download Track" Click="MenuDownload_Click" />
                                         </MenuFlyout>
                                     </Border.ContextFlyout>
 
@@ -344,7 +348,7 @@
                 </StackPanel>
 
                 <!-- Bottom Spacer so content scrolls completely above the floating player! -->
-                <Border Height="110" />
+                <Border Height="180" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

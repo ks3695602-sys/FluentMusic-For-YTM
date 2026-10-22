@@ -8,6 +8,7 @@
     <UserControl.Resources>
         <converters:TimeSpanToStringConverter x:Key="TimeSpanConverter" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
         <converters:BoolToGlyphConverter x:Key="PlayPauseGlyph" TrueGlyph="&#xE769;" FalseGlyph="&#xE768;" />
         <converters:StringToUriConverter x:Key="StringToUriConverter" />
     </UserControl.Resources>
@@ -17,7 +18,7 @@
             BorderBrush="{StaticResource GlassBorderBrush}"
             BorderThickness="1"
             CornerRadius="27"
-            Width="680"
+            Width="710"
             Height="54"
             Padding="12,4"
             HorizontalAlignment="Center">
@@ -110,12 +111,45 @@
                                        MaxLines="1" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
 
-                        <!-- Audio Quality Badge -->
-                        <Border Grid.Column="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
+                        <!-- Functional Audio Source Info Pill -->
+                        <Button Grid.Column="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                BorderThickness="0" CornerRadius="4" Padding="5,2" VerticalAlignment="Center"
+                                ToolTipService.ToolTip="Audio Source &amp; Stream Info">
                             <TextBlock Text="{x:Bind ViewModel.AudioQualityBadge, Mode=OneWay}"
                                        FontSize="8" FontWeight="SemiBold"
                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                        </Border>
+                            <Button.Flyout>
+                                <Flyout Placement="Top">
+                                    <StackPanel Spacing="8" Width="220" Padding="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="{StaticResource AccentRedBrush}" />
+                                            <TextBlock Text="Stream Fidelity" FontWeight="Bold" FontSize="13" />
+                                        </StackPanel>
+                                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                        <Grid ColumnSpacing="8" RowSpacing="4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bitrate:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="256 kbps (High Quality)" FontSize="11" FontWeight="SemiBold" />
+
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Codec:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind ViewModel.AudioCodec, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Engine:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind ViewModel.AudioSource, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
+                                        </Grid>
+                                    </StackPanel>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
                     </Grid>
 
                     <!-- Bottom Row: Sleek 2.5px Progress Scrubber -->
@@ -127,7 +161,7 @@
                 </Grid>
             </Border>
 
-            <!-- 3. Right: Equalizer + Repeat + Video + Options + Lyrics + Volume -->
+            <!-- 3. Right: Equalizer + Repeat + Download + Video + Options + Lyrics + Volume -->
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="3">
                 <!-- Equalizer waveform icon -->
                 <FontIcon Glyph="&#xE995;" FontSize="12" Foreground="{StaticResource AccentRedBrush}"
@@ -139,6 +173,20 @@
                         Command="{x:Bind ViewModel.ToggleRepeatCommand}"
                         ToolTipService.ToolTip="Repeat">
                     <FontIcon Glyph="&#xE8EE;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Button>
+
+                <!-- Download Track Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Command="{x:Bind ViewModel.DownloadCurrentSongCommand}"
+                        ToolTipService.ToolTip="Download Track for Offline Playback">
+                    <Grid>
+                        <FontIcon Glyph="&#xE896;" FontSize="13"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay, Converter={StaticResource InverseBoolToVisibility}}" />
+                        <ProgressRing IsActive="{x:Bind ViewModel.IsDownloading, Mode=OneWay}"
+                                      Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                                      Width="13" Height="13" />
+                    </Grid>
                 </Button>
 
                 <!-- Video / Now Playing Button -->

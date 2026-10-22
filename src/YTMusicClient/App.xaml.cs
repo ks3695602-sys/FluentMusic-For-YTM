@@ -22,12 +22,14 @@ public partial class App : Application
         services.AddSingleton<IMediaPlaybackService, MediaPlaybackService>();
         services.AddSingleton<IYouTubeMusicService, YouTubeMusicService>();
         services.AddSingleton<ILyricsService, LyricsService>();
+        services.AddSingleton<IDownloadService, DownloadService>();
 
         // Register ViewModels
         services.AddSingleton<ShellViewModel>();
         services.AddTransient<HomeViewModel>();
         services.AddTransient<ExploreViewModel>();
         services.AddTransient<LibraryViewModel>();
+        services.AddTransient<DownloadsViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddSingleton<PlayerBarViewModel>();
         services.AddSingleton<LyricsViewModel>();

@@ -20,5 +20,11 @@ public class Song
     // Dynamic Ambient Gradient Colors
     public string GradientColorStart { get; set; } = "#3B2028";
     public string GradientColorEnd { get; set; } = "#1B1C22";
+
+    // Offline Download Metadata
+    public string? LocalFilePath { get; set; }
+    public bool IsDownloaded => !string.IsNullOrEmpty(LocalFilePath);
+    public string FileSizeFormatted { get; set; } = string.Empty;
+
     public Song Self => this;
 }

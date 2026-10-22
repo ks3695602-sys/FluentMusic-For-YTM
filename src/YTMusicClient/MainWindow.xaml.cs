@@ -92,10 +92,12 @@ public sealed partial class MainWindow : Window
         if (isShowing)
         {
             NowPlayingOverlay.Visibility = Visibility.Collapsed;
+            ContentFrame.Visibility = Visibility.Visible;
             PauseVideoPlayer();
         }
         else
         {
+            ContentFrame.Visibility = Visibility.Collapsed;
             NowPlayingOverlay.Visibility = Visibility.Visible;
             UpdateNowPlayingContent();
             if (NpVideoStage.Visibility == Visibility.Visible)
@@ -127,6 +129,7 @@ public sealed partial class MainWindow : Window
     private void CloseNowPlaying_Click(object sender, RoutedEventArgs e)
     {
         NowPlayingOverlay.Visibility = Visibility.Collapsed;
+        ContentFrame.Visibility = Visibility.Visible;
         PauseVideoPlayer();
     }
 
@@ -155,7 +158,24 @@ public sealed partial class MainWindow : Window
         {
             try
             {
-                NpVideoWebView.Source = new Uri($"https://www.youtube-nocookie.com/embed/{currentSong.VideoId}?autoplay=1");
+                var html = $@"<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta name='referrer' content='strict-origin-when-cross-origin'>
+  <style>
+    html, body {{ margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }}
+    iframe {{ width:100%; height:100%; border:none; }}
+  </style>
+</head>
+<body>
+  <iframe src='https://www.youtube.com/embed/{currentSong.VideoId}?autoplay=1&amp;enablejsapi=1&amp;origin=https://www.youtube.com&amp;playsinline=1'
+          allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+          allowfullscreen>
+  </iframe>
+</body>
+</html>";
+                NpVideoWebView.NavigateToString(html);
             }
             catch { }
         }
@@ -213,6 +233,7 @@ public sealed partial class MainWindow : Window
         NavExploreBtn.Background = index == 1 ? activeBg : inactiveBg;
         NavLibraryBtn.Background = index == 2 ? activeBg : inactiveBg;
         NavSettingsBtn.Background = index == 3 ? activeBg : inactiveBg;
+        NavDownloadsBtn.Background = index == 4 ? activeBg : inactiveBg;
     }
 
     private void NavHome_Click(object sender, RoutedEventArgs e)
@@ -231,6 +252,19 @@ public sealed partial class MainWindow : Window
     {
         ContentFrame.Navigate(typeof(LibraryPage));
         SetActiveNavButton(2);
+    }
+
+    private void NavLibraryChevron_Click(object sender, RoutedEventArgs e)
+    {
+        bool isVisible = NavDownloadsBtn.Visibility == Visibility.Visible;
+        NavDownloadsBtn.Visibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
+        LibraryChevronIcon.Glyph = isVisible ? "\uE70D" : "\uE70E";
+    }
+
+    private void NavDownloads_Click(object sender, RoutedEventArgs e)
+    {
+        ContentFrame.Navigate(typeof(DownloadsPage));
+        SetActiveNavButton(4);
     }
 
     private void NavSettings_Click(object sender, RoutedEventArgs e)

@@ -13,6 +13,7 @@ public sealed partial class LibraryPage : Page
     {
         ViewModel = App.Services.GetRequiredService<LibraryViewModel>();
         this.InitializeComponent();
+        this.Loaded += async (s, e) => await ViewModel.LoadLibraryAsync();
     }
 
     private async void LikedSong_Click(object sender, ItemClickEventArgs e)
