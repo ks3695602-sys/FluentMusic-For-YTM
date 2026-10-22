@@ -410,9 +410,6 @@ public sealed partial class MainWindow : Window
         }
         catch { }
     }
-            Helpers.AppLogger.LogError("LoadCurrentVideo failed", ex);
-        }
-    }
 
     private void PauseVideoPlayer()
     {
