@@ -74,7 +74,6 @@
                     Padding="6,4"
                     Margin="10,0"
                     VerticalAlignment="Center"
-                    Cursor="Hand"
                     PointerPressed="CenterLcdPill_PointerPressed">
                 <Grid>
                     <Grid.RowDefinitions>

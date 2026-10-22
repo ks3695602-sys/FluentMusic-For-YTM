@@ -137,6 +137,7 @@ jobs:
           }
           Get-ChildItem -Path . -Recurse -Filter "*.log" | ForEach-Object {
             Write-Host "=== Found log: $($_.FullName) ==="
+            Get-Content $_.FullName -Tail 60
           }
 
       - name: Upload Build Log on Failure

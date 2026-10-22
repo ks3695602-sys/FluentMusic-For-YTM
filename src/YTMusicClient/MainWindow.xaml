@@ -71,7 +71,7 @@
                 <!-- User Profile / Google Account Sync Pill -->
                 <Border x:Name="UserAccountPill" CornerRadius="18"
                         Background="#18FFFFFF" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1"
-                        Padding="8,6" Cursor="Hand"
+                        Padding="8,6"
                         PointerPressed="UserAccountPill_PointerPressed"
                         ToolTipService.ToolTip="Sign in with Google Account">
                     <Grid>

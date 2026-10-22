@@ -144,7 +144,7 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Box 1: Bollywood Romance -->
-                        <Border Grid.Column="0" CornerRadius="14" Height="110" Padding="14" Cursor="Hand"
+                        <Border Grid.Column="0" CornerRadius="14" Height="110" Padding="14"
                                 PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
                                 PointerPressed="HeroCard_PointerPressed" Tag="Bollywood Romance Songs">
                             <Border.Background>
@@ -166,7 +166,7 @@
                         </Border>
 
                         <!-- Box 2: Midnight Chill -->
-                        <Border Grid.Column="1" CornerRadius="14" Height="110" Padding="14" Cursor="Hand"
+                        <Border Grid.Column="1" CornerRadius="14" Height="110" Padding="14"
                                 PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
                                 PointerPressed="HeroCard_PointerPressed" Tag="Lofi chill beats">
                             <Border.Background>
@@ -188,7 +188,7 @@
                         </Border>
 
                         <!-- Box 3: Workout Motivation -->
-                        <Border Grid.Column="2" CornerRadius="14" Height="110" Padding="14" Cursor="Hand"
+                        <Border Grid.Column="2" CornerRadius="14" Height="110" Padding="14"
                                 PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
                                 PointerPressed="HeroCard_PointerPressed" Tag="Gym workout motivation songs">
                             <Border.Background>
@@ -210,7 +210,7 @@
                         </Border>
 
                         <!-- Box 4: Punjabi Hits -->
-                        <Border Grid.Column="3" CornerRadius="14" Height="110" Padding="14" Cursor="Hand"
+                        <Border Grid.Column="3" CornerRadius="14" Height="110" Padding="14"
                                 PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
                                 PointerPressed="HeroCard_PointerPressed" Tag="Top Punjabi hits 2026">
                             <Border.Background>
