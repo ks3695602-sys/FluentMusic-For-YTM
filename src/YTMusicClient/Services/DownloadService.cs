@@ -146,7 +146,6 @@ public class DownloadService : IDownloadService
 
                         song.LocalFilePath = file.Path;
                         song.FileSizeFormatted = $"{sizeMb:F1} MB · {ext.ToUpperInvariant()}";
-                        song.IsDownloaded = true;
 
                         _downloadedSongs.RemoveAll(s => s.VideoId == song.VideoId);
                         _downloadedSongs.Insert(0, song);
@@ -233,7 +232,6 @@ public class DownloadService : IDownloadService
 
             song.LocalFilePath = file.Path;
             song.FileSizeFormatted = $"{sizeMb:F1} MB · {ext.ToUpperInvariant()}";
-            song.IsDownloaded = true;
 
             _downloadedSongs.RemoveAll(s => s.VideoId == song.VideoId);
             _downloadedSongs.Insert(0, song);
@@ -276,7 +274,6 @@ public class DownloadService : IDownloadService
                 Artist = artist,
                 LocalFilePath = filePath,
                 FileSizeFormatted = $"{sizeMb:F1} MB · {ext}",
-                IsDownloaded = true,
                 AudioQuality = $"Local {ext}",
                 AudioCodec = ext,
                 AudioSource = "Local PC Storage"
