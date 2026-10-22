@@ -119,7 +119,7 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                     var musicService = App.Services.GetService(typeof(IYouTubeMusicService)) as IYouTubeMusicService;
                     if (musicService != null)
                     {
-                        song.StreamUrl = await musicService.GetAudioStreamUrlAsync(song.VideoId, song.Title, song.Artist);
+                        song.StreamUrl = await musicService.GetLosslessStreamUrlAsync(song.VideoId, song.Title, song.Artist);
                         if (!string.IsNullOrEmpty(song.StreamUrl))
                         {
                             if (song.StreamUrl.Contains(".flac", StringComparison.OrdinalIgnoreCase) || 

@@ -179,12 +179,17 @@ public class YouTubeMusicService : IYouTubeMusicService
         };
     }
 
-    public Task<string> GetAudioStreamUrlAsync(string videoId, CancellationToken ct = default)
+    public async Task<string> GetLosslessStreamUrlAsync(string videoId, string title, string artist, CancellationToken ct = default)
     {
-        return GetAudioStreamUrlAsync(videoId, null, null, ct);
+        return await GetAudioStreamUrlCoreAsync(videoId, title, artist, ct);
     }
 
-    public async Task<string> GetAudioStreamUrlAsync(string videoId, string? title = null, string? artist = null, CancellationToken ct = default)
+    public async Task<string> GetAudioStreamUrlAsync(string videoId, CancellationToken ct = default)
+    {
+        return await GetAudioStreamUrlCoreAsync(videoId, null, null, ct);
+    }
+
+    private async Task<string> GetAudioStreamUrlCoreAsync(string videoId, string? title, string? artist, CancellationToken ct)
     {
         // 1. If Title is provided, try Qobuz lossless bridge FIRST
         if (!string.IsNullOrWhiteSpace(title))
