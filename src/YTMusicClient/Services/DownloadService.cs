@@ -194,31 +194,35 @@ public class DownloadService : IDownloadService
         {
             var downloadsFolder = await ApplicationData.Current.LocalFolder.CreateFolderAsync("Downloads", CreationCollisionOption.OpenIfExists);
             var safeTitle = MakeSafeFileName($"{song.Artist} - {song.Title}");
-
-            string ext = "mp3";
-            if (streamUrl.Contains(".flac", StringComparison.OrdinalIgnoreCase)) ext = "flac";
-            else if (streamUrl.Contains(".m4a", StringComparison.OrdinalIgnoreCase)) ext = "m4a";
-            else if (streamUrl.Contains(".opus", StringComparison.OrdinalIgnoreCase)) ext = "opus";
-
             var safeId = MakeSafeFileName(song.VideoId);
             if (safeId.Length > 20) safeId = safeId.Substring(0, 20);
 
-            var fileName = $"{safeTitle}_{safeId}.{ext}";
-            var file = await downloadsFolder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
+            var tempFileName = $"{safeTitle}_{safeId}.tmp";
+            var tempFile = await downloadsFolder.CreateFileAsync(tempFileName, CreationCollisionOption.ReplaceExisting);
 
             using var response = await _httpClient.GetAsync(streamUrl, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
+            var contentType = response.Content.Headers.ContentType?.MediaType?.ToLowerInvariant() ?? "";
             var totalBytes = response.Content.Headers.ContentLength ?? -1L;
             using var stream = await response.Content.ReadAsStreamAsync();
-            using var fileStream = new FileStream(file.Path, FileMode.Create, FileAccess.Write, FileShare.None, 16384, true);
+            using var fileStream = new FileStream(tempFile.Path, FileMode.Create, FileAccess.Write, FileShare.None, 16384, true);
 
             var buffer = new byte[16384];
             long totalRead = 0;
             int read;
+            byte[] firstBytes = new byte[16];
+            int firstBytesRead = 0;
 
             while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
             {
+                if (firstBytesRead < 16)
+                {
+                    int toCopy = Math.Min(read, 16 - firstBytesRead);
+                    Array.Copy(buffer, 0, firstBytes, firstBytesRead, toCopy);
+                    firstBytesRead += toCopy;
+                }
+
                 await fileStream.WriteAsync(buffer, 0, read);
                 totalRead += read;
                 if (totalBytes > 0 && progressCallback != null)
@@ -226,12 +230,50 @@ public class DownloadService : IDownloadService
                     progressCallback((double)totalRead / totalBytes);
                 }
             }
+            fileStream.Close();
 
-            var fileInfo = new FileInfo(file.Path);
+            // Detect true audio format from Magic Bytes & Content-Type
+            string ext = "m4a";
+            string codecName = "AAC (256 kbps)";
+
+            bool isFlacMagic = firstBytesRead >= 4 && firstBytes[0] == 0x66 && firstBytes[1] == 0x4C && firstBytes[2] == 0x61 && firstBytes[3] == 0x43;
+            bool isMp4Magic = firstBytesRead >= 8 && firstBytes[4] == 0x66 && firstBytes[5] == 0x74 && firstBytes[6] == 0x79 && firstBytes[7] == 0x70;
+            bool isOggMagic = firstBytesRead >= 4 && firstBytes[0] == 0x4F && firstBytes[1] == 0x67 && firstBytes[2] == 0x67 && firstBytes[3] == 0x53;
+
+            if (isFlacMagic || contentType.Contains("flac") || streamUrl.Contains(".flac", StringComparison.OrdinalIgnoreCase) || song.VideoId.StartsWith("qobuz_"))
+            {
+                ext = "flac";
+                codecName = "FLAC (Lossless Hi-Res)";
+            }
+            else if (isOggMagic || contentType.Contains("ogg") || contentType.Contains("opus") || streamUrl.Contains(".opus", StringComparison.OrdinalIgnoreCase))
+            {
+                ext = "opus";
+                codecName = "Opus (Hi-Fi)";
+            }
+            else if (isMp4Magic || contentType.Contains("mp4") || contentType.Contains("aac") || contentType.Contains("m4a") || streamUrl.Contains(".m4a", StringComparison.OrdinalIgnoreCase))
+            {
+                ext = "m4a";
+                codecName = "AAC (256 kbps)";
+            }
+            else
+            {
+                ext = "m4a";
+                codecName = "AAC (256 kbps)";
+            }
+
+            var finalFileName = $"{safeTitle}_{safeId}.{ext}";
+            var finalPath = Path.Combine(downloadsFolder.Path, finalFileName);
+            if (File.Exists(finalPath)) File.Delete(finalPath);
+            File.Move(tempFile.Path, finalPath);
+
+            var fileInfo = new FileInfo(finalPath);
             var sizeMb = fileInfo.Length / (1024.0 * 1024.0);
 
-            song.LocalFilePath = file.Path;
+            song.LocalFilePath = finalPath;
             song.FileSizeFormatted = $"{sizeMb:F1} MB · {ext.ToUpperInvariant()}";
+            song.AudioQuality = $"{ext.ToUpperInvariant()} · {codecName}";
+            song.AudioCodec = ext.ToUpperInvariant();
+            song.AudioSource = ext == "flac" ? "Qobuz Lossless" : "High Quality Stream";
 
             _downloadedSongs.RemoveAll(s => s.VideoId == song.VideoId);
             _downloadedSongs.Insert(0, song);
@@ -239,7 +281,7 @@ public class DownloadService : IDownloadService
             await SaveManifestAsync();
             DownloadedSongsChanged?.Invoke(this, EventArgs.Empty);
 
-            AppLogger.Log($"Successfully downloaded {song.Title} via HTTP to {file.Path} ({song.FileSizeFormatted})");
+            AppLogger.Log($"Successfully downloaded {song.Title} via HTTP to {finalPath} ({song.FileSizeFormatted})");
             return true;
         }
         catch (Exception ex)

@@ -67,21 +67,11 @@ public partial class LibraryViewModel : ObservableObject
         IsLoading = true;
         try
         {
-            // If Google is connected, fetch synced tracks from YouTube Music
-            var results = await _musicService.GetTrendingAsync();
+            var songs = await _musicService.GetLikedSongsAsync();
             LikedSongs.Clear();
-            foreach (var r in results)
+            foreach (var s in songs)
             {
-                LikedSongs.Add(new Song
-                {
-                    VideoId = r.VideoId,
-                    Title = r.Title,
-                    Artist = r.Artist,
-                    Album = r.Album,
-                    ThumbnailUrl = r.ThumbnailUrl,
-                    Duration = r.Duration,
-                    AudioQuality = r.AudioQuality
-                });
+                LikedSongs.Add(s);
             }
         }
         catch { }
@@ -98,20 +88,11 @@ public partial class LibraryViewModel : ObservableObject
         try
         {
             CheckGoogleStatus();
-            var results = await _musicService.GetTrendingAsync();
+            var songs = await _musicService.GetLikedSongsAsync();
             LikedSongs.Clear();
-            foreach (var r in results)
+            foreach (var s in songs)
             {
-                LikedSongs.Add(new Song
-                {
-                    VideoId = r.VideoId,
-                    Title = r.Title,
-                    Artist = r.Artist,
-                    Album = r.Album,
-                    ThumbnailUrl = r.ThumbnailUrl,
-                    Duration = r.Duration,
-                    AudioQuality = r.AudioQuality
-                });
+                LikedSongs.Add(s);
             }
         }
         catch { }

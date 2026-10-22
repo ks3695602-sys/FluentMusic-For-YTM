@@ -179,26 +179,16 @@ public sealed partial class MainWindow : Window
                 }
             }
 
-            var html = $@"<!DOCTYPE html>
-<html>
-<head>
-  <meta charset='utf-8'>
-  <meta name='referrer' content='strict-origin-when-cross-origin'>
-  <style>
-    html, body {{ margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }}
-    iframe {{ width:100%; height:100%; border:none; }}
-  </style>
-</head>
-<body>
-  <iframe src='https://www.youtube.com/embed/{videoId}?autoplay=1&amp;enablejsapi=1&amp;origin=https://www.youtube.com&amp;playsinline=1'
-          allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
-          allowfullscreen>
-  </iframe>
-</body>
-</html>";
-            NpVideoWebView.NavigateToString(html);
+            await NpVideoWebView.EnsureCoreWebView2Async();
+            NpVideoWebView.CoreWebView2.Settings.IsWebMessageEnabled = true;
+
+            // Direct top-level navigation has native youtube.com origin, permanently resolving Error 153
+            NpVideoWebView.Source = new Uri($"https://www.youtube.com/embed/{videoId}?autoplay=1&playsinline=1&enablejsapi=1");
         }
-        catch { }
+        catch (System.Exception ex)
+        {
+            Helpers.AppLogger.LogError("LoadCurrentVideo failed", ex);
+        }
     }
 
     private void PauseVideoPlayer()

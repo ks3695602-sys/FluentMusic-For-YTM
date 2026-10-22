@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using YTMusicClient.Models;
 
 namespace YTMusicClient.Services;
@@ -8,4 +11,5 @@ public interface IYouTubeMusicService
     Task<Song> GetSongDetailsAsync(string videoId, CancellationToken ct = default);
     Task<string> GetAudioStreamUrlAsync(string videoId, CancellationToken ct = default);
     Task<IReadOnlyList<SearchResult>> GetTrendingAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<Song>> GetLikedSongsAsync(CancellationToken ct = default);
 }
