@@ -12,6 +12,7 @@
             <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
             <converters:ActiveLyricOpacityConverter x:Key="LyricOpacityConverter" />
             <converters:ActiveLyricFontSizeConverter x:Key="LyricFontSizeConverter" />
+            <converters:ActiveAccentBrushConverter x:Key="ActiveAccentBrushConverter" />
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -59,18 +60,11 @@
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:LyricLine">
                     <Grid Padding="0,6" Margin="0,2">
-                        <!-- Dual-Span Progressive Word Karaoke Render -->
-                        <TextBlock TextWrapping="Wrap"
+                        <TextBlock Text="{x:Bind Text}"
                                    FontSize="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource LyricFontSizeConverter}}"
-                                   Opacity="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource LyricOpacityConverter}}">
-                            <!-- Active words sung so far (Solid glowing white) -->
-                            <Run Text="{x:Bind ActiveWordsText, Mode=OneWay}"
-                                 Foreground="White"
-                                 FontWeight="Bold" />
-                            <!-- Remaining words in line (Subtle translucent) -->
-                            <Run Text="{x:Bind RemainingWordsText, Mode=OneWay}"
-                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </TextBlock>
+                                   Opacity="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource LyricOpacityConverter}}"
+                                   Foreground="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource ActiveAccentBrushConverter}}"
+                                   TextWrapping="Wrap" />
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>

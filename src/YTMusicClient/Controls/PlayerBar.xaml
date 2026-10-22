@@ -128,32 +128,18 @@
                 </Grid>
             </Border>
 
-            <!-- 3. Right: Equalizer + Options Flyout + Lyrics + Volume -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+            <!-- 3. Right: Equalizer + Repeat + Lyrics + Volume -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
                 <!-- Equalizer waveform icon -->
                 <FontIcon Glyph="&#xE995;" FontSize="12" Foreground="{StaticResource AccentRedBrush}"
                           VerticalAlignment="Center" Margin="0,0,2,0"
                           Visibility="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
-                <!-- Options Flyout (Playback speed & toggles) -->
+                <!-- Repeat Button -->
                 <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
-                        ToolTipService.ToolTip="More Options">
-                    <FontIcon Glyph="&#xE712;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <Button.Flyout>
-                        <MenuFlyout Placement="TopEdgeAlignedRight">
-                            <MenuFlyoutSubItem Text="Playback Speed">
-                                <MenuFlyoutItem Text="0.5x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="0.5" />
-                                <MenuFlyoutItem Text="0.75x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="0.75" />
-                                <MenuFlyoutItem Text="1.0x (Normal)" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="1.0" />
-                                <MenuFlyoutItem Text="1.25x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="1.25" />
-                                <MenuFlyoutItem Text="1.5x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="1.5" />
-                                <MenuFlyoutItem Text="2.0x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="2.0" />
-                            </MenuFlyoutSubItem>
-                            <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="Toggle Repeat" Command="{x:Bind ViewModel.ToggleRepeatCommand}" />
-                            <MenuFlyoutItem Text="Toggle Shuffle" Command="{x:Bind ViewModel.ToggleShuffleCommand}" />
-                        </MenuFlyout>
-                    </Button.Flyout>
+                        Command="{x:Bind ViewModel.ToggleRepeatCommand}"
+                        ToolTipService.ToolTip="Repeat">
+                    <FontIcon Glyph="&#xE8EE;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Button>
 
                 <!-- Lyrics Toggle Button -->

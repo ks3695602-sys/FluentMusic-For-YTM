@@ -25,7 +25,6 @@
             <AutoSuggestBox x:Name="SearchBox"
                             QueryIcon="Find"
                             PlaceholderText="Search songs, albums, artists... (Ctrl+E)"
-                            Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
                             QuerySubmitted="SearchBox_QuerySubmitted"
                             Width="460" Height="36" CornerRadius="18"
                             HorizontalAlignment="Center" />
