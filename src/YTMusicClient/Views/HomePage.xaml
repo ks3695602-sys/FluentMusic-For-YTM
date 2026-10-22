@@ -35,26 +35,35 @@
         <ScrollViewer Grid.Row="1" Padding="32,0,32,40">
             <StackPanel Spacing="24">
 
-                <!-- Dynamic Mood & Category Chips Carousel (From Innertube or Default) -->
-                <ScrollViewer HorizontalScrollBarVisibility="Hidden"
-                              VerticalScrollBarVisibility="Disabled"
-                              HorizontalScrollMode="Enabled"
-                              VerticalScrollMode="Disabled">
-                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.MoodChips, Mode=OneWay}">
-                        <ItemsRepeater.Layout>
-                            <StackLayout Orientation="Horizontal" Spacing="8" />
-                        </ItemsRepeater.Layout>
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="models:MoodChip">
-                                <Button Content="{x:Bind Title}"
-                                        Tag="{x:Bind Param}"
-                                        CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                        Click="MoodChip_Click" />
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
-                </ScrollViewer>
+                <!-- Dynamic Mood & Category Chips Carousel -->
+                <ListView ItemsSource="{x:Bind ViewModel.MoodChips, Mode=OneWay}"
+                          SelectionMode="None" IsItemClickEnabled="True"
+                          ItemClick="MoodChip_ItemClick"
+                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                          ScrollViewer.HorizontalScrollMode="Enabled"
+                          ScrollViewer.VerticalScrollMode="Disabled">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="8" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:MoodChip">
+                            <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="16" Padding="14,6">
+                                <TextBlock Text="{x:Bind Title}" FontSize="11" FontWeight="SemiBold" />
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="MinHeight" Value="0" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
 
                 <!-- Loading Ring -->
                 <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
@@ -62,14 +71,11 @@
                               HorizontalAlignment="Center" Width="36" Height="36" />
 
                 <!-- VIEW A: Personalized Dynamic YouTube Music Shelves (Listen again, Quick picks, Forgotten favorites, etc.) -->
-                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Shelves, Mode=OneWay}"
-                               Visibility="{x:Bind ViewModel.HasPersonalizedShelves, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                    <ItemsRepeater.Layout>
-                        <StackLayout Orientation="Vertical" Spacing="28" />
-                    </ItemsRepeater.Layout>
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="models:HomeShelf">
-                            <StackPanel Spacing="12">
+                <ItemsControl ItemsSource="{x:Bind ViewModel.Shelves, Mode=OneWay}"
+                              Visibility="{x:Bind ViewModel.HasPersonalizedShelves, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Spacing="12" Margin="0,0,0,28">
                                 <!-- Shelf Header -->
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -77,10 +83,9 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind Subtitle}" FontSize="11"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                   Visibility="{x:Bind Subtitle, Converter={StaticResource BoolToVisibility}}" />
-                                        <TextBlock Text="{x:Bind Title}" FontSize="20" FontWeight="Bold" />
+                                        <TextBlock Text="{Binding Subtitle}" FontSize="11"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="Bold" />
                                     </StackPanel>
                                     <Button Grid.Column="1" Click="PlayShelf_Click"
                                             Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
@@ -93,7 +98,7 @@
                                 </Grid>
 
                                 <!-- Shelf Horizontal Carousel -->
-                                <ListView ItemsSource="{x:Bind Items}"
+                                <ListView ItemsSource="{Binding Items}"
                                           SelectionMode="None" IsItemClickEnabled="True"
                                           ItemClick="ShelfItem_Click"
                                           ScrollViewer.HorizontalScrollBarVisibility="Auto"
@@ -106,7 +111,7 @@
                                         </ItemsPanelTemplate>
                                     </ListView.ItemsPanel>
                                     <ListView.ItemTemplate>
-                                        <DataTemplate x:DataType="models:SearchResult">
+                                        <DataTemplate>
                                             <Border Width="160" Height="220" CornerRadius="12"
                                                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
@@ -122,7 +127,7 @@
                                                         <Grid>
                                                             <Image Stretch="UniformToFill">
                                                                 <Image.Source>
-                                                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
+                                                                    <BitmapImage UriSource="{Binding ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
                                                                                  DecodePixelWidth="144" />
                                                                 </Image.Source>
                                                             </Image>
@@ -140,9 +145,9 @@
 
                                                     <!-- Titles -->
                                                     <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="2,6,2,0">
-                                                        <TextBlock Text="{x:Bind Title}" FontSize="12" FontWeight="SemiBold"
+                                                        <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
                                                                    MaxLines="1" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{x:Bind Artist}" FontSize="10.5"
+                                                        <TextBlock Text="{Binding Artist}" FontSize="10.5"
                                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                                    MaxLines="1" TextTrimming="CharacterEllipsis" />
                                                     </StackPanel>
@@ -160,15 +165,15 @@
                                 </ListView>
                             </StackPanel>
                         </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
 
                 <!-- VIEW B: Fallback / Search Results (When search query is active or personalized shelves empty) -->
                 <StackPanel Spacing="24"
                             Visibility="{x:Bind ViewModel.HasPersonalizedShelves, Mode=OneWay, Converter={StaticResource InverseBoolToVisibility}}">
                     <TextBlock Text="Search &amp; Trending Results" FontSize="20" FontWeight="Bold" />
 
-                    <!-- Search / Trending 2x3 Grid -->
+                    <!-- Search / Trending Grid -->
                     <GridView ItemsSource="{x:Bind ViewModel.TopResults, Mode=OneWay}"
                               SelectionMode="None" IsItemClickEnabled="True"
                               ItemClick="ShelfItem_Click">

@@ -61,6 +61,15 @@ public sealed partial class HomePage : Page
         }
     }
 
+    private async void MoodChip_ItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is MoodChip chip)
+        {
+            ViewModel.ActiveMoodTitle = chip.Title;
+            await ViewModel.LoadPersonalizedFeedAsync(!string.IsNullOrWhiteSpace(chip.Param) ? chip.Param : null);
+        }
+    }
+
     private async void MoodChip_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn)

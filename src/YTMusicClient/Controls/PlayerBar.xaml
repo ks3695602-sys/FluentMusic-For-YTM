@@ -275,17 +275,17 @@
                                           SelectionMode="None" IsItemClickEnabled="True" ItemClick="QueueItem_Click"
                                           MaxHeight="240">
                                     <ListView.ItemTemplate>
-                                        <DataTemplate x:DataType="models:Song">
+                                        <DataTemplate>
                                             <Grid Padding="4,6">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="{x:Bind Title}" FontSize="11.5" FontWeight="SemiBold" MaxLines="1" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{x:Bind Artist}" FontSize="9.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Title}" FontSize="11.5" FontWeight="SemiBold" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Artist}" FontSize="9.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
                                                 </StackPanel>
-                                                <Button Grid.Column="1" Tag="{x:Bind VideoId}" Click="RemoveQueueItem_Click"
+                                                <Button Grid.Column="1" Tag="{Binding VideoId}" Click="RemoveQueueItem_Click"
                                                         Background="Transparent" BorderThickness="0" Padding="4" CornerRadius="6">
                                                     <FontIcon Glyph="&#xE711;" FontSize="10" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
                                                 </Button>
