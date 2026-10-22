@@ -17,7 +17,7 @@
     <Border Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
             BorderBrush="{StaticResource GlassBorderBrush}"
             BorderThickness="1"
-            CornerRadius="12"
+            CornerRadius="28"
             Width="740"
             Height="54"
             Padding="12,4"

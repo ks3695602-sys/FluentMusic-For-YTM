@@ -108,28 +108,36 @@ public partial class PlayerBarViewModel : ObservableObject, IDisposable
         Title = song.Title;
         Artist = song.Artist;
         ThumbnailUrl = song.ThumbnailUrl;
-        AudioQualityBadge = !string.IsNullOrEmpty(song.AudioQuality) ? song.AudioQuality : "256 kbps · AAC · Hi-Res";
         AudioCodec = !string.IsNullOrEmpty(song.AudioCodec) ? song.AudioCodec : "AAC";
         AudioSource = !string.IsNullOrEmpty(song.AudioSource) ? song.AudioSource : "BravePipe / Qobuz";
 
-        var tier = !string.IsNullOrEmpty(song.FidelityTier) ? song.FidelityTier : (song.AudioCodec == "FLAC" ? "Hi-Res Lossless" : (song.AudioCodec == "AAC" ? "Hi-Res" : "Basic"));
-        if (tier.Contains("Lossless", StringComparison.OrdinalIgnoreCase) || song.AudioCodec.Equals("FLAC", StringComparison.OrdinalIgnoreCase))
+        var tier = !string.IsNullOrEmpty(song.FidelityTier) ? song.FidelityTier : (AudioCodec == "FLAC" ? "Hi-Res Lossless" : (AudioCodec == "AAC" ? "Hi-Res" : "Basic"));
+        if (tier.Contains("Lossless", StringComparison.OrdinalIgnoreCase) || AudioCodec.Equals("FLAC", StringComparison.OrdinalIgnoreCase))
         {
             FidelityBadgeText = "Hi-Res Lossless";
             FidelityBadgeBackground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(48, 250, 45, 72));
             FidelityBadgeForeground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 250, 45, 72));
+            AudioQualityBadge = !string.IsNullOrEmpty(song.AudioQuality) && song.AudioQuality.Contains("kbps") 
+                ? song.AudioQuality 
+                : "1411 kbps · FLAC · Lossless";
         }
-        else if (tier.Contains("Hi-Res", StringComparison.OrdinalIgnoreCase) || song.AudioCodec.Equals("AAC", StringComparison.OrdinalIgnoreCase))
+        else if (tier.Contains("Hi-Res", StringComparison.OrdinalIgnoreCase) || AudioCodec.Equals("AAC", StringComparison.OrdinalIgnoreCase))
         {
             FidelityBadgeText = "Hi-Res";
             FidelityBadgeBackground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(40, 59, 130, 246));
             FidelityBadgeForeground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 96, 165, 250));
+            AudioQualityBadge = !string.IsNullOrEmpty(song.AudioQuality) && song.AudioQuality.Contains("kbps")
+                ? song.AudioQuality
+                : "256 kbps · AAC · Hi-Res";
         }
         else
         {
             FidelityBadgeText = "Basic";
             FidelityBadgeBackground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(32, 160, 160, 160));
             FidelityBadgeForeground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 180, 180, 180));
+            AudioQualityBadge = !string.IsNullOrEmpty(song.AudioQuality) && song.AudioQuality.Contains("kbps")
+                ? song.AudioQuality
+                : "160 kbps · Opus · Basic";
         }
 
         HasSong = true;

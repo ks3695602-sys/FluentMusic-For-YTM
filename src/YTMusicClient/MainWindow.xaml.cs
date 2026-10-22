@@ -124,8 +124,6 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private bool _isVideoWebViewConfigured;
-
     private void UpdateNowPlayingContent()
     {
         try
@@ -211,29 +209,29 @@ public sealed partial class MainWindow : Window
         LoadCurrentVideo();
     }
 
-    private async void VideoAudioSyncToggle_Click(object sender, RoutedEventArgs e)
+    private Windows.Media.Playback.MediaPlayer? _nativeVideoPlayer;
+
+    private void VideoAudioSyncToggle_Click(object sender, RoutedEventArgs e)
     {
         bool isSync = VideoAudioSyncToggle.IsChecked == true;
         if (isSync)
         {
             SyncToggleText.Text = "FLAC Synced";
             SyncToggleIcon.Glyph = "\uE8D6";
-            try
+            if (_nativeVideoPlayer != null)
             {
-                await NpVideoWebView.ExecuteScriptAsync("if(player && typeof player.mute === 'function') player.mute();");
+                _nativeVideoPlayer.IsMuted = true;
             }
-            catch { }
             ViewModel.PlaybackService.Resume();
         }
         else
         {
             SyncToggleText.Text = "Video Audio";
             SyncToggleIcon.Glyph = "\uE714";
-            try
+            if (_nativeVideoPlayer != null)
             {
-                await NpVideoWebView.ExecuteScriptAsync("if(player && typeof player.unMute === 'function') player.unMute();");
+                _nativeVideoPlayer.IsMuted = false;
             }
-            catch { }
             ViewModel.PlaybackService.Pause();
         }
     }
@@ -266,157 +264,61 @@ public sealed partial class MainWindow : Window
                 }
             }
 
-            await NpVideoWebView.EnsureCoreWebView2Async();
-            if (!_isVideoWebViewConfigured)
+            var ytClient = new YoutubeExplode.YoutubeClient();
+            var manifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
+
+            // Prefer high-quality MP4 muxed stream (video + audio)
+            var muxed = manifest.GetMuxedStreams()
+                .Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
+                .OrderByDescending(s => s.VideoQuality)
+                .FirstOrDefault();
+
+            string? videoUrl = muxed?.Url;
+            if (string.IsNullOrEmpty(videoUrl))
             {
-                NpVideoWebView.CoreWebView2.Settings.IsWebMessageEnabled = true;
-                NpVideoWebView.CoreWebView2.Settings.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+                var vidOnly = manifest.GetVideoOnlyStreams()
+                    .Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
+                    .OrderByDescending(s => s.VideoQuality)
+                    .FirstOrDefault();
+                videoUrl = vidOnly?.Url ?? manifest.GetMuxedStreams().FirstOrDefault()?.Url;
+            }
 
-                NpVideoWebView.CoreWebView2.AddWebResourceRequestedFilter("https://www.youtube.com/*", Microsoft.Web.WebView2.Core.CoreWebView2WebResourceContext.All);
-                NpVideoWebView.CoreWebView2.AddWebResourceRequestedFilter("https://www.youtube-nocookie.com/*", Microsoft.Web.WebView2.Core.CoreWebView2WebResourceContext.All);
-                NpVideoWebView.CoreWebView2.WebResourceRequested += (s, args) =>
-                {
-                    args.Request.Headers.SetHeader("Referer", "https://www.youtube.com/");
-                    args.Request.Headers.SetHeader("Origin", "https://www.youtube.com");
-                };
+            if (string.IsNullOrEmpty(videoUrl))
+            {
+                Helpers.AppLogger.Log("No native video stream available for " + videoId);
+                return;
+            }
 
-                NpVideoWebView.WebMessageReceived += OnVideoWebMessageReceived;
-                _isVideoWebViewConfigured = true;
+            if (_nativeVideoPlayer == null)
+            {
+                _nativeVideoPlayer = new Windows.Media.Playback.MediaPlayer();
+                _nativeVideoPlayer.AudioCategory = Windows.Media.Playback.MediaPlayerAudioCategory.Media;
+                NpVideoPlayer.SetMediaPlayer(_nativeVideoPlayer);
             }
 
             bool muteVideo = VideoAudioSyncToggle.IsChecked == true;
-            string muteParam = muteVideo ? "true" : "false";
+            _nativeVideoPlayer.IsMuted = muteVideo;
+            _nativeVideoPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(videoUrl));
 
-            // YouTube Iframe API player template with strict origin and no-cookie host (Fixes Error 153)
-            string playerHtml = $@"<!DOCTYPE html>
-<html>
-<head>
-    <meta name='referrer' content='strict-origin-when-cross-origin'>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; overflow: hidden; background: #000; }}
-        html, body, #player {{ width: 100%; height: 100%; }}
-    </style>
-</head>
-<body>
-    <div id='player'></div>
-    <script src='https://www.youtube.com/iframe_api'></script>
-    <script>
-        var player;
-        var isMuted = {muteParam};
-        function onYouTubeIframeAPIReady() {{
-            player = new YT.Player('player', {{
-                height: '100%',
-                width: '100%',
-                videoId: '{videoId}',
-                host: 'https://www.youtube-nocookie.com',
-                playerVars: {{
-                    'autoplay': 1,
-                    'playsinline': 1,
-                    'controls': 1,
-                    'origin': 'https://www.youtube.com',
-                    'widget_referrer': 'https://www.youtube.com',
-                    'rel': 0,
-                    'enablejsapi': 1
-                }},
-                events: {{
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
-                }}
-            }});
-        }}
-        function onPlayerReady(event) {{
-            if (isMuted) {{
-                player.mute();
-            }} else {{
-                player.unMute();
-            }}
-            window.chrome.webview.postMessage(JSON.stringify({{ type: 'ready' }}));
-        }}
-        function onPlayerStateChange(event) {{
-            window.chrome.webview.postMessage(JSON.stringify({{
-                type: 'stateChange',
-                state: event.data,
-                currentTime: player ? player.getCurrentTime() : 0
-            }}));
-        }}
-        setInterval(function() {{
-            if (player && typeof player.getPlayerState === 'function' && player.getPlayerState() === 1) {{
-                window.chrome.webview.postMessage(JSON.stringify({{
-                    type: 'timeUpdate',
-                    currentTime: player.getCurrentTime()
-                }}));
-            }}
-        }}, 400);
-    </script>
-</body>
-</html>";
+            if (ViewModel.PlaybackService.Position > TimeSpan.Zero)
+            {
+                _nativeVideoPlayer.PlaybackSession.Position = ViewModel.PlaybackService.Position;
+            }
 
-            NpVideoWebView.NavigateToString(playerHtml);
+            _nativeVideoPlayer.Play();
+            Helpers.AppLogger.Log("Native video player started for videoId: " + videoId);
         }
         catch (System.Exception ex)
         {
-            Helpers.AppLogger.LogError("LoadCurrentVideo failed", ex);
+            Helpers.AppLogger.LogError("LoadCurrentVideo native player failed", ex);
         }
-    }
-
-    private void OnVideoWebMessageReceived(WebView2 sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs args)
-    {
-        try
-        {
-            var json = args.TryGetWebMessageAsString();
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            string type = root.GetProperty("type").GetString() ?? "";
-
-            bool isSyncMode = VideoAudioSyncToggle.IsChecked == true;
-
-            if (type == "stateChange")
-            {
-                int state = root.GetProperty("state").GetInt32();
-                double currentTime = root.TryGetProperty("currentTime", out var ct) ? ct.GetDouble() : 0;
-
-                if (isSyncMode)
-                {
-                    // YT.PlayerState: 1 = Playing, 2 = Paused, 3 = Buffering, 0 = Ended
-                    if (state == 1) // Video Playing -> Play high quality FLAC audio in sync
-                    {
-                        var audioPos = ViewModel.PlaybackService.Position.TotalSeconds;
-                        if (Math.Abs(audioPos - currentTime) > 0.4)
-                        {
-                            ViewModel.PlaybackService.Seek(TimeSpan.FromSeconds(currentTime));
-                        }
-                        if (!ViewModel.PlaybackService.IsPlaying)
-                        {
-                            ViewModel.PlaybackService.Resume();
-                        }
-                    }
-                    else if (state == 2 || state == 3) // Video Paused or Buffering -> Pause audio
-                    {
-                        if (ViewModel.PlaybackService.IsPlaying)
-                        {
-                            ViewModel.PlaybackService.Pause();
-                        }
-                    }
-                }
-            }
-            else if (type == "timeUpdate" && isSyncMode)
-            {
-                double currentTime = root.GetProperty("currentTime").GetDouble();
-                var audioPos = ViewModel.PlaybackService.Position.TotalSeconds;
-                if (Math.Abs(audioPos - currentTime) > 0.45)
-                {
-                    ViewModel.PlaybackService.Seek(TimeSpan.FromSeconds(currentTime));
-                }
-            }
-        }
-        catch { }
     }
 
     private void PauseVideoPlayer()
     {
         try
         {
-            NpVideoWebView.Source = new Uri("about:blank");
+            _nativeVideoPlayer?.Pause();
         }
         catch { }
     }

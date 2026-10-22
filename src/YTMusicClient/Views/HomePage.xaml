@@ -39,7 +39,7 @@
                 <ListView ItemsSource="{x:Bind ViewModel.MoodChips, Mode=OneWay}"
                           SelectionMode="None" IsItemClickEnabled="True"
                           ItemClick="MoodChip_ItemClick"
-                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                           ScrollViewer.VerticalScrollBarVisibility="Disabled"
                           ScrollViewer.HorizontalScrollMode="Enabled"
                           ScrollViewer.VerticalScrollMode="Disabled">
@@ -101,7 +101,7 @@
                                 <ListView ItemsSource="{Binding Items}"
                                           SelectionMode="None" IsItemClickEnabled="True"
                                           ItemClick="ShelfItem_Click"
-                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
                                           ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                           ScrollViewer.HorizontalScrollMode="Enabled"
                                           ScrollViewer.VerticalScrollMode="Disabled">

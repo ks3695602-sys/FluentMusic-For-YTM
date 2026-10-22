@@ -119,7 +119,20 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                     var musicService = App.Services.GetService(typeof(IYouTubeMusicService)) as IYouTubeMusicService;
                     if (musicService != null)
                     {
-                        song.StreamUrl = await musicService.GetAudioStreamUrlAsync(song.VideoId);
+                        song.StreamUrl = await musicService.GetAudioStreamUrlAsync(song.VideoId, song.Title, song.Artist);
+                        if (!string.IsNullOrEmpty(song.StreamUrl))
+                        {
+                            if (song.StreamUrl.Contains(".flac", StringComparison.OrdinalIgnoreCase) || 
+                                song.StreamUrl.Contains("lossless", StringComparison.OrdinalIgnoreCase) ||
+                                song.StreamUrl.Contains("qobuz", StringComparison.OrdinalIgnoreCase))
+                            {
+                                song.AudioCodec = "FLAC";
+                                song.AudioQuality = "1411 kbps · FLAC · Lossless";
+                                song.FidelityTier = "Hi-Res Lossless";
+                                song.AudioSource = "Qobuz Lossless";
+                            }
+                            SetCurrentSong(song);
+                        }
                     }
                 }
                 catch (Exception ex)

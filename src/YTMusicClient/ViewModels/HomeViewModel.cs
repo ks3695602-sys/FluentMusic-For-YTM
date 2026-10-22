@@ -207,6 +207,27 @@ public partial class HomeViewModel : ObservableObject
             FidelityTier = result.FidelityTier
         };
 
+        if (song.VideoId.StartsWith("query:"))
+        {
+            try
+            {
+                var query = $"{song.Title} {song.Artist}".Trim();
+                var searchResults = await _musicService.SearchAsync(query);
+                if (searchResults.Count > 0)
+                {
+                    song.VideoId = searchResults[0].VideoId;
+                    if (string.IsNullOrEmpty(song.ThumbnailUrl))
+                    {
+                        song.ThumbnailUrl = searchResults[0].ThumbnailUrl;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError("Failed to resolve videoId from query tag", ex);
+            }
+        }
+
         await _playbackService.PlayAsync(song);
     }
 

@@ -29,6 +29,20 @@ public partial class LibraryViewModel : ObservableObject
 
     public ObservableCollection<Song> LikedSongs { get; } = new();
     public ObservableCollection<Playlist> Playlists { get; } = new();
+    public ObservableCollection<Playlist> FilteredPlaylists { get; } = new();
+    public ObservableCollection<Song> PlaylistTracks { get; } = new();
+
+    [ObservableProperty]
+    private Playlist? _selectedPlaylist;
+
+    [ObservableProperty]
+    private bool _isPlaylistDetailOpen;
+
+    [ObservableProperty]
+    private string _playlistSearchQuery = string.Empty;
+
+    [ObservableProperty]
+    private int _selectedTabIndex = 0; // 0 = Playlists, 1 = Liked Songs
 
     public LibraryViewModel(
         IMediaPlaybackService playbackService,
@@ -57,16 +71,44 @@ public partial class LibraryViewModel : ObservableObject
         catch { }
     }
 
+    partial void OnPlaylistSearchQueryChanged(string value)
+    {
+        ApplyPlaylistFilter();
+    }
+
+    private void ApplyPlaylistFilter()
+    {
+        FilteredPlaylists.Clear();
+        var q = PlaylistSearchQuery?.Trim().ToLowerInvariant() ?? "";
+        foreach (var p in Playlists)
+        {
+            if (string.IsNullOrEmpty(q) || p.Title.ToLowerInvariant().Contains(q) || p.Description.ToLowerInvariant().Contains(q))
+            {
+                FilteredPlaylists.Add(p);
+            }
+        }
+    }
+
     [RelayCommand]
     public async Task LoadLibraryAsync()
     {
         CheckGoogleStatus();
 
-        if (LikedSongs.Count > 0) return;
+        if (Playlists.Count > 0 && LikedSongs.Count > 0) return;
 
         IsLoading = true;
         try
         {
+            // 1. Load User Playlists
+            var playlists = await _musicService.GetLibraryPlaylistsAsync();
+            Playlists.Clear();
+            foreach (var p in playlists)
+            {
+                Playlists.Add(p);
+            }
+            ApplyPlaylistFilter();
+
+            // 2. Load Liked Songs
             var songs = await _musicService.GetLikedSongsAsync();
             LikedSongs.Clear();
             foreach (var s in songs)
@@ -88,6 +130,14 @@ public partial class LibraryViewModel : ObservableObject
         try
         {
             CheckGoogleStatus();
+            var playlists = await _musicService.GetLibraryPlaylistsAsync();
+            Playlists.Clear();
+            foreach (var p in playlists)
+            {
+                Playlists.Add(p);
+            }
+            ApplyPlaylistFilter();
+
             var songs = await _musicService.GetLikedSongsAsync();
             LikedSongs.Clear();
             foreach (var s in songs)
@@ -103,7 +153,65 @@ public partial class LibraryViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task PlaySongAsync(Song? song)
+    public async Task OpenPlaylistAsync(Playlist? playlist)
+    {
+        if (playlist == null) return;
+        SelectedPlaylist = playlist;
+        IsPlaylistDetailOpen = true;
+
+        PlaylistTracks.Clear();
+        IsLoading = true;
+        try
+        {
+            var tracks = await _musicService.GetPlaylistTracksAsync(playlist.Id);
+            foreach (var t in tracks)
+            {
+                PlaylistTracks.Add(t);
+            }
+        }
+        catch { }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public void ClosePlaylistDetail()
+    {
+        IsPlaylistDetailOpen = false;
+        SelectedPlaylist = null;
+    }
+
+    [RelayCommand]
+    public async Task PlayAllPlaylistAsync()
+    {
+        if (PlaylistTracks.Count == 0) return;
+        var first = PlaylistTracks[0];
+        await _playbackService.PlayAsync(first);
+
+        foreach (var t in PlaylistTracks.Skip(1))
+        {
+            _playbackService.UpNext.Add(t);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ShufflePlaylistAsync()
+    {
+        if (PlaylistTracks.Count == 0) return;
+        var rnd = new Random();
+        var shuffled = PlaylistTracks.OrderBy(x => rnd.Next()).ToList();
+        await _playbackService.PlayAsync(shuffled[0]);
+
+        foreach (var t in shuffled.Skip(1))
+        {
+            _playbackService.UpNext.Add(t);
+        }
+    }
+
+    [RelayCommand]
+    public async Task PlaySongAsync(Song? song)
     {
         if (song == null) return;
         await _playbackService.PlayAsync(song);

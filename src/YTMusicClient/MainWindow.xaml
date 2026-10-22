@@ -309,13 +309,15 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <!-- 2. Music Video Stage (WebView2 16:9 YouTube Player) -->
+                                <!-- 2. Music Video Stage (Native WinUI MediaPlayerElement) -->
                                 <Grid x:Name="NpVideoStage" Grid.Row="1" Visibility="Collapsed" Padding="20,10,20,90">
                                     <Border CornerRadius="12"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                                             Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                        <WebView2 x:Name="NpVideoWebView"
-                                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                                        <MediaPlayerElement x:Name="NpVideoPlayer"
+                                                            AreTransportControlsEnabled="False"
+                                                            Stretch="Uniform"
+                                                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                                     </Border>
                                 </Grid>
                             </Grid>
