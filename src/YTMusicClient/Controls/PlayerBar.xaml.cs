@@ -42,4 +42,29 @@ public sealed partial class PlayerBar : UserControl
     {
         NowPlayingRequested?.Invoke(this, EventArgs.Empty);
     }
+
+    private void ClearQueue_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel.PlaybackService.UpNext.Clear();
+    }
+
+    private async void QueueItem_Click(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is Models.Song song)
+        {
+            await ViewModel.PlaybackService.PlayAsync(song);
+        }
+    }
+
+    private void RemoveQueueItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string videoId)
+        {
+            var match = System.Linq.Enumerable.FirstOrDefault(ViewModel.PlaybackService.UpNext, s => s.VideoId == videoId);
+            if (match != null)
+            {
+                ViewModel.PlaybackService.UpNext.Remove(match);
+            }
+        }
+    }
 }

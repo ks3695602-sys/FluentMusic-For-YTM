@@ -108,8 +108,11 @@
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0" Width="24" Height="24" CornerRadius="12" Background="{ThemeResource SubtleFillColorTertiaryBrush}">
-                            <FontIcon x:Name="UserAccountAvatarIcon" Glyph="&#xE77B;" FontSize="12" Foreground="{StaticResource AccentRedBrush}"
-                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Grid>
+                                <FontIcon x:Name="UserAccountAvatarIcon" Glyph="&#xE77B;" FontSize="12" Foreground="{StaticResource AccentRedBrush}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Image x:Name="UserAccountAvatarImage" Width="24" Height="24" Stretch="UniformToFill" Visibility="Collapsed" />
+                            </Grid>
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
@@ -164,12 +167,37 @@
                             <!-- Full Stage Now Playing & YouTube Music Video Overlay -->
                             <Grid x:Name="NowPlayingOverlay"
                                   Visibility="Collapsed"
-                                  Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                                  Background="#101014"
                                   CornerRadius="16">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" /> <!-- Top Header Bar -->
                                     <RowDefinition Height="*" />    <!-- Content Stage (Song vs Video) -->
                                 </Grid.RowDefinitions>
+
+                                <!-- Live Mesh Gradient Background Layer -->
+                                <Grid x:Name="NpMeshBackground" Grid.RowSpan="2" IsHitTestVisible="False">
+                                    <Rectangle Fill="#101014" />
+                                    <!-- Gradient Mesh Spot 1 (Top Left Ambient Glow) -->
+                                    <Ellipse Width="650" Height="650" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-180,-180,0,0" Opacity="0.45">
+                                        <Ellipse.Fill>
+                                            <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                                                <GradientStop x:Name="NpMeshStop1" Color="#70FA2D48" Offset="0" />
+                                                <GradientStop Color="#00000000" Offset="1" />
+                                            </RadialGradientBrush>
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                    <!-- Gradient Mesh Spot 2 (Bottom Right Ambient Glow) -->
+                                    <Ellipse Width="750" Height="750" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-220,-220" Opacity="0.35">
+                                        <Ellipse.Fill>
+                                            <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                                                <GradientStop x:Name="NpMeshStop2" Color="#703B82F6" Offset="0" />
+                                                <GradientStop Color="#00000000" Offset="1" />
+                                            </RadialGradientBrush>
+                                        </Ellipse.Fill>
+                                    </Ellipse>
+                                    <!-- Soft Translucent Acrylic Veil -->
+                                    <Rectangle Fill="#40101014" />
+                                </Grid>
 
                                 <!-- Now Playing Top Bar -->
                                 <Grid Grid.Row="0" Padding="24,14,24,8">
@@ -188,25 +216,39 @@
                                         </StackPanel>
                                     </Button>
 
-                                    <!-- Mode Toggle: Audio vs Music Video -->
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center"
-                                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="18" Padding="3">
-                                        <Button x:Name="NpAudioModeBtn" Click="NpAudioMode_Click"
-                                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                                BorderThickness="0" CornerRadius="15" Padding="16,6">
+                                    <!-- Mode Toggle: Audio vs Music Video + Audio Source Toggle -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                                        <StackPanel Orientation="Horizontal"
+                                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="18" Padding="3">
+                                            <Button x:Name="NpAudioModeBtn" Click="NpAudioMode_Click"
+                                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                                    BorderThickness="0" CornerRadius="15" Padding="16,6">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <FontIcon Glyph="&#xEC4F;" FontSize="12" Foreground="{StaticResource AccentRedBrush}" />
+                                                    <TextBlock Text="Audio &amp; Vinyl" FontSize="12" FontWeight="SemiBold" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button x:Name="NpVideoModeBtn" Click="NpVideoMode_Click"
+                                                    Background="Transparent"
+                                                    BorderThickness="0" CornerRadius="15" Padding="16,6">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <FontIcon Glyph="&#xE714;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock Text="Music Video" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+
+                                        <!-- Video Audio Sync Source Toggle Pill -->
+                                        <ToggleButton x:Name="VideoAudioSyncToggle" IsChecked="True"
+                                                      Click="VideoAudioSyncToggle_Click"
+                                                      CornerRadius="15" Padding="12,5"
+                                                      Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                                      ToolTipService.ToolTip="Toggle audio stream for Music Video: Hi-Res FLAC Synced vs Video Native Audio">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <FontIcon Glyph="&#xEC4F;" FontSize="12" Foreground="{StaticResource AccentRedBrush}" />
-                                                <TextBlock Text="Audio &amp; Vinyl" FontSize="12" FontWeight="SemiBold" />
+                                                <FontIcon x:Name="SyncToggleIcon" Glyph="&#xE8D6;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" />
+                                                <TextBlock x:Name="SyncToggleText" Text="FLAC Synced" FontSize="11" FontWeight="SemiBold" />
                                             </StackPanel>
-                                        </Button>
-                                        <Button x:Name="NpVideoModeBtn" Click="NpVideoMode_Click"
-                                                Background="Transparent"
-                                                BorderThickness="0" CornerRadius="15" Padding="16,6">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <FontIcon Glyph="&#xE714;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <TextBlock Text="Music Video" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            </StackPanel>
-                                        </Button>
+                                        </ToggleButton>
                                     </StackPanel>
 
                                     <!-- Close Button -->
@@ -236,13 +278,22 @@
 
                                     <!-- Right: Track Metadata & Audio Fidelity -->
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="48,0,0,0" Spacing="16">
-                                        <Border Background="#20FA2D48" CornerRadius="12" Padding="10,4" HorizontalAlignment="Left">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <FontIcon Glyph="&#xE8D6;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" />
-                                                <TextBlock x:Name="NpQualityText" Text="256 kbps · AAC · Hi-Res"
-                                                           FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentRedBrush}" />
-                                            </StackPanel>
-                                        </Border>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <!-- Fidelity Badge -->
+                                            <Border x:Name="NpFidelityPill" Background="#30FA2D48" CornerRadius="10" Padding="10,4">
+                                                <TextBlock x:Name="NpFidelityText" Text="Hi-Res Lossless"
+                                                           FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentRedBrush}" />
+                                            </Border>
+
+                                            <!-- Bitrate & Codec Pill -->
+                                            <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="10" Padding="10,4">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <FontIcon Glyph="&#xE8D6;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock x:Name="NpQualityText" Text="256 kbps · AAC · Hi-Res"
+                                                               FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
 
                                         <TextBlock x:Name="NpTitleText" Text="Not Playing"
                                                    Style="{StaticResource TitleLargeTextBlockStyle}"
@@ -253,7 +304,7 @@
                                                    FontSize="20" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                    TextWrapping="Wrap" MaxLines="1" />
 
-                                        <TextBlock Text="Streaming with ultra-low latency &amp; lossless AAC source"
+                                        <TextBlock Text="Streaming with ultra-low latency &amp; lossless audio fidelity"
                                                    FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                                     </StackPanel>
                                 </Grid>

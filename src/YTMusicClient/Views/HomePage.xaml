@@ -10,17 +10,18 @@
     <Page.Resources>
         <ResourceDictionary>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+            <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
             <converters:StringToUriConverter x:Key="StringToUriConverter" />
         </ResourceDictionary>
     </Page.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" /> <!-- Top Header with Native WinUI Search Bar -->
+            <RowDefinition Height="Auto" /> <!-- Top Header with Search Bar -->
             <RowDefinition Height="*" />    <!-- Main Scrollable Content -->
         </Grid.RowDefinitions>
 
-        <!-- 1. Top Header: Official WinUI AutoSuggestBox Search Bar (No Toolbar!) -->
+        <!-- 1. Top Header: Native Search Bar -->
         <Grid Grid.Row="0" Padding="32,16,32,12">
             <AutoSuggestBox x:Name="SearchBox"
                             QueryIcon="Find"
@@ -30,47 +31,29 @@
                             HorizontalAlignment="Center" />
         </Grid>
 
-        <!-- 2. Main Scrollable Content (Microsoft Store Layout) -->
-        <ScrollViewer Grid.Row="1" Padding="32,0,32,0">
-            <StackPanel Spacing="28">
+        <!-- 2. Main Scrollable Content -->
+        <ScrollViewer Grid.Row="1" Padding="32,0,32,40">
+            <StackPanel Spacing="24">
 
-                <!-- Mood & Genre Category Chips Carousel -->
+                <!-- Dynamic Mood & Category Chips Carousel (From Innertube or Default) -->
                 <ScrollViewer HorizontalScrollBarVisibility="Hidden"
                               VerticalScrollBarVisibility="Disabled"
                               HorizontalScrollMode="Enabled"
                               VerticalScrollMode="Disabled">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="All (सब)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="" />
-                        <Button Content="कसरत (Workout)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="Workout songs" />
-                        <Button Content="फील गुड (Feel Good)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="Feel good songs" />
-                        <Button Content="रोमांस (Romance)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="Romantic songs" />
-                        <Button Content="सुकून (Relax)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="Relaxing acoustic songs" />
-                        <Button Content="पार्टी (Party)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="Party dance songs" />
-                        <Button Content="फ़ोकस (Focus)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="Lofi focus study music" />
-                        <Button Content="अच्छी नींद (Sleep)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="Calm sleep music" />
-                        <Button Content="जोश (Energy)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="High energy beats" />
-                        <Button Content="दुख भरा (Sad)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
-                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                Click="MoodChip_Click" Tag="Sad soulful songs" />
-                    </StackPanel>
+                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.MoodChips, Mode=OneWay}">
+                        <ItemsRepeater.Layout>
+                            <StackLayout Orientation="Horizontal" Spacing="8" />
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="models:MoodChip">
+                                <Button Content="{x:Bind Title}"
+                                        Tag="{x:Bind Param}"
+                                        CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                        Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                        Click="MoodChip_Click" />
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
                 </ScrollViewer>
 
                 <!-- Loading Ring -->
@@ -78,277 +61,149 @@
                               Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
                               HorizontalAlignment="Center" Width="36" Height="36" />
 
-                <!-- SECTION 1: Top Hero Section (Spotlight Banner + 2x2 Bento Grid) -->
-                <Grid ColumnSpacing="16">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="62*" /> <!-- Spotlight Hero Banner -->
-                        <ColumnDefinition Width="38*" /> <!-- 2x2 Bento Grid -->
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Spotlight Hero Banner (Microsoft Store Style) -->
-                    <Border Grid.Column="0" CornerRadius="14" Height="236"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                            Padding="28,24">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#281A32" Offset="0" />
-                                <GradientStop Color="#18233C" Offset="0.55" />
-                                <GradientStop Color="#0F1826" Offset="1" />
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <Grid>
-                            <StackPanel VerticalAlignment="Center" Spacing="10" MaxWidth="440" HorizontalAlignment="Left">
-                                <Border Background="#25FA2D48" CornerRadius="10" Padding="8,3" HorizontalAlignment="Left">
-                                    <TextBlock Text="FEATURED SPOTLIGHT" FontSize="10" FontWeight="Bold"
-                                               Foreground="{StaticResource AccentRedBrush}" />
-                                </Border>
-
-                                <TextBlock Text="Bollywood &amp; Global Hits 2026"
-                                           FontSize="24" FontWeight="Bold" Foreground="White"
-                                           TextWrapping="Wrap" MaxLines="2" />
-
-                                <TextBlock Text="Curated chartbusters and trending tracks updated daily in high-fidelity 256kbps audio."
-                                           FontSize="12" Foreground="#C8D0E0" TextWrapping="Wrap" MaxLines="2" />
-
-                                <Button Style="{StaticResource AccentButtonStyle}"
-                                        CornerRadius="18" Padding="18,8" Margin="0,6,0,0"
-                                        Click="PlayFeatured_Click">
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon Glyph="&#xE768;" FontSize="13" />
-                                        <TextBlock Text="Play Featured" FontWeight="SemiBold" FontSize="13" />
+                <!-- VIEW A: Personalized Dynamic YouTube Music Shelves (Listen again, Quick picks, Forgotten favorites, etc.) -->
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Shelves, Mode=OneWay}"
+                               Visibility="{x:Bind ViewModel.HasPersonalizedShelves, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Orientation="Vertical" Spacing="28" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:HomeShelf">
+                            <StackPanel Spacing="12">
+                                <!-- Shelf Header -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Subtitle}" FontSize="11"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   Visibility="{x:Bind Subtitle, Converter={StaticResource BoolToVisibility}}" />
+                                        <TextBlock Text="{x:Bind Title}" FontSize="20" FontWeight="Bold" />
                                     </StackPanel>
-                                </Button>
+                                    <Button Grid.Column="1" Click="PlayShelf_Click"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                            CornerRadius="14" Padding="14,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon Glyph="&#xE768;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" />
+                                            <TextBlock Text="सब चलाएं (Play all)" FontSize="11.5" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
+
+                                <!-- Shelf Horizontal Carousel -->
+                                <ListView ItemsSource="{x:Bind Items}"
+                                          SelectionMode="None" IsItemClickEnabled="True"
+                                          ItemClick="ShelfItem_Click"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                          ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                          ScrollViewer.HorizontalScrollMode="Enabled"
+                                          ScrollViewer.VerticalScrollMode="Disabled">
+                                    <ListView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="14" />
+                                        </ItemsPanelTemplate>
+                                    </ListView.ItemsPanel>
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:SearchResult">
+                                            <Border Width="160" Height="220" CornerRadius="12"
+                                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                                    Padding="8">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="144" />
+                                                        <RowDefinition Height="*" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <!-- Thumbnail Art -->
+                                                    <Border Grid.Row="0" CornerRadius="8">
+                                                        <Grid>
+                                                            <Image Stretch="UniformToFill">
+                                                                <Image.Source>
+                                                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
+                                                                                 DecodePixelWidth="144" />
+                                                                </Image.Source>
+                                                            </Image>
+
+                                                            <!-- Hover Play Circle Overlay -->
+                                                            <Border Width="36" Height="36" CornerRadius="18"
+                                                                    Background="{StaticResource AccentRedBrush}"
+                                                                    HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                                    Margin="0,0,8,8" Opacity="0.9">
+                                                                <FontIcon Glyph="&#xE768;" FontSize="13" Foreground="White"
+                                                                          HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,0,0,0" />
+                                                            </Border>
+                                                        </Grid>
+                                                    </Border>
+
+                                                    <!-- Titles -->
+                                                    <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="2,6,2,0">
+                                                        <TextBlock Text="{x:Bind Title}" FontSize="12" FontWeight="SemiBold"
+                                                                   MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{x:Bind Artist}" FontSize="10.5"
+                                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                                   MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                    <ListView.ItemContainerStyle>
+                                        <Style TargetType="ListViewItem">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="Margin" Value="0" />
+                                            <Setter Property="MinHeight" Value="0" />
+                                        </Style>
+                                    </ListView.ItemContainerStyle>
+                                </ListView>
                             </StackPanel>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
 
-                            <!-- PipsPager Indicator at Bottom -->
-                            <PipsPager HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                                       NumberOfPages="5" SelectedPageIndex="0" />
-                        </Grid>
-                    </Border>
+                <!-- VIEW B: Fallback / Search Results (When search query is active or personalized shelves empty) -->
+                <StackPanel Spacing="24"
+                            Visibility="{x:Bind ViewModel.HasPersonalizedShelves, Mode=OneWay, Converter={StaticResource InverseBoolToVisibility}}">
+                    <TextBlock Text="Search &amp; Trending Results" FontSize="20" FontWeight="Bold" />
 
-                    <!-- 2x2 Bento Grid (Microsoft Store Bento Spotlight) -->
-                    <Grid Grid.Column="1" RowSpacing="10" ColumnSpacing="10" Height="236">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Bento 1: Bollywood Romance -->
-                        <Border Grid.Row="0" Grid.Column="0" CornerRadius="12" Padding="12"
-                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
-                                PointerPressed="HeroCard_PointerPressed" Tag="Bollywood Romance Songs">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#8A2387" Offset="0" />
-                                    <GradientStop Color="#E94057" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.RenderTransform>
-                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
-                            </Border.RenderTransform>
-                            <Grid>
-                                <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="Bollywood" FontSize="10" Opacity="0.8" Foreground="White" />
-                                    <TextBlock Text="Pure Romance" FontSize="13" FontWeight="Bold" Foreground="White" />
-                                </StackPanel>
-                                <FontIcon Glyph="&#xE768;" FontSize="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            </Grid>
-                        </Border>
-
-                        <!-- Bento 2: Midnight Chill -->
-                        <Border Grid.Row="0" Grid.Column="1" CornerRadius="12" Padding="12"
-                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
-                                PointerPressed="HeroCard_PointerPressed" Tag="Lofi chill beats">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#00c6ff" Offset="0" />
-                                    <GradientStop Color="#0072ff" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.RenderTransform>
-                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
-                            </Border.RenderTransform>
-                            <Grid>
-                                <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="Night Drive" FontSize="10" Opacity="0.8" Foreground="White" />
-                                    <TextBlock Text="Midnight Chill" FontSize="13" FontWeight="Bold" Foreground="White" />
-                                </StackPanel>
-                                <FontIcon Glyph="&#xE768;" FontSize="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            </Grid>
-                        </Border>
-
-                        <!-- Bento 3: Workout Beast -->
-                        <Border Grid.Row="1" Grid.Column="0" CornerRadius="12" Padding="12"
-                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
-                                PointerPressed="HeroCard_PointerPressed" Tag="Gym workout motivation songs">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#f12711" Offset="0" />
-                                    <GradientStop Color="#f5af19" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.RenderTransform>
-                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
-                            </Border.RenderTransform>
-                            <Grid>
-                                <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="High Energy" FontSize="10" Opacity="0.8" Foreground="White" />
-                                    <TextBlock Text="Workout Beast" FontSize="13" FontWeight="Bold" Foreground="White" />
-                                </StackPanel>
-                                <FontIcon Glyph="&#xE768;" FontSize="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            </Grid>
-                        </Border>
-
-                        <!-- Bento 4: Punjabi Fire -->
-                        <Border Grid.Row="1" Grid.Column="1" CornerRadius="12" Padding="12"
-                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
-                                PointerPressed="HeroCard_PointerPressed" Tag="Top Punjabi hits 2026">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#11998e" Offset="0" />
-                                    <GradientStop Color="#38ef7d" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.RenderTransform>
-                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
-                            </Border.RenderTransform>
-                            <Grid>
-                                <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="Trending" FontSize="10" Opacity="0.8" Foreground="White" />
-                                    <TextBlock Text="Punjabi Fire" FontSize="13" FontWeight="Bold" Foreground="White" />
-                                </StackPanel>
-                                <FontIcon Glyph="&#xE768;" FontSize="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            </Grid>
-                        </Border>
-                    </Grid>
-                </Grid>
-
-                <!-- SECTION 2: Quick Picks (Microsoft Store 2-Row App Cards Pattern) -->
-                <StackPanel Spacing="12">
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <TextBlock Text="Quick Picks" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="Bold" FontSize="19" />
-                        <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                    </StackPanel>
-
+                    <!-- Search / Trending 2x3 Grid -->
                     <GridView ItemsSource="{x:Bind ViewModel.TopResults, Mode=OneWay}"
-                              SelectionMode="None"
-                              IsItemClickEnabled="True"
-                              ItemClick="TrackCard_Click">
+                              SelectionMode="None" IsItemClickEnabled="True"
+                              ItemClick="ShelfItem_Click">
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="models:SearchResult">
-                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="10"
-                                        Padding="10,8"
-                                        Margin="0,0,12,12"
-                                        Width="270">
-                                    <Border.ContextFlyout>
-                                        <MenuFlyout>
-                                            <MenuFlyoutItem Text="Play Now" Click="MenuPlayNow_Click" />
-                                            <MenuFlyoutItem Text="Play Next" Click="MenuPlayNext_Click" />
-                                            <MenuFlyoutItem Text="Add to Queue" Click="MenuAddToQueue_Click" />
-                                            <MenuFlyoutSeparator />
-                                            <MenuFlyoutItem Text="Download Track" Click="MenuDownload_Click" />
-                                        </MenuFlyout>
-                                    </Border.ContextFlyout>
-
-                                    <Grid ColumnSpacing="12">
+                                <Border Width="260" Height="68" CornerRadius="10"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        Padding="8">
+                                    <Grid ColumnSpacing="10">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="48" />
+                                            <ColumnDefinition Width="52" />
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-
-                                        <!-- Album Art -->
-                                        <Border Grid.Column="0" CornerRadius="6" Width="48" Height="48">
+                                        <Border CornerRadius="6" Width="52" Height="52">
                                             <Image Stretch="UniformToFill">
                                                 <Image.Source>
                                                     <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
-                                                                 DecodePixelWidth="48" />
+                                                                 DecodePixelWidth="52" />
                                                 </Image.Source>
                                             </Image>
                                         </Border>
-
-                                        <!-- Track Title & Artist -->
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12.5"
-                                                       MaxLines="1" TextTrimming="CharacterEllipsis"
-                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
-                                            <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                       FontSize="11" MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind Title}" FontSize="12.5" FontWeight="SemiBold"
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Artist}" FontSize="11"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
-
-                                        <!-- 1-Click Play Icon -->
-                                        <FontIcon Grid.Column="2" Glyph="&#xE768;" FontSize="14"
-                                                  Foreground="{StaticResource AccentRedBrush}"
-                                                  VerticalAlignment="Center" Margin="0,0,4,0" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </GridView.ItemTemplate>
                     </GridView>
                 </StackPanel>
-
-                <!-- SECTION 3: Trending & Essential Albums Carousel -->
-                <StackPanel Spacing="14">
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <TextBlock Text="Trending &amp; Essential Albums" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="Bold" FontSize="19" />
-                        <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                    </StackPanel>
-
-                    <GridView ItemsSource="{x:Bind ViewModel.TrendingSongs, Mode=OneWay}"
-                              SelectionMode="None"
-                              IsItemClickEnabled="True"
-                              ItemClick="TrackCard_Click">
-                        <GridView.ItemTemplate>
-                            <DataTemplate x:DataType="models:SearchResult">
-                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="12"
-                                        Padding="8"
-                                        Margin="0,0,14,14"
-                                        Width="160">
-                                    <Border.ContextFlyout>
-                                        <MenuFlyout>
-                                            <MenuFlyoutItem Text="Play Now" Click="MenuPlayNow_Click" />
-                                            <MenuFlyoutItem Text="Play Next" Click="MenuPlayNext_Click" />
-                                            <MenuFlyoutItem Text="Add to Queue" Click="MenuAddToQueue_Click" />
-                                            <MenuFlyoutSeparator />
-                                            <MenuFlyoutItem Text="Download Track" Click="MenuDownload_Click" />
-                                        </MenuFlyout>
-                                    </Border.ContextFlyout>
-
-                                    <StackPanel Spacing="8">
-                                        <Border CornerRadius="8" Width="144" Height="144">
-                                            <Image Stretch="UniformToFill">
-                                                <Image.Source>
-                                                    <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
-                                                                 DecodePixelWidth="144" />
-                                                </Image.Source>
-                                            </Image>
-                                        </Border>
-                                        <StackPanel Spacing="2">
-                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12"
-                                                       MaxLines="1" TextTrimming="CharacterEllipsis"
-                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
-                                            <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                       FontSize="11" MaxLines="1" TextTrimming="CharacterEllipsis" />
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </GridView.ItemTemplate>
-                    </GridView>
-                </StackPanel>
-
-                <!-- Bottom Spacer so content scrolls completely above the floating player! -->
-                <Border Height="180" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

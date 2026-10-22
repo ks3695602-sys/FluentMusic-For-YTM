@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using YTMusicClient.Models;
 using YTMusicClient.ViewModels;
@@ -46,9 +45,9 @@ public sealed partial class HomePage : Page
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        if (ViewModel.TopResults.Count == 0)
+        if (ViewModel.Shelves.Count == 0 && ViewModel.TopResults.Count == 0)
         {
-            await ViewModel.LoadTrendingCommand.ExecuteAsync(null);
+            await ViewModel.LoadPersonalizedFeedAsync(null);
         }
     }
 
@@ -64,104 +63,28 @@ public sealed partial class HomePage : Page
 
     private async void MoodChip_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button btn && btn.Tag is string moodQuery)
+        if (sender is Button btn)
         {
-            SearchBox.Text = moodQuery;
-            ViewModel.SearchQuery = moodQuery;
-            await ViewModel.SearchCommand.ExecuteAsync(moodQuery);
+            string param = btn.Tag?.ToString() ?? string.Empty;
+            string title = btn.Content?.ToString() ?? string.Empty;
+            ViewModel.ActiveMoodTitle = title;
+            await ViewModel.LoadPersonalizedFeedAsync(!string.IsNullOrWhiteSpace(param) ? param : null);
         }
     }
 
-    private void HeroCard_PointerEntered(object sender, PointerRoutedEventArgs e)
-    {
-        if (sender is Border border && border.RenderTransform is ScaleTransform scale)
-        {
-            scale.ScaleX = 1.04;
-            scale.ScaleY = 1.04;
-        }
-    }
-
-    private void HeroCard_PointerExited(object sender, PointerRoutedEventArgs e)
-    {
-        if (sender is Border border && border.RenderTransform is ScaleTransform scale)
-        {
-            scale.ScaleX = 1.0;
-            scale.ScaleY = 1.0;
-        }
-    }
-
-    private async void HeroCard_PointerPressed(object sender, PointerRoutedEventArgs e)
-    {
-        if (sender is Border border && border.Tag is string query)
-        {
-            SearchBox.Text = query;
-            ViewModel.SearchQuery = query;
-            await ViewModel.SearchCommand.ExecuteAsync(query);
-        }
-    }
-
-    private async void TrackCard_Click(object sender, ItemClickEventArgs e)
+    private async void ShelfItem_Click(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is SearchResult result)
         {
-            await ViewModel.PlaySongCommand.ExecuteAsync(result);
+            await ViewModel.PlaySongAsync(result);
         }
     }
 
-    private async void PlayFeatured_Click(object sender, RoutedEventArgs e)
+    private async void PlayShelf_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.TopResults.Count > 0)
+        if (sender is FrameworkElement element && element.DataContext is HomeShelf shelf)
         {
-            await ViewModel.PlaySongCommand.ExecuteAsync(ViewModel.TopResults[0]);
-        }
-        else if (ViewModel.TrendingSongs.Count > 0)
-        {
-            await ViewModel.PlaySongCommand.ExecuteAsync(ViewModel.TrendingSongs[0]);
-        }
-    }
-
-    private async void MenuPlayNow_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem item && item.DataContext is SearchResult result)
-        {
-            await ViewModel.PlaySongCommand.ExecuteAsync(result);
-        }
-    }
-
-    private void MenuPlayNext_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem item && item.DataContext is SearchResult result)
-        {
-            ViewModel.PlayNext(result);
-        }
-    }
-
-    private void MenuAddToQueue_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem item && item.DataContext is SearchResult result)
-        {
-            ViewModel.AddToQueue(result);
-        }
-    }
-
-    private async void MenuDownload_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem item && item.DataContext is SearchResult result)
-        {
-            var downloadService = App.Services.GetService(typeof(Services.IDownloadService)) as Services.IDownloadService;
-            if (downloadService != null)
-            {
-                var song = new Song
-                {
-                    VideoId = result.VideoId,
-                    Title = result.Title,
-                    Artist = result.Artist,
-                    Album = result.Album,
-                    ThumbnailUrl = result.ThumbnailUrl,
-                    Duration = result.Duration
-                };
-                await downloadService.DownloadSongAsync(song);
-            }
+            await ViewModel.PlayShelfAsync(shelf);
         }
     }
 }

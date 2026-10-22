@@ -17,8 +17,8 @@
     <Border Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
             BorderBrush="{StaticResource GlassBorderBrush}"
             BorderThickness="1"
-            CornerRadius="27"
-            Width="710"
+            CornerRadius="12"
+            Width="740"
             Height="54"
             Padding="12,4"
             HorizontalAlignment="Center">
@@ -111,45 +111,57 @@
                                        MaxLines="1" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
 
-                        <!-- Functional Audio Source Info Pill -->
-                        <Button Grid.Column="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                BorderThickness="0" CornerRadius="4" Padding="5,2" VerticalAlignment="Center"
-                                ToolTipService.ToolTip="Audio Source &amp; Stream Info">
-                            <TextBlock Text="{x:Bind ViewModel.AudioQualityBadge, Mode=OneWay}"
-                                       FontSize="8" FontWeight="SemiBold"
-                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                            <Button.Flyout>
-                                <Flyout Placement="Top">
-                                    <StackPanel Spacing="8" Width="220" Padding="4">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="{StaticResource AccentRedBrush}" />
-                                            <TextBlock Text="Stream Fidelity" FontWeight="Bold" FontSize="13" />
+                        <!-- Audio Source & Fidelity Tier Badges -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <!-- Fidelity Tier Pill Badge (Hi-Res Lossless / Hi-Res / Basic) -->
+                            <Border Background="{x:Bind ViewModel.FidelityBadgeBackground, Mode=OneWay}"
+                                    CornerRadius="4" Padding="5,2" VerticalAlignment="Center"
+                                    ToolTipService.ToolTip="Audio Stream Fidelity Tier">
+                                <TextBlock Text="{x:Bind ViewModel.FidelityBadgeText, Mode=OneWay}"
+                                           FontSize="8" FontWeight="Bold"
+                                           Foreground="{x:Bind ViewModel.FidelityBadgeForeground, Mode=OneWay}" />
+                            </Border>
+
+                            <!-- Functional Stream Info Pill -->
+                            <Button Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    BorderThickness="0" CornerRadius="4" Padding="5,2" VerticalAlignment="Center"
+                                    ToolTipService.ToolTip="Audio Source &amp; Stream Info">
+                                <TextBlock Text="{x:Bind ViewModel.AudioQualityBadge, Mode=OneWay}"
+                                           FontSize="8" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                <Button.Flyout>
+                                    <Flyout Placement="Top">
+                                        <StackPanel Spacing="8" Width="220" Padding="4">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="{StaticResource AccentRedBrush}" />
+                                                <TextBlock Text="Stream Fidelity" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                                            <Grid ColumnSpacing="8" RowSpacing="4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Bitrate:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind ViewModel.AudioQualityBadge, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
+
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Codec:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind ViewModel.AudioCodec, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
+
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Engine:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind ViewModel.AudioSource, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
+                                            </Grid>
                                         </StackPanel>
-                                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                                        <Grid ColumnSpacing="8" RowSpacing="4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-
-                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bitrate:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="256 kbps (High Quality)" FontSize="11" FontWeight="SemiBold" />
-
-                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Codec:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind ViewModel.AudioCodec, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
-
-                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Engine:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind ViewModel.AudioSource, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
-                                        </Grid>
-                                    </StackPanel>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </StackPanel>
                     </Grid>
 
                     <!-- Bottom Row: Sleek 2.5px Progress Scrubber -->
@@ -214,6 +226,75 @@
                             <MenuFlyoutItem Text="Watch Music Video" Click="NowPlaying_Click" />
                             <MenuFlyoutItem Text="Toggle Synced Lyrics" Click="LyricsButton_Click" />
                         </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+
+                <!-- Queue / Up Next Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        ToolTipService.ToolTip="Up Next &amp; Playing Queue">
+                    <FontIcon Glyph="&#xE90B;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button.Flyout>
+                        <Flyout Placement="Top">
+                            <Grid Width="300" MaxHeight="380" Padding="4">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Queue Title -->
+                                <Grid Grid.Row="0" Margin="0,0,0,10">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE90B;" FontSize="14" Foreground="{StaticResource AccentRedBrush}" />
+                                        <TextBlock Text="Playing Queue" FontWeight="Bold" FontSize="13" />
+                                    </StackPanel>
+                                    <Button HorizontalAlignment="Right" Content="Clear" Click="ClearQueue_Click"
+                                            Padding="8,2" FontSize="11" CornerRadius="6" Background="Transparent" BorderThickness="0" />
+                                </Grid>
+
+                                <!-- Currently Playing Box -->
+                                <Border Grid.Row="1" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                        CornerRadius="8" Padding="10,8" Margin="0,0,0,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="&#xE768;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{x:Bind ViewModel.Artist, Mode=OneWay}" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="Now" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentRedBrush}" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Up Next List -->
+                                <ListView Grid.Row="2" ItemsSource="{x:Bind ViewModel.PlaybackService.UpNext, Mode=OneWay}"
+                                          SelectionMode="None" IsItemClickEnabled="True" ItemClick="QueueItem_Click"
+                                          MaxHeight="240">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="models:Song">
+                                            <Grid Padding="4,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{x:Bind Title}" FontSize="11.5" FontWeight="SemiBold" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{x:Bind Artist}" FontSize="9.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Tag="{x:Bind VideoId}" Click="RemoveQueueItem_Click"
+                                                        Background="Transparent" BorderThickness="0" Padding="4" CornerRadius="6">
+                                                    <FontIcon Glyph="&#xE711;" FontSize="10" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </Grid>
+                        </Flyout>
                     </Button.Flyout>
                 </Button>
 

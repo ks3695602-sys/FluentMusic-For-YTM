@@ -319,6 +319,396 @@ public class YouTubeMusicService : IYouTubeMusicService
         return string.Empty;
     }
 
+    public static void AddAuthorizationHeaders(HttpRequestMessage msg, string? cookies)
+    {
+        if (string.IsNullOrWhiteSpace(cookies)) return;
+        msg.Headers.TryAddWithoutValidation("Cookie", cookies);
+
+        try
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(cookies, @"(?:SAPISID|__Secure-3PAPISID)=([^;]+)");
+            if (match.Success)
+            {
+                var sapisid = match.Groups[1].Value.Trim();
+                long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                string origin = "https://music.youtube.com";
+                string input = $"{timestamp} {sapisid} {origin}";
+                using var sha1 = System.Security.Cryptography.SHA1.Create();
+                var hashBytes = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+                var hashHex = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                msg.Headers.TryAddWithoutValidation("Authorization", $"SAPISIDHASH {timestamp}_{hashHex}");
+                msg.Headers.TryAddWithoutValidation("X-Origin", origin);
+            }
+        }
+        catch { }
+    }
+
+    public async Task<HomeFeedResult> GetPersonalizedHomeFeedAsync(string? moodParam = null, CancellationToken ct = default)
+    {
+        var result = new HomeFeedResult();
+        try
+        {
+            string? cookies = null;
+            try
+            {
+                var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+                cookies = localSettings.Values["GoogleAuthCookies"] as string;
+            }
+            catch { }
+
+            object reqObj;
+            if (!string.IsNullOrEmpty(moodParam))
+            {
+                reqObj = new
+                {
+                    context = new
+                    {
+                        client = new
+                        {
+                            clientName = "WEB_REMIX",
+                            clientVersion = "1.20240101.01.00",
+                            gl = "IN",
+                            hl = "hi"
+                        }
+                    },
+                    browseId = "FEmusic_home",
+                    @params = moodParam
+                };
+            }
+            else
+            {
+                reqObj = new
+                {
+                    context = new
+                    {
+                        client = new
+                        {
+                            clientName = "WEB_REMIX",
+                            clientVersion = "1.20240101.01.00",
+                            gl = "IN",
+                            hl = "hi"
+                        }
+                    },
+                    browseId = "FEmusic_home"
+                };
+            }
+
+            var jsonContent = new StringContent(JsonSerializer.Serialize(reqObj), System.Text.Encoding.UTF8, "application/json");
+            using var msg = new HttpRequestMessage(HttpMethod.Post, "https://music.youtube.com/youtubei/v1/browse?prettyPrint=false")
+            {
+                Content = jsonContent
+            };
+            msg.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            AddAuthorizationHeaders(msg, cookies);
+
+            using var resp = await _httpClient.SendAsync(msg, ct);
+            if (resp.IsSuccessStatusCode)
+            {
+                var json = await resp.Content.ReadAsStringAsync(ct);
+                ParseInnertubeHomeFeed(json, result);
+
+                if (result.Shelves.Count > 0)
+                {
+                    AppLogger.Log($"GetPersonalizedHomeFeedAsync: Retrieved {result.Shelves.Count} shelves, {result.Chips.Count} chips for user {result.UserName}");
+                    return result;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("GetPersonalizedHomeFeedAsync failed", ex);
+        }
+
+        // Fallback default feed
+        PopulateDefaultFeed(result);
+        return result;
+    }
+
+    private static void ParseInnertubeHomeFeed(string json, HomeFeedResult feedResult)
+    {
+        int gradIndex = 0;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            // 1. Extract Chips
+            ExtractChipsRecursive(root, feedResult.Chips);
+
+            // 2. Extract Shelves
+            ExtractShelvesRecursive(root, feedResult.Shelves, ref gradIndex, feedResult);
+
+            // Save user profile details if discovered
+            if (!string.IsNullOrEmpty(feedResult.UserName))
+            {
+                try
+                {
+                    var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+                    localSettings.Values["UserDisplayName"] = feedResult.UserName;
+                    if (!string.IsNullOrEmpty(feedResult.UserAvatarUrl))
+                    {
+                        localSettings.Values["UserAvatarUrl"] = feedResult.UserAvatarUrl;
+                    }
+                    localSettings.Values["IsGoogleSignedIn"] = true;
+                }
+                catch { }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("ParseInnertubeHomeFeed error", ex);
+        }
+    }
+
+    private static void ExtractChipsRecursive(JsonElement element, List<MoodChip> chips)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            if (element.TryGetProperty("chipCloudChipRenderer", out var chip))
+            {
+                string text = string.Empty;
+                if (chip.TryGetProperty("text", out var textObj) &&
+                    textObj.TryGetProperty("runs", out var runs) && runs.GetArrayLength() > 0)
+                {
+                    text = runs[0].GetProperty("text").GetString() ?? string.Empty;
+                }
+
+                string param = string.Empty;
+                if (chip.TryGetProperty("navigationEndpoint", out var nav) &&
+                    nav.TryGetProperty("browseEndpoint", out var browse) &&
+                    browse.TryGetProperty("params", out var pProp))
+                {
+                    param = pProp.GetString() ?? string.Empty;
+                }
+
+                bool isSelected = chip.TryGetProperty("isSelected", out var sel) && sel.GetBoolean();
+
+                if (!string.IsNullOrEmpty(text) && !chips.Any(c => c.Title == text))
+                {
+                    chips.Add(new MoodChip
+                    {
+                        Title = text,
+                        Param = param,
+                        IsSelected = isSelected
+                    });
+                }
+            }
+
+            foreach (var prop in element.EnumerateObject())
+            {
+                ExtractChipsRecursive(prop.Value, chips);
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var child in element.EnumerateArray())
+            {
+                ExtractChipsRecursive(child, chips);
+            }
+        }
+    }
+
+    private static void ExtractShelvesRecursive(JsonElement element, List<HomeShelf> shelves, ref int gradIndex, HomeFeedResult feedResult)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            if (element.TryGetProperty("musicCarouselShelfRenderer", out var shelf))
+            {
+                string title = string.Empty;
+                string strapline = string.Empty;
+
+                if (shelf.TryGetProperty("header", out var header) &&
+                    header.TryGetProperty("musicCarouselShelfBasicHeaderRenderer", out var bHeader))
+                {
+                    if (bHeader.TryGetProperty("title", out var titleObj) &&
+                        titleObj.TryGetProperty("runs", out var runs) && runs.GetArrayLength() > 0)
+                    {
+                        title = runs[0].GetProperty("text").GetString() ?? string.Empty;
+                    }
+
+                    if (bHeader.TryGetProperty("strapline", out var strapObj) &&
+                        strapObj.TryGetProperty("runs", out var sRuns) && sRuns.GetArrayLength() > 0)
+                    {
+                        strapline = sRuns[0].GetProperty("text").GetString() ?? string.Empty;
+                        if (string.IsNullOrEmpty(feedResult.UserName) && !string.IsNullOrWhiteSpace(strapline))
+                        {
+                            feedResult.UserName = strapline;
+                        }
+                    }
+
+                    if (bHeader.TryGetProperty("thumbnail", out var tObj) &&
+                        tObj.TryGetProperty("musicThumbnailRenderer", out var mT) &&
+                        mT.TryGetProperty("thumbnail", out var iT) &&
+                        iT.TryGetProperty("thumbnails", out var tArr) && tArr.GetArrayLength() > 0)
+                    {
+                        feedResult.UserAvatarUrl = tArr[tArr.GetArrayLength() - 1].GetProperty("url").GetString();
+                    }
+                }
+
+                var homeShelf = new HomeShelf
+                {
+                    Title = !string.IsNullOrEmpty(title) ? title : "Recommendations",
+                    Subtitle = strapline
+                };
+
+                if (shelf.TryGetProperty("contents", out var contents) && contents.GetArrayLength() > 0)
+                {
+                    foreach (var item in contents.EnumerateArray())
+                    {
+                        var track = ExtractSingleTrack(item, ref gradIndex);
+                        if (track != null)
+                        {
+                            homeShelf.Items.Add(track);
+                        }
+                    }
+                }
+
+                if (homeShelf.Items.Count > 0)
+                {
+                    shelves.Add(homeShelf);
+                }
+            }
+
+            foreach (var prop in element.EnumerateObject())
+            {
+                ExtractShelvesRecursive(prop.Value, shelves, ref gradIndex, feedResult);
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var child in element.EnumerateArray())
+            {
+                ExtractShelvesRecursive(child, shelves, ref gradIndex, feedResult);
+            }
+        }
+    }
+
+    private static SearchResult? ExtractSingleTrack(JsonElement item, ref int gradIndex)
+    {
+        string videoId = string.Empty;
+        string title = string.Empty;
+        string artist = string.Empty;
+        string thumb = string.Empty;
+
+        // Type A: musicResponsiveListItemRenderer
+        if (item.TryGetProperty("musicResponsiveListItemRenderer", out var resp))
+        {
+            if (resp.TryGetProperty("playlistItemData", out var pData) && pData.TryGetProperty("videoId", out var vidProp))
+            {
+                videoId = vidProp.GetString() ?? string.Empty;
+            }
+
+            if (resp.TryGetProperty("flexColumns", out var cols) && cols.GetArrayLength() > 0)
+            {
+                var col0 = cols[0];
+                if (col0.TryGetProperty("musicResponsiveListItemFlexColumnRenderer", out var flex0) &&
+                    flex0.TryGetProperty("text", out var text0) &&
+                    text0.TryGetProperty("runs", out var runs0) && runs0.GetArrayLength() > 0)
+                {
+                    title = runs0[0].GetProperty("text").GetString() ?? string.Empty;
+                    if (string.IsNullOrEmpty(videoId) && runs0[0].TryGetProperty("navigationEndpoint", out var nav) &&
+                        nav.TryGetProperty("watchEndpoint", out var watch) &&
+                        watch.TryGetProperty("videoId", out var wVid))
+                    {
+                        videoId = wVid.GetString() ?? string.Empty;
+                    }
+                }
+
+                if (cols.GetArrayLength() > 1)
+                {
+                    var col1 = cols[1];
+                    if (col1.TryGetProperty("musicResponsiveListItemFlexColumnRenderer", out var flex1) &&
+                        flex1.TryGetProperty("text", out var text1) &&
+                        text1.TryGetProperty("runs", out var runs1) && runs1.GetArrayLength() > 0)
+                    {
+                        artist = runs1[0].GetProperty("text").GetString() ?? string.Empty;
+                    }
+                }
+            }
+
+            if (resp.TryGetProperty("thumbnail", out var thumbObj) &&
+                thumbObj.TryGetProperty("musicThumbnailRenderer", out var mThumb) &&
+                mThumb.TryGetProperty("thumbnail", out var innerThumb) &&
+                innerThumb.TryGetProperty("thumbnails", out var tList) && tList.GetArrayLength() > 0)
+            {
+                thumb = tList[tList.GetArrayLength() - 1].GetProperty("url").GetString() ?? string.Empty;
+            }
+        }
+        // Type B: musicTwoRowItemRenderer
+        else if (item.TryGetProperty("musicTwoRowItemRenderer", out var twoRow))
+        {
+            if (twoRow.TryGetProperty("navigationEndpoint", out var nav) &&
+                nav.TryGetProperty("watchEndpoint", out var watch) &&
+                watch.TryGetProperty("videoId", out var wVid))
+            {
+                videoId = wVid.GetString() ?? string.Empty;
+            }
+
+            if (twoRow.TryGetProperty("title", out var tObj) &&
+                tObj.TryGetProperty("runs", out var runs) && runs.GetArrayLength() > 0)
+            {
+                title = runs[0].GetProperty("text").GetString() ?? string.Empty;
+            }
+
+            if (twoRow.TryGetProperty("subtitle", out var sObj) &&
+                sObj.TryGetProperty("runs", out var sRuns) && sRuns.GetArrayLength() > 0)
+            {
+                artist = sRuns[0].GetProperty("text").GetString() ?? string.Empty;
+            }
+
+            if (twoRow.TryGetProperty("thumbnailRenderer", out var tr) &&
+                tr.TryGetProperty("musicThumbnailRenderer", out var mt) &&
+                mt.TryGetProperty("thumbnail", out var th) &&
+                th.TryGetProperty("thumbnails", out var tArr) && tArr.GetArrayLength() > 0)
+            {
+                thumb = tArr[tArr.GetArrayLength() - 1].GetProperty("url").GetString() ?? string.Empty;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(videoId) && !string.IsNullOrEmpty(title))
+        {
+            var (start, end) = AmbientGradients[gradIndex % AmbientGradients.Length];
+            gradIndex++;
+
+            return new SearchResult
+            {
+                VideoId = videoId,
+                Title = title,
+                Artist = !string.IsNullOrEmpty(artist) ? artist : "YouTube Music",
+                ThumbnailUrl = thumb,
+                Duration = TimeSpan.FromMinutes(3.5),
+                GradientStart = start,
+                GradientEnd = end,
+                AudioQuality = "256 kbps · AAC · Hi-Res",
+                FidelityTier = "Hi-Res"
+            };
+        }
+
+        return null;
+    }
+
+    private static void PopulateDefaultFeed(HomeFeedResult result)
+    {
+        var defaultChips = new[]
+        {
+            ("All (सब)", ""),
+            ("कसरत (Workout)", "Workout songs"),
+            ("फ़ील गुड (Feel Good)", "Feel good songs"),
+            ("रोमांस (Romance)", "Romantic songs"),
+            ("सुकून (Relax)", "Relaxing acoustic songs"),
+            ("पार्टी (Party)", "Party dance songs"),
+            ("फ़ोकस (Focus)", "Lofi focus study music"),
+            ("सफ़र (Commute)", "Travel roadtrip songs"),
+            ("जोश (Energy)", "High energy beats"),
+            ("दुख भरा (Sad)", "Sad soulful songs")
+        };
+
+        foreach (var (title, param) in defaultChips)
+        {
+            result.Chips.Add(new MoodChip { Title = title, Param = param });
+        }
+    }
+
     public async Task<IReadOnlyList<SearchResult>> GetTrendingAsync(CancellationToken ct = default)
     {
         try

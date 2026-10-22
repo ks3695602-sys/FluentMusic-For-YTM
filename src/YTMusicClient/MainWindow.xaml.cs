@@ -70,10 +70,24 @@ public sealed partial class MainWindow : Window
             if (isSignedIn)
             {
                 var userName = localSettings.Values["UserDisplayName"] as string ?? "Google User";
+                var userAvatar = localSettings.Values["UserAvatarUrl"] as string;
+
                 UserAccountStatusTitle.Text = userName;
                 UserAccountStatusSub.Text = "Connected & Synced";
-                UserAccountAvatarIcon.Glyph = "\uE73E";
-                UserAccountAvatarIcon.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 16, 185, 129));
+
+                if (!string.IsNullOrEmpty(userAvatar) && Uri.TryCreate(userAvatar, UriKind.Absolute, out var uri))
+                {
+                    UserAccountAvatarImage.Source = new BitmapImage(uri);
+                    UserAccountAvatarImage.Visibility = Visibility.Visible;
+                    UserAccountAvatarIcon.Visibility = Visibility.Collapsed;
+                }
+                else
+                {
+                    UserAccountAvatarIcon.Glyph = "\uE73E";
+                    UserAccountAvatarIcon.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 16, 185, 129));
+                    UserAccountAvatarImage.Visibility = Visibility.Collapsed;
+                    UserAccountAvatarIcon.Visibility = Visibility.Visible;
+                }
             }
             else
             {
@@ -81,6 +95,8 @@ public sealed partial class MainWindow : Window
                 UserAccountStatusSub.Text = "Sign in to sync";
                 UserAccountAvatarIcon.Glyph = "\uE77B";
                 UserAccountAvatarIcon.Foreground = (Brush)Application.Current.Resources["AccentRedBrush"];
+                UserAccountAvatarImage.Visibility = Visibility.Collapsed;
+                UserAccountAvatarIcon.Visibility = Visibility.Visible;
             }
         }
         catch { }
@@ -107,23 +123,66 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private bool _isVideoWebViewConfigured;
+
     private void UpdateNowPlayingContent()
     {
         try
         {
             var pb = ViewModel?.PlayerBar;
+            var currentSong = ViewModel?.PlaybackService.CurrentSong;
+
             if (pb != null && NpTitleText != null)
             {
                 NpTitleText.Text = !string.IsNullOrEmpty(pb.Title) ? pb.Title : "Not Playing";
                 NpArtistText.Text = !string.IsNullOrEmpty(pb.Artist) ? pb.Artist : "Choose a song to start listening";
                 NpQualityText.Text = !string.IsNullOrEmpty(pb.AudioQualityBadge) ? pb.AudioQualityBadge : "256 kbps · AAC · Hi-Res";
+                NpFidelityText.Text = pb.FidelityBadgeText;
+                NpFidelityPill.Background = pb.FidelityBadgeBackground;
+                NpFidelityText.Foreground = pb.FidelityBadgeForeground;
+
                 if (!string.IsNullOrEmpty(pb.ThumbnailUrl) && Uri.TryCreate(pb.ThumbnailUrl, UriKind.Absolute, out var uri))
                 {
                     NpAlbumBitmap.UriSource = uri;
                 }
             }
+
+            if (currentSong != null)
+            {
+                UpdateMeshGradients(currentSong.GradientColorStart, currentSong.GradientColorEnd);
+            }
         }
         catch { }
+    }
+
+    private void UpdateMeshGradients(string hex1, string hex2)
+    {
+        try
+        {
+            var c1 = ParseHexColor(hex1);
+            var c2 = ParseHexColor(hex2);
+            NpMeshStop1.Color = Windows.UI.Color.FromArgb(140, c1.R, c1.G, c1.B);
+            NpMeshStop2.Color = Windows.UI.Color.FromArgb(120, c2.R, c2.G, c2.B);
+        }
+        catch { }
+    }
+
+    private static Windows.UI.Color ParseHexColor(string hex)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(hex)) return Windows.UI.Color.FromArgb(255, 250, 45, 72);
+            hex = hex.TrimStart('#');
+            if (hex.Length == 6)
+            {
+                byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+                byte g = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+                byte b = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+                return Windows.UI.Color.FromArgb(255, r, g, b);
+            }
+        }
+        catch { }
+        return Windows.UI.Color.FromArgb(255, 250, 45, 72);
     }
 
     private void CloseNowPlaying_Click(object sender, RoutedEventArgs e)
@@ -149,6 +208,33 @@ public sealed partial class MainWindow : Window
         NpVideoModeBtn.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
         NpAudioModeBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         LoadCurrentVideo();
+    }
+
+    private async void VideoAudioSyncToggle_Click(object sender, RoutedEventArgs e)
+    {
+        bool isSync = VideoAudioSyncToggle.IsChecked == true;
+        if (isSync)
+        {
+            SyncToggleText.Text = "FLAC Synced";
+            SyncToggleIcon.Glyph = "\uE8D6";
+            try
+            {
+                await NpVideoWebView.ExecuteScriptAsync("if(player && typeof player.mute === 'function') player.mute();");
+            }
+            catch { }
+            ViewModel.PlaybackService.Resume();
+        }
+        else
+        {
+            SyncToggleText.Text = "Video Audio";
+            SyncToggleIcon.Glyph = "\uE714";
+            try
+            {
+                await NpVideoWebView.ExecuteScriptAsync("if(player && typeof player.unMute === 'function') player.unMute();");
+            }
+            catch { }
+            ViewModel.PlaybackService.Pause();
+        }
     }
 
     private async void LoadCurrentVideo()
@@ -180,13 +266,150 @@ public sealed partial class MainWindow : Window
             }
 
             await NpVideoWebView.EnsureCoreWebView2Async();
-            NpVideoWebView.CoreWebView2.Settings.IsWebMessageEnabled = true;
+            if (!_isVideoWebViewConfigured)
+            {
+                NpVideoWebView.CoreWebView2.Settings.IsWebMessageEnabled = true;
+                NpVideoWebView.CoreWebView2.Settings.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-            // Direct top-level navigation has native youtube.com origin, permanently resolving Error 153
-            NpVideoWebView.Source = new Uri($"https://www.youtube.com/embed/{videoId}?autoplay=1&playsinline=1&enablejsapi=1");
+                NpVideoWebView.CoreWebView2.AddWebResourceRequestedFilter("https://www.youtube.com/*", Microsoft.Web.WebView2.Core.CoreWebView2WebResourceContext.All);
+                NpVideoWebView.CoreWebView2.AddWebResourceRequestedFilter("https://www.youtube-nocookie.com/*", Microsoft.Web.WebView2.Core.CoreWebView2WebResourceContext.All);
+                NpVideoWebView.CoreWebView2.WebResourceRequested += (s, args) =>
+                {
+                    args.Request.Headers.SetHeader("Referer", "https://www.youtube.com/");
+                    args.Request.Headers.SetHeader("Origin", "https://www.youtube.com");
+                };
+
+                NpVideoWebView.WebMessageReceived += OnVideoWebMessageReceived;
+                _isVideoWebViewConfigured = true;
+            }
+
+            bool muteVideo = VideoAudioSyncToggle.IsChecked == true;
+            string muteParam = muteVideo ? "true" : "false";
+
+            // YouTube Iframe API player template with strict origin and no-cookie host (Fixes Error 153)
+            string playerHtml = $@"<!DOCTYPE html>
+<html>
+<head>
+    <meta name='referrer' content='strict-origin-when-cross-origin'>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; overflow: hidden; background: #000; }}
+        html, body, #player {{ width: 100%; height: 100%; }}
+    </style>
+</head>
+<body>
+    <div id='player'></div>
+    <script src='https://www.youtube.com/iframe_api'></script>
+    <script>
+        var player;
+        var isMuted = {muteParam};
+        function onYouTubeIframeAPIReady() {{
+            player = new YT.Player('player', {{
+                height: '100%',
+                width: '100%',
+                videoId: '{videoId}',
+                host: 'https://www.youtube-nocookie.com',
+                playerVars: {{
+                    'autoplay': 1,
+                    'playsinline': 1,
+                    'controls': 1,
+                    'origin': 'https://www.youtube.com',
+                    'widget_referrer': 'https://www.youtube.com',
+                    'rel': 0,
+                    'enablejsapi': 1
+                }},
+                events: {{
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }}
+            }});
+        }}
+        function onPlayerReady(event) {{
+            if (isMuted) {{
+                player.mute();
+            }} else {{
+                player.unMute();
+            }}
+            window.chrome.webview.postMessage(JSON.stringify({{ type: 'ready' }}));
+        }}
+        function onPlayerStateChange(event) {{
+            window.chrome.webview.postMessage(JSON.stringify({{
+                type: 'stateChange',
+                state: event.data,
+                currentTime: player ? player.getCurrentTime() : 0
+            }}));
+        }}
+        setInterval(function() {{
+            if (player && typeof player.getPlayerState === 'function' && player.getPlayerState() === 1) {{
+                window.chrome.webview.postMessage(JSON.stringify({{
+                    type: 'timeUpdate',
+                    currentTime: player.getCurrentTime()
+                }}));
+            }}
+        }}, 400);
+    </script>
+</body>
+</html>";
+
+            NpVideoWebView.NavigateToString(playerHtml);
         }
         catch (System.Exception ex)
         {
+            Helpers.AppLogger.LogError("LoadCurrentVideo failed", ex);
+        }
+    }
+
+    private void OnVideoWebMessageReceived(WebView2 sender, Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs args)
+    {
+        try
+        {
+            var json = args.TryGetWebMessageAsString();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            string type = root.GetProperty("type").GetString() ?? "";
+
+            bool isSyncMode = VideoAudioSyncToggle.IsChecked == true;
+
+            if (type == "stateChange")
+            {
+                int state = root.GetProperty("state").GetInt32();
+                double currentTime = root.TryGetProperty("currentTime", out var ct) ? ct.GetDouble() : 0;
+
+                if (isSyncMode)
+                {
+                    // YT.PlayerState: 1 = Playing, 2 = Paused, 3 = Buffering, 0 = Ended
+                    if (state == 1) // Video Playing -> Play high quality FLAC audio in sync
+                    {
+                        var audioPos = ViewModel.PlaybackService.Position.TotalSeconds;
+                        if (Math.Abs(audioPos - currentTime) > 0.4)
+                        {
+                            ViewModel.PlaybackService.Seek(TimeSpan.FromSeconds(currentTime));
+                        }
+                        if (!ViewModel.PlaybackService.IsPlaying)
+                        {
+                            ViewModel.PlaybackService.Resume();
+                        }
+                    }
+                    else if (state == 2 || state == 3) // Video Paused or Buffering -> Pause audio
+                    {
+                        if (ViewModel.PlaybackService.IsPlaying)
+                        {
+                            ViewModel.PlaybackService.Pause();
+                        }
+                    }
+                }
+            }
+            else if (type == "timeUpdate" && isSyncMode)
+            {
+                double currentTime = root.GetProperty("currentTime").GetDouble();
+                var audioPos = ViewModel.PlaybackService.Position.TotalSeconds;
+                if (Math.Abs(audioPos - currentTime) > 0.45)
+                {
+                    ViewModel.PlaybackService.Seek(TimeSpan.FromSeconds(currentTime));
+                }
+            }
+        }
+        catch { }
+    }
             Helpers.AppLogger.LogError("LoadCurrentVideo failed", ex);
         }
     }

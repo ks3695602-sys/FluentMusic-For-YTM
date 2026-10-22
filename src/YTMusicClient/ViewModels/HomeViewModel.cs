@@ -28,7 +28,13 @@ public partial class HomeViewModel : ObservableObject
     private bool _hasSearchText;
 
     [ObservableProperty]
-    private bool _isAppleMusicSource = true;
+    private bool _hasPersonalizedShelves;
+
+    [ObservableProperty]
+    private string _activeMoodTitle = "All (सब)";
+
+    public ObservableCollection<MoodChip> MoodChips { get; } = new();
+    public ObservableCollection<HomeShelf> Shelves { get; } = new();
 
     public ObservableCollection<SearchResult> TopResults { get; } = new();
     public ObservableCollection<SearchResult> TopArtists { get; } = new();
@@ -76,6 +82,7 @@ public partial class HomeViewModel : ObservableObject
             TopResults.Clear();
             TrendingSongs.Clear();
             TopArtists.Clear();
+            HasPersonalizedShelves = false;
 
             // First 6 tracks for Top Results 2x3 grid
             foreach (var r in results.Take(6))
@@ -118,34 +125,60 @@ public partial class HomeViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadTrendingAsync()
     {
+        await LoadPersonalizedFeedAsync(null);
+    }
+
+    public async Task LoadPersonalizedFeedAsync(string? moodParam = null)
+    {
         IsLoading = true;
         try
         {
-            var results = await _musicService.GetTrendingAsync();
+            var feed = await _musicService.GetPersonalizedHomeFeedAsync(moodParam);
 
-            TopResults.Clear();
-            TrendingSongs.Clear();
-            TopArtists.Clear();
-
-            foreach (var r in results.Take(6))
+            // Update Mood Chips if returned
+            if (feed.Chips.Count > 0)
             {
-                TopResults.Add(r);
+                MoodChips.Clear();
+                foreach (var c in feed.Chips)
+                {
+                    MoodChips.Add(c);
+                }
             }
 
-            foreach (var r in results.Skip(6))
+            // Update Shelves
+            if (feed.Shelves.Count > 0)
             {
-                TrendingSongs.Add(r);
+                Shelves.Clear();
+                foreach (var s in feed.Shelves)
+                {
+                    Shelves.Add(s);
+                }
+                HasPersonalizedShelves = true;
             }
-
-            var distinctArtists = results
-                .GroupBy(r => r.Artist)
-                .Select(g => g.First())
-                .Take(6);
-
-            foreach (var a in distinctArtists)
+            else
             {
-                TopArtists.Add(a);
+                // Fallback to trending tracks
+                HasPersonalizedShelves = false;
+                var results = await _musicService.GetTrendingAsync();
+
+                TopResults.Clear();
+                TrendingSongs.Clear();
+                TopArtists.Clear();
+
+                foreach (var r in results.Take(6))
+                {
+                    TopResults.Add(r);
+                }
+
+                foreach (var r in results.Skip(6))
+                {
+                    TrendingSongs.Add(r);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("LoadPersonalizedFeedAsync failed", ex);
         }
         finally
         {
@@ -168,74 +201,39 @@ public partial class HomeViewModel : ObservableObject
             Album = result.Album,
             ThumbnailUrl = result.ThumbnailUrl,
             Duration = result.Duration,
-            AudioQuality = result.AudioQuality,
             GradientColorStart = result.GradientStart,
-            GradientColorEnd = result.GradientEnd
+            GradientColorEnd = result.GradientEnd,
+            AudioQuality = result.AudioQuality,
+            FidelityTier = result.FidelityTier
         };
-
-        // Contextual Auto-Queue: Queue subsequent songs in TopResults
-        var currentIndex = TopResults.IndexOf(result);
-        if (currentIndex >= 0)
-        {
-            _playbackService.ClearQueue();
-            for (int i = currentIndex + 1; i < TopResults.Count; i++)
-            {
-                var next = TopResults[i];
-                _playbackService.Enqueue(new Song
-                {
-                    VideoId = next.VideoId,
-                    Title = next.Title,
-                    Artist = next.Artist,
-                    ThumbnailUrl = next.ThumbnailUrl,
-                    Duration = next.Duration,
-                    AudioQuality = next.AudioQuality,
-                    GradientColorStart = next.GradientStart,
-                    GradientColorEnd = next.GradientEnd
-                });
-            }
-        }
-
-        // Set optimistic display in PlayerBar immediately
-        _playbackService.SetCurrentSong(song);
-
-        // Fetch streaming audio URL and begin playing
-        var streamUrl = await _musicService.GetAudioStreamUrlAsync(result.VideoId);
-        song.StreamUrl = streamUrl;
 
         await _playbackService.PlayAsync(song);
     }
 
     [RelayCommand]
-    public void PlayNext(SearchResult? result)
+    public async Task PlayShelfAsync(HomeShelf? shelf)
     {
-        if (result == null) return;
-        _playbackService.EnqueueNext(new Song
-        {
-            VideoId = result.VideoId,
-            Title = result.Title,
-            Artist = result.Artist,
-            ThumbnailUrl = result.ThumbnailUrl,
-            Duration = result.Duration,
-            AudioQuality = result.AudioQuality,
-            GradientColorStart = result.GradientStart,
-            GradientColorEnd = result.GradientEnd
-        });
-    }
+        if (shelf == null || shelf.Items.Count == 0) return;
 
-    [RelayCommand]
-    public void AddToQueue(SearchResult? result)
-    {
-        if (result == null) return;
-        _playbackService.Enqueue(new Song
+        var first = shelf.Items[0];
+        await PlaySongAsync(first);
+
+        // Add remaining tracks to queue
+        foreach (var item in shelf.Items.Skip(1))
         {
-            VideoId = result.VideoId,
-            Title = result.Title,
-            Artist = result.Artist,
-            ThumbnailUrl = result.ThumbnailUrl,
-            Duration = result.Duration,
-            AudioQuality = result.AudioQuality,
-            GradientColorStart = result.GradientStart,
-            GradientColorEnd = result.GradientEnd
-        });
+            _playbackService.UpNext.Add(new Song
+            {
+                VideoId = item.VideoId,
+                Title = item.Title,
+                Artist = item.Artist,
+                Album = item.Album,
+                ThumbnailUrl = item.ThumbnailUrl,
+                Duration = item.Duration,
+                GradientColorStart = item.GradientStart,
+                GradientColorEnd = item.GradientEnd,
+                AudioQuality = item.AudioQuality,
+                FidelityTier = item.FidelityTier
+            });
+        }
     }
 }

@@ -16,6 +16,7 @@ public class Song
     public string AudioQuality { get; set; } = "256 kbps · AAC · Hi-Res";
     public string AudioCodec { get; set; } = "AAC";
     public string AudioSource { get; set; } = "BravePipe / Qobuz";
+    public string FidelityTier { get; set; } = "Hi-Res"; // "Hi-Res Lossless" | "Hi-Res" | "Basic"
 
     // Dynamic Ambient Gradient Colors
     public string GradientColorStart { get; set; } = "#3B2028";
