@@ -75,6 +75,9 @@ public partial class PlayerBarViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isCurrentSongDownloaded;
 
+    [ObservableProperty]
+    private string _downloadButtonToolTip = "Download Track for Offline Playback";
+
     public IMediaPlaybackService PlaybackService => _playbackService;
 
     public PlayerBarViewModel(IMediaPlaybackService playbackService, INavigationService? navService = null)
@@ -103,6 +106,7 @@ public partial class PlayerBarViewModel : ObservableObject, IDisposable
 
         var downloadService = App.Services.GetService(typeof(IDownloadService)) as IDownloadService;
         IsCurrentSongDownloaded = downloadService?.IsSongDownloaded(song.VideoId) ?? false;
+        DownloadButtonToolTip = IsCurrentSongDownloaded ? "Downloaded for offline playback" : "Download Track for Offline Playback";
     }
 
     private void OnPlaybackStateChanged(object? sender, MediaPlaybackState state)
@@ -200,18 +204,29 @@ public partial class PlayerBarViewModel : ObservableObject, IDisposable
 
         IsDownloading = true;
         DownloadProgress = 0;
+        DownloadButtonToolTip = $"Downloading \"{song.Title}\"...";
 
         try
         {
             bool success = await downloadService.DownloadSongAsync(song, p =>
             {
                 DownloadProgress = p * 100.0;
+                DownloadButtonToolTip = $"Downloading \"{song.Title}\": {DownloadProgress:F0}%";
             });
 
             if (success)
             {
                 IsCurrentSongDownloaded = true;
+                DownloadButtonToolTip = $"Downloaded: \"{song.Title}\" for offline playback";
             }
+            else
+            {
+                DownloadButtonToolTip = "Download failed. Click to retry.";
+            }
+        }
+        catch (System.Exception ex)
+        {
+            DownloadButtonToolTip = $"Download error: {ex.Message}";
         }
         finally
         {

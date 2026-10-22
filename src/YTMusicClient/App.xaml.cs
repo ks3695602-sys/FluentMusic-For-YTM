@@ -8,7 +8,7 @@ namespace YTMusicClient;
 public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
-
+    public static Window? MainWindow => ((App)Current)._window;
     private Window? _window;
 
     public App()

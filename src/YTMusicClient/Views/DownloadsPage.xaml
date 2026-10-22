@@ -50,6 +50,16 @@
 
                 <Button CornerRadius="16" Padding="12,7"
                         Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                        Click="AddLocalSongs_Click"
+                        ToolTipService.ToolTip="Import MP3, FLAC, M4A from your PC">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE898;" FontSize="13" />
+                        <TextBlock Text="Add Local Music" />
+                    </StackPanel>
+                </Button>
+
+                <Button CornerRadius="16" Padding="12,7"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
                         Command="{x:Bind ViewModel.OpenFolderCommand}"
                         ToolTipService.ToolTip="Open local downloads folder in File Explorer">
                     <StackPanel Orientation="Horizontal" Spacing="6">

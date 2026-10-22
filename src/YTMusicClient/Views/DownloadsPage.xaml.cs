@@ -37,4 +37,37 @@ public sealed partial class DownloadsPage : Page
             }
         }
     }
+
+    private async void AddLocalSongs_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var picker = new Windows.Storage.Pickers.FileOpenPicker();
+            picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.MusicLibrary;
+            picker.FileTypeFilter.Add(".mp3");
+            picker.FileTypeFilter.Add(".flac");
+            picker.FileTypeFilter.Add(".m4a");
+            picker.FileTypeFilter.Add(".wav");
+            picker.FileTypeFilter.Add(".aac");
+            picker.FileTypeFilter.Add(".opus");
+
+            var window = App.MainWindow;
+            if (window != null)
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            }
+
+            var files = await picker.PickMultipleFilesAsync();
+            if (files != null && files.Count > 0)
+            {
+                var paths = files.Select(f => f.Path).ToList();
+                await ViewModel.ImportLocalFilesAsync(paths);
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Helpers.AppLogger.LogError("AddLocalSongs_Click failed", ex);
+        }
+    }
 }

@@ -97,6 +97,23 @@ public partial class DownloadsViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public async Task ImportLocalFilesAsync(System.Collections.Generic.IEnumerable<string> filePaths)
+    {
+        bool anyAdded = false;
+        foreach (var file in filePaths)
+        {
+            if (await _downloadService.ImportLocalSongAsync(file))
+            {
+                anyAdded = true;
+            }
+        }
+        if (anyAdded)
+        {
+            await LoadDownloadsAsync();
+        }
+    }
+
+    [RelayCommand]
     public async Task OpenFolderAsync()
     {
         var path = await _downloadService.GetDownloadsFolderPathAsync();

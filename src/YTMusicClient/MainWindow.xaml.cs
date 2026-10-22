@@ -151,14 +151,35 @@ public sealed partial class MainWindow : Window
         LoadCurrentVideo();
     }
 
-    private void LoadCurrentVideo()
+    private async void LoadCurrentVideo()
     {
         var currentSong = ViewModel.PlaybackService.CurrentSong;
-        if (currentSong != null && !string.IsNullOrEmpty(currentSong.VideoId))
+        if (currentSong == null || string.IsNullOrEmpty(currentSong.VideoId)) return;
+
+        try
         {
-            try
+            string videoId = currentSong.VideoId;
+            bool isYouTubeId = videoId.Length == 11 && videoId.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_');
+
+            if (!isYouTubeId)
             {
-                var html = $@"<!DOCTYPE html>
+                try
+                {
+                    var yt = new YoutubeExplode.YoutubeClient();
+                    var query = $"{currentSong.Artist} {currentSong.Title}";
+                    await foreach (var vid in yt.Search.GetVideosAsync(query))
+                    {
+                        videoId = vid.Id.Value;
+                        break;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Helpers.AppLogger.LogError("Failed to resolve YouTube video ID for video mode", ex);
+                }
+            }
+
+            var html = $@"<!DOCTYPE html>
 <html>
 <head>
   <meta charset='utf-8'>
@@ -169,16 +190,15 @@ public sealed partial class MainWindow : Window
   </style>
 </head>
 <body>
-  <iframe src='https://www.youtube.com/embed/{currentSong.VideoId}?autoplay=1&amp;enablejsapi=1&amp;origin=https://www.youtube.com&amp;playsinline=1'
+  <iframe src='https://www.youtube.com/embed/{videoId}?autoplay=1&amp;enablejsapi=1&amp;origin=https://www.youtube.com&amp;playsinline=1'
           allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
           allowfullscreen>
   </iframe>
 </body>
 </html>";
-                NpVideoWebView.NavigateToString(html);
-            }
-            catch { }
+            NpVideoWebView.NavigateToString(html);
         }
+        catch { }
     }
 
     private void PauseVideoPlayer()

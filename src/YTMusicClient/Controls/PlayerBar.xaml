@@ -178,7 +178,7 @@
                 <!-- Download Track Button -->
                 <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
                         Command="{x:Bind ViewModel.DownloadCurrentSongCommand}"
-                        ToolTipService.ToolTip="Download Track for Offline Playback">
+                        ToolTipService.ToolTip="{x:Bind ViewModel.DownloadButtonToolTip, Mode=OneWay}">
                     <Grid>
                         <FontIcon Glyph="&#xE896;" FontSize="13"
                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
