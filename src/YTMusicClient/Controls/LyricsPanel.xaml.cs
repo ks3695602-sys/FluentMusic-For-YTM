@@ -32,4 +32,12 @@ public sealed partial class LyricsPanel : UserControl
             }
         }
     }
+
+    private void LyricsListView_ItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is Models.LyricLine line)
+        {
+            ViewModel.SeekToLine(line);
+        }
+    }
 }

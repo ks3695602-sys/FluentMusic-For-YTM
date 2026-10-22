@@ -107,4 +107,40 @@ public sealed partial class HomePage : Page
             await ViewModel.PlaySongCommand.ExecuteAsync(result);
         }
     }
+
+    private async void PlayFeatured_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.TopResults.Count > 0)
+        {
+            await ViewModel.PlaySongCommand.ExecuteAsync(ViewModel.TopResults[0]);
+        }
+        else if (ViewModel.TrendingSongs.Count > 0)
+        {
+            await ViewModel.PlaySongCommand.ExecuteAsync(ViewModel.TrendingSongs[0]);
+        }
+    }
+
+    private async void MenuPlayNow_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem item && item.DataContext is SearchResult result)
+        {
+            await ViewModel.PlaySongCommand.ExecuteAsync(result);
+        }
+    }
+
+    private void MenuPlayNext_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem item && item.DataContext is SearchResult result)
+        {
+            ViewModel.PlayNext(result);
+        }
+    }
+
+    private void MenuAddToQueue_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem item && item.DataContext is SearchResult result)
+        {
+            ViewModel.AddToQueue(result);
+        }
+    }
 }

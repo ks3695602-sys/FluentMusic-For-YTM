@@ -172,7 +172,7 @@ public class LyricsService : ILyricsService
                         {
                             words.Add(new LyricWord
                             {
-                                Text = wordText,
+                                Text = wordText.Trim(),
                                 StartTime = wordBegin,
                                 EndTime = wordEnd
                             });
@@ -180,9 +180,9 @@ public class LyricsService : ILyricsService
                     }
                 }
 
-                var fullText = spanElements.Count > 0
-                    ? string.Join("", words.Select(w => w.Text)).Trim()
-                    : p.Value.Trim();
+                var fullText = !string.IsNullOrWhiteSpace(p.Value)
+                    ? p.Value.Trim()
+                    : string.Join(" ", words.Select(w => w.Text)).Trim();
 
                 if (!string.IsNullOrWhiteSpace(fullText))
                 {

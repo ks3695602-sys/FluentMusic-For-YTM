@@ -26,20 +26,23 @@
                             QueryIcon="Find"
                             PlaceholderText="Search songs, albums, artists... (Ctrl+E)"
                             QuerySubmitted="SearchBox_QuerySubmitted"
-                            Width="460" Height="36" CornerRadius="18"
+                            Width="480" Height="36" CornerRadius="18"
                             HorizontalAlignment="Center" />
         </Grid>
 
-        <!-- 2. Main Scrollable Content -->
+        <!-- 2. Main Scrollable Content (Microsoft Store Layout) -->
         <ScrollViewer Grid.Row="1" Padding="32,0,32,0">
             <StackPanel Spacing="28">
 
-                <!-- Mood & Genre Category Chips (YouTube Music Style) -->
+                <!-- Mood & Genre Category Chips Carousel -->
                 <ScrollViewer HorizontalScrollBarVisibility="Hidden"
                               VerticalScrollBarVisibility="Disabled"
                               HorizontalScrollMode="Enabled"
                               VerticalScrollMode="Disabled">
                     <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="All (सब)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="" />
                         <Button Content="कसरत (Workout)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
                                 Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
                                 Click="MoodChip_Click" Tag="Workout songs" />
@@ -75,10 +78,159 @@
                               Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
                               HorizontalAlignment="Center" Width="36" Height="36" />
 
-                <!-- Section 1: Quick Picks / Top Songs (1-Click Play Rows) -->
+                <!-- SECTION 1: Top Hero Section (Spotlight Banner + 2x2 Bento Grid) -->
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="62*" /> <!-- Spotlight Hero Banner -->
+                        <ColumnDefinition Width="38*" /> <!-- 2x2 Bento Grid -->
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Spotlight Hero Banner (Microsoft Store Style) -->
+                    <Border Grid.Column="0" CornerRadius="14" Height="236"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                            Padding="28,24">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#281A32" Offset="0" />
+                                <GradientStop Color="#18233C" Offset="0.55" />
+                                <GradientStop Color="#0F1826" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Grid>
+                            <StackPanel VerticalAlignment="Center" Spacing="10" MaxWidth="440" HorizontalAlignment="Left">
+                                <Border Background="#25FA2D48" CornerRadius="10" Padding="8,3" HorizontalAlignment="Left">
+                                    <TextBlock Text="FEATURED SPOTLIGHT" FontSize="10" FontWeight="Bold"
+                                               Foreground="{StaticResource AccentRedBrush}" />
+                                </Border>
+
+                                <TextBlock Text="Bollywood &amp; Global Hits 2026"
+                                           FontSize="24" FontWeight="Bold" Foreground="White"
+                                           TextWrapping="Wrap" MaxLines="2" />
+
+                                <TextBlock Text="Curated chartbusters and trending tracks updated daily in high-fidelity 256kbps audio."
+                                           FontSize="12" Foreground="#C8D0E0" TextWrapping="Wrap" MaxLines="2" />
+
+                                <Button Style="{StaticResource AccentButtonStyle}"
+                                        CornerRadius="18" Padding="18,8" Margin="0,6,0,0"
+                                        Click="PlayFeatured_Click">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <FontIcon Glyph="&#xE768;" FontSize="13" />
+                                        <TextBlock Text="Play Featured" FontWeight="SemiBold" FontSize="13" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- PipsPager Indicator at Bottom -->
+                            <PipsPager HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                       NumberOfPages="5" SelectedPageIndex="0" />
+                        </Grid>
+                    </Border>
+
+                    <!-- 2x2 Bento Grid (Microsoft Store Bento Spotlight) -->
+                    <Grid Grid.Column="1" RowSpacing="10" ColumnSpacing="10" Height="236">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Bento 1: Bollywood Romance -->
+                        <Border Grid.Row="0" Grid.Column="0" CornerRadius="12" Padding="12"
+                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
+                                PointerPressed="HeroCard_PointerPressed" Tag="Bollywood Romance Songs">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#8A2387" Offset="0" />
+                                    <GradientStop Color="#E94057" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Bollywood" FontSize="10" Opacity="0.8" Foreground="White" />
+                                    <TextBlock Text="Pure Romance" FontSize="13" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <FontIcon Glyph="&#xE768;" FontSize="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Bento 2: Midnight Chill -->
+                        <Border Grid.Row="0" Grid.Column="1" CornerRadius="12" Padding="12"
+                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
+                                PointerPressed="HeroCard_PointerPressed" Tag="Lofi chill beats">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#00c6ff" Offset="0" />
+                                    <GradientStop Color="#0072ff" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Night Drive" FontSize="10" Opacity="0.8" Foreground="White" />
+                                    <TextBlock Text="Midnight Chill" FontSize="13" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <FontIcon Glyph="&#xE768;" FontSize="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Bento 3: Workout Beast -->
+                        <Border Grid.Row="1" Grid.Column="0" CornerRadius="12" Padding="12"
+                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
+                                PointerPressed="HeroCard_PointerPressed" Tag="Gym workout motivation songs">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#f12711" Offset="0" />
+                                    <GradientStop Color="#f5af19" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="High Energy" FontSize="10" Opacity="0.8" Foreground="White" />
+                                    <TextBlock Text="Workout Beast" FontSize="13" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <FontIcon Glyph="&#xE768;" FontSize="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Bento 4: Punjabi Fire -->
+                        <Border Grid.Row="1" Grid.Column="1" CornerRadius="12" Padding="12"
+                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
+                                PointerPressed="HeroCard_PointerPressed" Tag="Top Punjabi hits 2026">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#11998e" Offset="0" />
+                                    <GradientStop Color="#38ef7d" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Trending" FontSize="10" Opacity="0.8" Foreground="White" />
+                                    <TextBlock Text="Punjabi Fire" FontSize="13" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <FontIcon Glyph="&#xE768;" FontSize="15" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+
+                <!-- SECTION 2: Quick Picks (Microsoft Store 2-Row App Cards Pattern) -->
                 <StackPanel Spacing="12">
-                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock Text="Quick Picks" FontWeight="Bold" FontSize="18" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="Quick Picks" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="Bold" FontSize="19" />
                         <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                     </StackPanel>
 
@@ -88,14 +240,22 @@
                               ItemClick="TrackCard_Click">
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="models:SearchResult">
-                                <Border Background="#1E2128"
-                                        BorderBrush="{StaticResource GlassBorderBrush}"
+                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                         BorderThickness="1"
                                         CornerRadius="10"
-                                        Padding="8"
+                                        Padding="10,8"
                                         Margin="0,0,12,12"
-                                        Width="260">
-                                    <Grid ColumnSpacing="10">
+                                        Width="270">
+                                    <Border.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Play Now" Click="MenuPlayNow_Click" />
+                                            <MenuFlyoutItem Text="Play Next" Click="MenuPlayNext_Click" />
+                                            <MenuFlyoutItem Text="Add to Queue" Click="MenuAddToQueue_Click" />
+                                        </MenuFlyout>
+                                    </Border.ContextFlyout>
+
+                                    <Grid ColumnSpacing="12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="48" />
                                             <ColumnDefinition Width="*" />
@@ -112,10 +272,11 @@
                                             </Image>
                                         </Border>
 
-                                        <!-- Meta -->
+                                        <!-- Track Title & Artist -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12"
-                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12.5"
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                                             <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                        FontSize="11" MaxLines="1" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
@@ -131,112 +292,10 @@
                     </GridView>
                 </StackPanel>
 
-                <!-- Section 2: WinUI Expanding Gradient Color Hero Boxes (Hover Scale) -->
-                <StackPanel Spacing="12">
-                    <TextBlock Text="Featured Vibes" FontWeight="Bold" FontSize="18" />
-
-                    <Grid ColumnSpacing="14">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Box 1: Bollywood Romance -->
-                        <Border Grid.Column="0" CornerRadius="14" Height="110" Padding="14"
-                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
-                                PointerPressed="HeroCard_PointerPressed" Tag="Bollywood Romance Songs">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#8A2387" Offset="0" />
-                                    <GradientStop Color="#E94057" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.RenderTransform>
-                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
-                            </Border.RenderTransform>
-                            <Grid>
-                                <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="Bollywood" FontSize="11" Opacity="0.8" Foreground="White" />
-                                    <TextBlock Text="Pure Romance" FontSize="15" FontWeight="Bold" Foreground="White" />
-                                </StackPanel>
-                                <FontIcon Glyph="&#xE768;" FontSize="18" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            </Grid>
-                        </Border>
-
-                        <!-- Box 2: Midnight Chill -->
-                        <Border Grid.Column="1" CornerRadius="14" Height="110" Padding="14"
-                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
-                                PointerPressed="HeroCard_PointerPressed" Tag="Lofi chill beats">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#00c6ff" Offset="0" />
-                                    <GradientStop Color="#0072ff" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.RenderTransform>
-                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
-                            </Border.RenderTransform>
-                            <Grid>
-                                <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="Night Drive" FontSize="11" Opacity="0.8" Foreground="White" />
-                                    <TextBlock Text="Midnight Chill" FontSize="15" FontWeight="Bold" Foreground="White" />
-                                </StackPanel>
-                                <FontIcon Glyph="&#xE768;" FontSize="18" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            </Grid>
-                        </Border>
-
-                        <!-- Box 3: Workout Motivation -->
-                        <Border Grid.Column="2" CornerRadius="14" Height="110" Padding="14"
-                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
-                                PointerPressed="HeroCard_PointerPressed" Tag="Gym workout motivation songs">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#f12711" Offset="0" />
-                                    <GradientStop Color="#f5af19" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.RenderTransform>
-                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
-                            </Border.RenderTransform>
-                            <Grid>
-                                <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="High Energy" FontSize="11" Opacity="0.8" Foreground="White" />
-                                    <TextBlock Text="Workout Beast" FontSize="15" FontWeight="Bold" Foreground="White" />
-                                </StackPanel>
-                                <FontIcon Glyph="&#xE768;" FontSize="18" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            </Grid>
-                        </Border>
-
-                        <!-- Box 4: Punjabi Hits -->
-                        <Border Grid.Column="3" CornerRadius="14" Height="110" Padding="14"
-                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
-                                PointerPressed="HeroCard_PointerPressed" Tag="Top Punjabi hits 2026">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#11998e" Offset="0" />
-                                    <GradientStop Color="#38ef7d" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <Border.RenderTransform>
-                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
-                            </Border.RenderTransform>
-                            <Grid>
-                                <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="Trending" FontSize="11" Opacity="0.8" Foreground="White" />
-                                    <TextBlock Text="Punjabi Fire" FontSize="15" FontWeight="Bold" Foreground="White" />
-                                </StackPanel>
-                                <FontIcon Glyph="&#xE768;" FontSize="18" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
-                            </Grid>
-                        </Border>
-                    </Grid>
-                </StackPanel>
-
-                <!-- Section 3: Trending & Albums (फिर से सुनें) -->
+                <!-- SECTION 3: Trending & Essential Albums Carousel -->
                 <StackPanel Spacing="14">
-                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock Text="Trending &amp; Albums" FontWeight="Bold" FontSize="18" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="Trending &amp; Essential Albums" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="Bold" FontSize="19" />
                         <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                     </StackPanel>
 
@@ -246,13 +305,21 @@
                               ItemClick="TrackCard_Click">
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="models:SearchResult">
-                                <Border Background="#1E2128"
-                                        BorderBrush="{StaticResource GlassBorderBrush}"
+                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                         BorderThickness="1"
                                         CornerRadius="12"
                                         Padding="8"
                                         Margin="0,0,14,14"
                                         Width="160">
+                                    <Border.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Play Now" Click="MenuPlayNow_Click" />
+                                            <MenuFlyoutItem Text="Play Next" Click="MenuPlayNext_Click" />
+                                            <MenuFlyoutItem Text="Add to Queue" Click="MenuAddToQueue_Click" />
+                                        </MenuFlyout>
+                                    </Border.ContextFlyout>
+
                                     <StackPanel Spacing="8">
                                         <Border CornerRadius="8" Width="144" Height="144">
                                             <Image Stretch="UniformToFill">
@@ -264,7 +331,8 @@
                                         </Border>
                                         <StackPanel Spacing="2">
                                             <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12"
-                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis"
+                                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                                             <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                        FontSize="11" MaxLines="1" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>

@@ -67,8 +67,8 @@
 
             <!-- 2. Center: Dedicated Now-Playing LCD Box (Click to toggle Lyrics/NowPlaying) -->
             <Border Grid.Column="1"
-                    Background="#1E2128"
-                    BorderBrush="#303542"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8"
                     Padding="6,4"
@@ -111,7 +111,7 @@
                         </StackPanel>
 
                         <!-- Audio Quality Badge -->
-                        <Border Grid.Column="2" Background="#282D38" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
+                        <Border Grid.Column="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
                             <TextBlock Text="{x:Bind ViewModel.AudioQualityBadge, Mode=OneWay}"
                                        FontSize="8" FontWeight="SemiBold"
                                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
@@ -123,12 +123,12 @@
                                  Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}"
                                  Height="2.5" Margin="0,3,0,0"
                                  Foreground="{StaticResource AccentRedBrush}"
-                                 Background="#303542" />
+                                 Background="{ThemeResource ControlStrokeColorDefaultBrush}" />
                 </Grid>
             </Border>
 
-            <!-- 3. Right: Equalizer + Repeat + Lyrics + Volume -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+            <!-- 3. Right: Equalizer + Repeat + Video + Options + Lyrics + Volume -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="3">
                 <!-- Equalizer waveform icon -->
                 <FontIcon Glyph="&#xE995;" FontSize="12" Foreground="{StaticResource AccentRedBrush}"
                           VerticalAlignment="Center" Margin="0,0,2,0"
@@ -139,6 +139,34 @@
                         Command="{x:Bind ViewModel.ToggleRepeatCommand}"
                         ToolTipService.ToolTip="Repeat">
                     <FontIcon Glyph="&#xE8EE;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Button>
+
+                <!-- Video / Now Playing Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Click="NowPlaying_Click"
+                        ToolTipService.ToolTip="Now Playing &amp; Music Video">
+                    <FontIcon Glyph="&#xE714;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Button>
+
+                <!-- Options / Speed Flyout Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        ToolTipService.ToolTip="Playback Options &amp; Speed">
+                    <FontIcon Glyph="&#xE712;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button.Flyout>
+                        <MenuFlyout Placement="Top">
+                            <MenuFlyoutSubItem Text="Playback Speed">
+                                <MenuFlyoutItem Text="0.5x" Tag="0.5" Click="SpeedItem_Click" />
+                                <MenuFlyoutItem Text="0.75x" Tag="0.75" Click="SpeedItem_Click" />
+                                <MenuFlyoutItem Text="1.0x (Normal)" Tag="1.0" Click="SpeedItem_Click" />
+                                <MenuFlyoutItem Text="1.25x" Tag="1.25" Click="SpeedItem_Click" />
+                                <MenuFlyoutItem Text="1.5x" Tag="1.5" Click="SpeedItem_Click" />
+                                <MenuFlyoutItem Text="2.0x" Tag="2.0" Click="SpeedItem_Click" />
+                            </MenuFlyoutSubItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Watch Music Video" Click="NowPlaying_Click" />
+                            <MenuFlyoutItem Text="Toggle Synced Lyrics" Click="LyricsButton_Click" />
+                        </MenuFlyout>
+                    </Button.Flyout>
                 </Button>
 
                 <!-- Lyrics Toggle Button -->

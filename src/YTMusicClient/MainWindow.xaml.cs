@@ -39,15 +39,112 @@ public sealed partial class MainWindow : Window
         var navService = App.Services.GetRequiredService<INavigationService>();
         navService.Frame = ContentFrame;
 
-        // Wire Floating PlayerBar lyrics toggle event
+        // Wire Floating PlayerBar lyrics and now-playing events
         PlayerBarControl.LyricsToggled += (s, e) =>
         {
             LyricsSplitView.IsPaneOpen = !LyricsSplitView.IsPaneOpen;
         };
 
+        PlayerBarControl.NowPlayingRequested += (s, e) =>
+        {
+            ToggleNowPlaying();
+        };
+
+        this.Activated += (s, e) => CheckGoogleSignInStatus();
+
         // Navigate to Home by default
         ContentFrame.Navigate(typeof(HomePage));
         SetActiveNavButton(0);
+        CheckGoogleSignInStatus();
+    }
+
+    public void CheckGoogleSignInStatus()
+    {
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            bool isSignedIn = localSettings.Values["IsGoogleSignedIn"] is bool b && b;
+            if (isSignedIn)
+            {
+                var userName = localSettings.Values["UserDisplayName"] as string ?? "Google User";
+                UserAccountStatusTitle.Text = userName;
+                UserAccountStatusSub.Text = "Connected & Synced";
+                UserAccountAvatarIcon.Glyph = "\uE73E";
+                UserAccountAvatarIcon.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 16, 185, 129));
+            }
+            else
+            {
+                UserAccountStatusTitle.Text = "Google Sync";
+                UserAccountStatusSub.Text = "Sign in to sync";
+                UserAccountAvatarIcon.Glyph = "\uE77B";
+                UserAccountAvatarIcon.Foreground = (Brush)Application.Current.Resources["AccentRedBrush"];
+            }
+        }
+        catch { }
+    }
+
+    private void ToggleNowPlaying()
+    {
+        bool isShowing = NowPlayingOverlay.Visibility == Visibility.Visible;
+        if (isShowing)
+        {
+            NowPlayingOverlay.Visibility = Visibility.Collapsed;
+            PauseVideoPlayer();
+        }
+        else
+        {
+            NowPlayingOverlay.Visibility = Visibility.Visible;
+            if (NpVideoStage.Visibility == Visibility.Visible)
+            {
+                LoadCurrentVideo();
+            }
+        }
+    }
+
+    private void CloseNowPlaying_Click(object sender, RoutedEventArgs e)
+    {
+        NowPlayingOverlay.Visibility = Visibility.Collapsed;
+        PauseVideoPlayer();
+    }
+
+    private void NpAudioMode_Click(object sender, RoutedEventArgs e)
+    {
+        NpAudioStage.Visibility = Visibility.Visible;
+        NpVideoStage.Visibility = Visibility.Collapsed;
+        NpAudioModeBtn.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
+        NpVideoModeBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        PauseVideoPlayer();
+    }
+
+    private void NpVideoMode_Click(object sender, RoutedEventArgs e)
+    {
+        NpAudioStage.Visibility = Visibility.Collapsed;
+        NpVideoStage.Visibility = Visibility.Visible;
+        NpVideoModeBtn.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
+        NpAudioModeBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        LoadCurrentVideo();
+    }
+
+    private void LoadCurrentVideo()
+    {
+        var currentSong = ViewModel.PlaybackService.CurrentSong;
+        if (currentSong != null && !string.IsNullOrEmpty(currentSong.VideoId))
+        {
+            try
+            {
+                NpVideoWebView.Source = new Uri($"https://www.youtube-nocookie.com/embed/{currentSong.VideoId}?autoplay=1");
+            }
+            catch { }
+        }
+    }
+
+    private void PauseVideoPlayer()
+    {
+        try
+        {
+            NpVideoWebView.Source = new Uri("about:blank");
+        }
+        catch { }
     }
 
     private void ConfigureTransparentCaptionButtons()

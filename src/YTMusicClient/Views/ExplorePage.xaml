@@ -66,10 +66,9 @@
                         </StackPanel>
 
                         <TextBlock Grid.Column="2" VerticalAlignment="Center"
+                                   Text="{x:Bind Duration, Converter={StaticResource TimeSpanConverter}}"
                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                                   Style="{StaticResource CaptionTextBlockStyle}">
-                            <Run Text="{x:Bind Duration, Converter={StaticResource TimeSpanConverter}}" />
-                        </TextBlock>
+                                   Style="{StaticResource CaptionTextBlockStyle}" />
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>

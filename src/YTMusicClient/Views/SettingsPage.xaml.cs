@@ -14,6 +14,26 @@ public sealed partial class SettingsPage : Page
     {
         ViewModel = App.Services.GetRequiredService<SettingsViewModel>();
         this.InitializeComponent();
+        this.Loaded += (s, e) => RefreshAccountUI();
+    }
+
+    private void RefreshAccountUI()
+    {
+        var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+        bool isSignedIn = localSettings.Values["IsGoogleSignedIn"] is bool b && b;
+        if (isSignedIn)
+        {
+            var user = localSettings.Values["UserDisplayName"] as string ?? "Google User";
+            AccountStatusTitle.Text = $"Connected: {user}";
+            AccountStatusSubtitle.Text = "Your YouTube Music playlists and liked songs are synced with FluentMusic.";
+            SignInGoogleBtnText.Text = "Sign Out";
+        }
+        else
+        {
+            AccountStatusTitle.Text = "YouTube Music Sync";
+            AccountStatusSubtitle.Text = "Sign in to sync your personal playlists, liked songs, and history inside the app";
+            SignInGoogleBtnText.Text = "Sign in with Google";
+        }
     }
 
     private void ThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -36,6 +56,28 @@ public sealed partial class SettingsPage : Page
     {
         if (this.XamlRoot == null) return;
 
+        var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+        bool isSignedIn = localSettings.Values["IsGoogleSignedIn"] is bool b && b;
+
+        // If already signed in, handle sign out
+        if (isSignedIn)
+        {
+            localSettings.Values["IsGoogleSignedIn"] = false;
+            localSettings.Values.Remove("GoogleAuthCookies");
+            localSettings.Values.Remove("UserDisplayName");
+            RefreshAccountUI();
+
+            var outDialog = new ContentDialog
+            {
+                Title = "Signed Out",
+                Content = "You have signed out of YouTube Music sync.",
+                CloseButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+            await outDialog.ShowAsync();
+            return;
+        }
+
         try
         {
             var webView = new WebView2
@@ -55,9 +97,71 @@ public sealed partial class SettingsPage : Page
                 XamlRoot = this.XamlRoot
             };
 
+            // Intercept navigation to capture cookies after authentication
+            webView.NavigationCompleted += async (s, args) =>
+            {
+                if (!args.IsSuccess) return;
+
+                try
+                {
+                    var uri = webView.Source?.ToString() ?? string.Empty;
+                    if (uri.Contains("music.youtube.com"))
+                    {
+                        var cookieManager = webView.CoreWebView2?.CookieManager;
+                        if (cookieManager != null)
+                        {
+                            var cookies = await cookieManager.GetCookiesAsync("https://music.youtube.com");
+                            bool hasAuthCookie = cookies.Any(c =>
+                                c.Name.Equals("SAPISID", StringComparison.OrdinalIgnoreCase) ||
+                                c.Name.Equals("__Secure-3PAPISID", StringComparison.OrdinalIgnoreCase) ||
+                                c.Name.Equals("LOGIN_INFO", StringComparison.OrdinalIgnoreCase) ||
+                                c.Name.Equals("SID", StringComparison.OrdinalIgnoreCase));
+
+                            if (hasAuthCookie)
+                            {
+                                localSettings.Values["IsGoogleSignedIn"] = true;
+
+                                string displayName = "Google Account";
+                                try
+                                {
+                                    var scriptResult = await webView.ExecuteScriptAsync("document.querySelector('button#avatar-btn')?.getAttribute('aria-label') || ''");
+                                    if (!string.IsNullOrWhiteSpace(scriptResult) && scriptResult != "null" && scriptResult != "\"\"")
+                                    {
+                                        displayName = scriptResult.Trim('"', ' ');
+                                    }
+                                }
+                                catch { }
+
+                                localSettings.Values["UserDisplayName"] = displayName;
+
+                                var cookieHeader = string.Join("; ", cookies.Select(c => $"{c.Name}={c.Value}"));
+                                localSettings.Values["GoogleAuthCookies"] = cookieHeader;
+
+                                RefreshAccountUI();
+                                dialog.Hide();
+
+                                var successDialog = new ContentDialog
+                                {
+                                    Title = "Signed In Successfully",
+                                    Content = $"Connected as {displayName}. Your YouTube Music personal library is now synced with FluentMusic!",
+                                    CloseButtonText = "Awesome",
+                                    XamlRoot = this.XamlRoot
+                                };
+                                await successDialog.ShowAsync();
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Helpers.AppLogger.LogError("Google auth capture error", ex);
+                }
+            };
+
             webView.Source = new Uri("https://accounts.google.com/ServiceLogin?continue=https://music.youtube.com");
 
             await dialog.ShowAsync();
+            RefreshAccountUI();
         }
         catch (Exception ex)
         {
