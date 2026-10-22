@@ -50,12 +50,15 @@ public sealed partial class MainWindow : Window
             ToggleNowPlaying();
         };
 
+        ViewModel.PlayerBar.PropertyChanged += (s, e) => UpdateNowPlayingContent();
+
         this.Activated += (s, e) => CheckGoogleSignInStatus();
 
         // Navigate to Home by default
         ContentFrame.Navigate(typeof(HomePage));
         SetActiveNavButton(0);
         CheckGoogleSignInStatus();
+        UpdateNowPlayingContent();
     }
 
     public void CheckGoogleSignInStatus()
@@ -94,11 +97,31 @@ public sealed partial class MainWindow : Window
         else
         {
             NowPlayingOverlay.Visibility = Visibility.Visible;
+            UpdateNowPlayingContent();
             if (NpVideoStage.Visibility == Visibility.Visible)
             {
                 LoadCurrentVideo();
             }
         }
+    }
+
+    private void UpdateNowPlayingContent()
+    {
+        try
+        {
+            var pb = ViewModel?.PlayerBar;
+            if (pb != null && NpTitleText != null)
+            {
+                NpTitleText.Text = !string.IsNullOrEmpty(pb.Title) ? pb.Title : "Not Playing";
+                NpArtistText.Text = !string.IsNullOrEmpty(pb.Artist) ? pb.Artist : "Choose a song to start listening";
+                NpQualityText.Text = !string.IsNullOrEmpty(pb.AudioQualityBadge) ? pb.AudioQualityBadge : "256 kbps · AAC · Hi-Res";
+                if (!string.IsNullOrEmpty(pb.ThumbnailUrl) && Uri.TryCreate(pb.ThumbnailUrl, UriKind.Absolute, out var uri))
+                {
+                    NpAlbumBitmap.UriSource = uri;
+                }
+            }
+        }
+        catch { }
     }
 
     private void CloseNowPlaying_Click(object sender, RoutedEventArgs e)

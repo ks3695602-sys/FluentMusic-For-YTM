@@ -203,7 +203,7 @@
                                             VerticalAlignment="Center">
                                         <Image x:Name="NpAlbumImage" Stretch="UniformToFill">
                                             <Image.Source>
-                                                <BitmapImage UriSource="{x:Bind ViewModel.PlayerBar.ThumbnailUrl, Mode=OneWay, Converter={StaticResource StringToUriConverter}}" />
+                                                <BitmapImage x:Name="NpAlbumBitmap" />
                                             </Image.Source>
                                         </Image>
                                     </Border>
@@ -213,17 +213,17 @@
                                         <Border Background="#20FA2D48" CornerRadius="12" Padding="10,4" HorizontalAlignment="Left">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <FontIcon Glyph="&#xE8D6;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" />
-                                                <TextBlock Text="{x:Bind ViewModel.PlayerBar.AudioQualityBadge, Mode=OneWay}"
+                                                <TextBlock x:Name="NpQualityText" Text="256 kbps · AAC · Hi-Res"
                                                            FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentRedBrush}" />
                                             </StackPanel>
                                         </Border>
 
-                                        <TextBlock Text="{x:Bind ViewModel.PlayerBar.Title, Mode=OneWay}"
+                                        <TextBlock x:Name="NpTitleText" Text="Not Playing"
                                                    Style="{StaticResource TitleLargeTextBlockStyle}"
                                                    FontWeight="Bold" FontSize="32"
                                                    TextWrapping="Wrap" MaxLines="2" />
 
-                                        <TextBlock Text="{x:Bind ViewModel.PlayerBar.Artist, Mode=OneWay}"
+                                        <TextBlock x:Name="NpArtistText" Text="Choose a song to start listening"
                                                    FontSize="20" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                    TextWrapping="Wrap" MaxLines="1" />
 
