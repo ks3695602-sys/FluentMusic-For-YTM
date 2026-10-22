@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using YTMusicClient.ViewModels;
 
 namespace YTMusicClient.Controls;
@@ -19,6 +20,11 @@ public sealed partial class PlayerBar : UserControl
     }
 
     private void LyricsButton_Click(object sender, RoutedEventArgs e)
+    {
+        LyricsToggled?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void CenterLcdPill_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
         LyricsToggled?.Invoke(this, EventArgs.Empty);
     }

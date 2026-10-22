@@ -3,10 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
-using Windows.ApplicationModel.DataTransfer;
 using YTMusicClient.Models;
-using YTMusicClient.Services;
 using YTMusicClient.ViewModels;
 
 namespace YTMusicClient.Views;
@@ -19,6 +18,29 @@ public sealed partial class HomePage : Page
     {
         ViewModel = App.Services.GetRequiredService<HomeViewModel>();
         this.InitializeComponent();
+
+        // Keyboard shortcut: Ctrl+E or Ctrl+F focuses search box
+        this.Loaded += (s, e) =>
+        {
+            if (this.XamlRoot?.Content is UIElement rootElement)
+            {
+                rootElement.KeyDown -= OnRootKeyDown;
+                rootElement.KeyDown += OnRootKeyDown;
+            }
+        };
+    }
+
+    private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        var ctrl = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control);
+        if (ctrl.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down))
+        {
+            if (e.Key == Windows.System.VirtualKey.E || e.Key == Windows.System.VirtualKey.F)
+            {
+                SearchBox.Focus(FocusState.Programmatic);
+                e.Handled = true;
+            }
+        }
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -30,19 +52,52 @@ public sealed partial class HomePage : Page
         }
     }
 
-    private async void SearchInputBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    private async void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
-        if (e.Key == Windows.System.VirtualKey.Enter)
+        var query = args.QueryText;
+        if (!string.IsNullOrWhiteSpace(query))
         {
-            ViewModel.SearchQuery = SearchInputBox.Text;
-            await ViewModel.SearchCommand.ExecuteAsync(SearchInputBox.Text);
+            ViewModel.SearchQuery = query;
+            await ViewModel.SearchCommand.ExecuteAsync(query);
         }
     }
 
-    private async void ClearSearchBtn_Click(object sender, RoutedEventArgs e)
+    private async void MoodChip_Click(object sender, RoutedEventArgs e)
     {
-        SearchInputBox.Text = string.Empty;
-        await ViewModel.ClearSearchCommand.ExecuteAsync(null);
+        if (sender is Button btn && btn.Tag is string moodQuery)
+        {
+            SearchBox.Text = moodQuery;
+            ViewModel.SearchQuery = moodQuery;
+            await ViewModel.SearchCommand.ExecuteAsync(moodQuery);
+        }
+    }
+
+    private void HeroCard_PointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Border border && border.RenderTransform is ScaleTransform scale)
+        {
+            scale.ScaleX = 1.04;
+            scale.ScaleY = 1.04;
+        }
+    }
+
+    private void HeroCard_PointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Border border && border.RenderTransform is ScaleTransform scale)
+        {
+            scale.ScaleX = 1.0;
+            scale.ScaleY = 1.0;
+        }
+    }
+
+    private async void HeroCard_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Border border && border.Tag is string query)
+        {
+            SearchBox.Text = query;
+            ViewModel.SearchQuery = query;
+            await ViewModel.SearchCommand.ExecuteAsync(query);
+        }
     }
 
     private async void TrackCard_Click(object sender, ItemClickEventArgs e)
@@ -50,63 +105,6 @@ public sealed partial class HomePage : Page
         if (e.ClickedItem is SearchResult result)
         {
             await ViewModel.PlaySongCommand.ExecuteAsync(result);
-        }
-    }
-
-    private async void ArtistItem_Click(object sender, ItemClickEventArgs e)
-    {
-        if (e.ClickedItem is SearchResult result)
-        {
-            SearchInputBox.Text = result.Artist;
-            await ViewModel.SearchCommand.ExecuteAsync(result.Artist);
-        }
-    }
-
-    private void LibraryShortcut_Click(object sender, RoutedEventArgs e)
-    {
-        Frame.Navigate(typeof(LibraryPage));
-    }
-
-    private async void MenuPlayNow_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem item && item.Tag is SearchResult result)
-        {
-            await ViewModel.PlaySongCommand.ExecuteAsync(result);
-        }
-    }
-
-    private void MenuPlayNext_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem item && item.Tag is SearchResult result)
-        {
-            ViewModel.PlayNextCommand.Execute(result);
-        }
-    }
-
-    private void MenuAddToQueue_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem item && item.Tag is SearchResult result)
-        {
-            ViewModel.AddToQueueCommand.Execute(result);
-        }
-    }
-
-    private async void MenuGoToArtist_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem item && item.Tag is SearchResult result)
-        {
-            SearchInputBox.Text = result.Artist;
-            await ViewModel.SearchCommand.ExecuteAsync(result.Artist);
-        }
-    }
-
-    private void MenuCopyLink_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuFlyoutItem item && item.Tag is SearchResult result && !string.IsNullOrEmpty(result.VideoId))
-        {
-            var dataPackage = new DataPackage();
-            dataPackage.SetText($"https://music.youtube.com/watch?v={result.VideoId}");
-            Clipboard.SetContent(dataPackage);
         }
     }
 }

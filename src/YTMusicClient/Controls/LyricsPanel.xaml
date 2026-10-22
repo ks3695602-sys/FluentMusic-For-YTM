@@ -15,27 +15,30 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid Padding="16" Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
-          CornerRadius="8,0,0,8">
+    <Grid Padding="20,16" Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
+          CornerRadius="16,0,0,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,16">
-            <FontIcon Glyph="&#xEDC4;" FontSize="20"
-                      Foreground="{StaticResource AccentRedBrush}" />
-            <TextBlock Text="Lyrics" Style="{StaticResource SubtitleTextBlockStyle}"
-                       FontWeight="SemiBold" />
-        </StackPanel>
+        <Grid Margin="0,0,0,16">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xEDC4;" FontSize="18" Foreground="{StaticResource AccentRedBrush}" />
+                <TextBlock Text="Lyrics" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="Bold" />
+                <Border Background="#20FA2D48" CornerRadius="10" Padding="6,2" Margin="6,0,0,0">
+                    <TextBlock Text="Word-Sync" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource AccentRedBrush}" />
+                </Border>
+            </StackPanel>
+        </Grid>
 
         <!-- Loading -->
         <ProgressRing Grid.Row="1"
                       IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
                       Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
                       Width="32" Height="32"
-                      VerticalAlignment="Top" Margin="0,32,0,0" />
+                      VerticalAlignment="Top" Margin="0,40,0,0" />
 
         <!-- Status Message -->
         <TextBlock Grid.Row="1"
@@ -46,22 +49,29 @@
                    TextAlignment="Center" VerticalAlignment="Center"
                    TextWrapping="Wrap" />
 
-        <!-- Lyrics List -->
+        <!-- Lyrics List with Progressive Word-by-Word Karaoke Highlights -->
         <ListView x:Name="LyricsListView"
                   Grid.Row="1"
                   ItemsSource="{x:Bind ViewModel.Lyrics, Mode=OneWay}"
                   Visibility="{x:Bind ViewModel.HasLyrics, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
                   SelectionMode="None"
-                  Padding="0,60,0,200">
+                  Padding="0,40,0,180">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="models:LyricLine">
-                    <TextBlock Text="{x:Bind Text}"
-                               FontSize="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource LyricFontSizeConverter}}"
-                               Opacity="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource LyricOpacityConverter}}"
-                               TextWrapping="Wrap"
-                               Padding="0,8"
-                               Margin="0,2">
-                    </TextBlock>
+                    <Grid Padding="0,6" Margin="0,2">
+                        <!-- Dual-Span Progressive Word Karaoke Render -->
+                        <TextBlock TextWrapping="Wrap"
+                                   FontSize="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource LyricFontSizeConverter}}"
+                                   Opacity="{x:Bind IsActive, Mode=OneWay, Converter={StaticResource LyricOpacityConverter}}">
+                            <!-- Active words sung so far (Solid glowing white) -->
+                            <Run Text="{x:Bind ActiveWordsText, Mode=OneWay}"
+                                 Foreground="White"
+                                 FontWeight="Bold" />
+                            <!-- Remaining words in line (Subtle translucent) -->
+                            <Run Text="{x:Bind RemainingWordsText, Mode=OneWay}"
+                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </TextBlock>
+                    </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>
             <ListView.ItemContainerStyle>

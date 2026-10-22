@@ -25,4 +25,10 @@ public partial class LyricLine : ObservableObject
 
     [ObservableProperty]
     private bool _isActive;
+
+    [ObservableProperty]
+    private string _activeWordsText = string.Empty;
+
+    [ObservableProperty]
+    private string _remainingWordsText = string.Empty;
 }

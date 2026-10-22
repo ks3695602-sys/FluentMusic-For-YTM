@@ -12,122 +12,170 @@
         <converters:StringToUriConverter x:Key="StringToUriConverter" />
     </UserControl.Resources>
 
-    <Grid Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-          BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-          BorderThickness="0,1,0,0"
-          Padding="16,8" MinHeight="80">
+    <!-- Floating Capsule Player (Apple Music macOS Liquid Glass style) -->
+    <Border Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+            BorderBrush="{StaticResource GlassBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="27"
+            Width="680"
+            Height="54"
+            Padding="12,4"
+            HorizontalAlignment="Center">
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="280" /> <!-- Song info -->
-            <ColumnDefinition Width="*" />   <!-- Playback controls -->
-            <ColumnDefinition Width="220" /> <!-- Volume & Extras -->
-        </Grid.ColumnDefinitions>
-
-        <!-- Song Info -->
-        <Grid ColumnSpacing="12" Visibility="{x:Bind ViewModel.HasSong, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+        <Grid VerticalAlignment="Center">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="56" />
-                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" /> <!-- Left: Apple Transport Controls -->
+                <ColumnDefinition Width="*" />    <!-- Center: Dedicated Now-Playing LCD Box -->
+                <ColumnDefinition Width="Auto" /> <!-- Right: Equalizer + Menu + Lyrics + Volume -->
             </Grid.ColumnDefinitions>
 
-            <Border CornerRadius="6" Width="56" Height="56">
-                <Image Stretch="UniformToFill">
-                    <Image.Source>
-                        <BitmapImage UriSource="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay, Converter={StaticResource StringToUriConverter}}"
-                                     DecodePixelWidth="56" />
-                    </Image.Source>
-                </Image>
-            </Border>
-
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" MaxLines="1"
-                           TextTrimming="CharacterEllipsis"
-                           Style="{StaticResource BodyStrongTextBlockStyle}" />
-                <TextBlock Text="{x:Bind ViewModel.Artist, Mode=OneWay}" MaxLines="1"
-                           TextTrimming="CharacterEllipsis"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Style="{StaticResource CaptionTextBlockStyle}" />
-            </StackPanel>
-        </Grid>
-
-        <!-- Playback Controls -->
-        <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="4">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
-                <!-- Previous Track -->
-                <Button Background="Transparent" BorderThickness="0"
-                        Command="{x:Bind ViewModel.PreviousTrackCommand}"
-                        ToolTipService.ToolTip="Previous">
-                    <FontIcon Glyph="&#xE892;" FontSize="16" />
+            <!-- 1. Left Transport Controls -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="3">
+                <!-- Shuffle Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Command="{x:Bind ViewModel.ToggleShuffleCommand}"
+                        ToolTipService.ToolTip="Shuffle">
+                    <FontIcon Glyph="&#xE8B1;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Button>
 
-                <!-- Play / Pause -->
-                <Button Style="{StaticResource AccentButtonStyle}"
+                <!-- Previous Track Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Command="{x:Bind ViewModel.PreviousTrackCommand}"
+                        ToolTipService.ToolTip="Previous Track">
+                    <FontIcon Glyph="&#xE892;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                </Button>
+
+                <!-- Play / Pause Button -->
+                <Button Background="{ThemeResource SubtleFillColorTransparentBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
                         Command="{x:Bind ViewModel.TogglePlayPauseCommand}"
-                        Width="40" Height="40" CornerRadius="20"
+                        Width="32" Height="32" CornerRadius="16"
                         Padding="0"
                         ToolTipService.ToolTip="Play / Pause">
                     <FontIcon Glyph="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource PlayPauseGlyph}}"
-                              FontSize="18" />
+                              FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                 </Button>
 
-                <!-- Next Track -->
-                <Button Background="Transparent" BorderThickness="0"
+                <!-- Next Track Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
                         Command="{x:Bind ViewModel.NextTrackCommand}"
-                        ToolTipService.ToolTip="Next">
-                    <FontIcon Glyph="&#xE893;" FontSize="16" />
+                        ToolTipService.ToolTip="Next Track">
+                    <FontIcon Glyph="&#xE893;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                 </Button>
             </StackPanel>
 
-            <!-- Progress Bar -->
-            <Grid ColumnSpacing="8" HorizontalAlignment="Center" Width="400">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="40" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="40" />
-                </Grid.ColumnDefinitions>
+            <!-- 2. Center: Dedicated Now-Playing LCD Box (Click to toggle Lyrics/NowPlaying) -->
+            <Border Grid.Column="1"
+                    Background="#1E2128"
+                    BorderBrush="#303542"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="6,4"
+                    Margin="10,0"
+                    VerticalAlignment="Center"
+                    Cursor="Hand"
+                    PointerPressed="CenterLcdPill_PointerPressed">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <TextBlock Text="{x:Bind ViewModel.Position, Mode=OneWay, Converter={StaticResource TimeSpanConverter}}"
-                           Style="{StaticResource CaptionTextBlockStyle}"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           VerticalAlignment="Center" HorizontalAlignment="Right" />
+                    <!-- Top Row: Cover + Info + Quality Badge -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="32" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                <Slider Grid.Column="1" Minimum="0" Maximum="100"
-                        Value="{x:Bind ViewModel.ProgressPercent, Mode=TwoWay}" />
+                        <!-- Square Album Art -->
+                        <Border CornerRadius="4" Width="32" Height="32" VerticalAlignment="Center">
+                            <Image Stretch="UniformToFill">
+                                <Image.Source>
+                                    <BitmapImage UriSource="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay, Converter={StaticResource StringToUriConverter}}"
+                                                 DecodePixelWidth="32" />
+                                </Image.Source>
+                            </Image>
+                        </Border>
 
-                <TextBlock Grid.Column="2"
-                           Text="{x:Bind ViewModel.Duration, Mode=OneWay, Converter={StaticResource TimeSpanConverter}}"
-                           Style="{StaticResource CaptionTextBlockStyle}"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           VerticalAlignment="Center" />
-            </Grid>
-        </StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,4,0" Spacing="1">
+                            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       MaxLines="1" TextTrimming="CharacterEllipsis"
+                                       Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.Artist, Mode=OneWay}"
+                                       FontSize="9.5"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
 
-        <!-- Volume Control & Actions -->
-        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right"
-                    VerticalAlignment="Center" Spacing="6">
-            <Button Background="Transparent" BorderThickness="0"
-                    Command="{x:Bind ViewModel.ToggleShuffleCommand}"
-                    ToolTipService.ToolTip="Shuffle">
-                <FontIcon Glyph="&#xE8B1;" FontSize="14" />
-            </Button>
-            <Button Background="Transparent" BorderThickness="0"
-                    Command="{x:Bind ViewModel.ToggleRepeatCommand}"
-                    ToolTipService.ToolTip="Repeat">
-                <FontIcon Glyph="&#xE8EE;" FontSize="14" />
-            </Button>
-            <Button Background="Transparent" BorderThickness="0"
-                    Click="LyricsButton_Click"
-                    ToolTipService.ToolTip="Lyrics">
-                <FontIcon Glyph="&#xE8D6;" FontSize="16" />
-            </Button>
-            <Button Background="Transparent" BorderThickness="0"
-                    Command="{x:Bind ViewModel.ToggleMuteCommand}"
-                    ToolTipService.ToolTip="Mute / Unmute">
-                <FontIcon Glyph="&#xE767;" FontSize="16" />
-            </Button>
-            <Slider Minimum="0" Maximum="1"
-                    Value="{x:Bind ViewModel.Volume, Mode=TwoWay}"
-                    StepFrequency="0.01" Width="70" />
-        </StackPanel>
-    </Grid>
+                        <!-- Audio Quality Badge -->
+                        <Border Grid.Column="2" Background="#282D38" CornerRadius="4" Padding="5,2" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind ViewModel.AudioQualityBadge, Mode=OneWay}"
+                                       FontSize="8" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Bottom Row: Sleek 2.5px Progress Scrubber -->
+                    <ProgressBar Grid.Row="1" Minimum="0" Maximum="100"
+                                 Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}"
+                                 Height="2.5" Margin="0,3,0,0"
+                                 Foreground="{StaticResource AccentRedBrush}"
+                                 Background="#303542" />
+                </Grid>
+            </Border>
+
+            <!-- 3. Right: Equalizer + Options Flyout + Lyrics + Volume -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+                <!-- Equalizer waveform icon -->
+                <FontIcon Glyph="&#xE995;" FontSize="12" Foreground="{StaticResource AccentRedBrush}"
+                          VerticalAlignment="Center" Margin="0,0,2,0"
+                          Visibility="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+                <!-- Options Flyout (Playback speed & toggles) -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        ToolTipService.ToolTip="More Options">
+                    <FontIcon Glyph="&#xE712;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button.Flyout>
+                        <MenuFlyout Placement="TopEdgeAlignedRight">
+                            <MenuFlyoutSubItem Text="Playback Speed">
+                                <MenuFlyoutItem Text="0.5x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="0.5" />
+                                <MenuFlyoutItem Text="0.75x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="0.75" />
+                                <MenuFlyoutItem Text="1.0x (Normal)" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="1.0" />
+                                <MenuFlyoutItem Text="1.25x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="1.25" />
+                                <MenuFlyoutItem Text="1.5x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="1.5" />
+                                <MenuFlyoutItem Text="2.0x" Command="{x:Bind ViewModel.SetSpeedCommand}" CommandParameter="2.0" />
+                            </MenuFlyoutSubItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="Toggle Repeat" Command="{x:Bind ViewModel.ToggleRepeatCommand}" />
+                            <MenuFlyoutItem Text="Toggle Shuffle" Command="{x:Bind ViewModel.ToggleShuffleCommand}" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+
+                <!-- Lyrics Toggle Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Click="LyricsButton_Click"
+                        ToolTipService.ToolTip="Lyrics">
+                    <FontIcon Glyph="&#xE8D6;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Button>
+
+                <!-- Volume Mute Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Command="{x:Bind ViewModel.ToggleMuteCommand}"
+                        ToolTipService.ToolTip="Mute / Unmute">
+                    <FontIcon Glyph="&#xE767;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Button>
+
+                <!-- Compact Volume Slider -->
+                <Slider Minimum="0" Maximum="1"
+                        Value="{x:Bind ViewModel.Volume, Mode=TwoWay}"
+                        StepFrequency="0.01" Width="55"
+                        VerticalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </Border>
 </UserControl>

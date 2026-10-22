@@ -11,150 +11,120 @@
         <ResourceDictionary>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <converters:StringToUriConverter x:Key="StringToUriConverter" />
-            <converters:HexToBrushConverter x:Key="HexToBrushConverter" />
         </ResourceDictionary>
     </Page.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" /> <!-- Top Search Header bar -->
-            <RowDefinition Height="*" />    <!-- Scrollable Content -->
+            <RowDefinition Height="Auto" /> <!-- Top Header with Native WinUI Search Bar -->
+            <RowDefinition Height="*" />    <!-- Main Scrollable Content -->
         </Grid.RowDefinitions>
 
-        <!-- Top Search Bar & Segmented Capsule Header (Exact Apple Music Style) -->
-        <Grid Grid.Row="0" Padding="32,10,32,14">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <!-- Centered Slim Search Pill with Inline Clear Button -->
-            <Border Grid.Column="1"
-                    Width="400" Height="34"
-                    CornerRadius="17"
-                    Background="#22252C"
-                    BorderBrush="#383D48"
-                    BorderThickness="1">
-                <Grid Padding="12,0,8,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <FontIcon Glyph="&#xE721;" FontSize="12" Foreground="{StaticResource AccentRedBrush}"
-                              VerticalAlignment="Center" Margin="0,0,8,0" />
-
-                    <TextBox x:Name="SearchInputBox"
-                             Grid.Column="1"
-                             Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
-                             PlaceholderText="Search music, songs, artists..."
-                             Background="Transparent"
-                             BorderThickness="0"
-                             Padding="0,4,0,0"
-                             FontSize="12"
-                             VerticalAlignment="Center"
-                             KeyDown="SearchInputBox_KeyDown" />
-
-                    <!-- Inline Clear Button (Appears only when typing) -->
-                    <Button x:Name="ClearSearchBtn"
-                            Grid.Column="2"
-                            Click="ClearSearchBtn_Click"
-                            Visibility="{x:Bind ViewModel.HasSearchText, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
-                            Background="Transparent" BorderThickness="0"
-                            Width="24" Height="24" CornerRadius="12" Padding="0">
-                        <FontIcon Glyph="&#xE711;" FontSize="10" Foreground="#888888" />
-                    </Button>
-                </Grid>
-            </Border>
-
-            <!-- Right Segmented Source Toggle [ Online | Library ] -->
-            <Border Grid.Column="2" HorizontalAlignment="Right"
-                    Background="#22252C" BorderBrush="#353942" BorderThickness="1"
-                    CornerRadius="14" Padding="3">
-                <StackPanel Orientation="Horizontal" Spacing="2">
-                    <Button Content="Online"
-                            Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                            BorderThickness="0" CornerRadius="12" Padding="12,3" FontSize="11" FontWeight="SemiBold" />
-                    <Button Content="Library"
-                            Click="LibraryShortcut_Click"
-                            Background="Transparent"
-                            BorderThickness="0" CornerRadius="12" Padding="12,3" FontSize="11"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </StackPanel>
-            </Border>
+        <!-- 1. Top Header: Official WinUI AutoSuggestBox Search Bar (No Toolbar!) -->
+        <Grid Grid.Row="0" Padding="32,16,32,12">
+            <AutoSuggestBox x:Name="SearchBox"
+                            QueryIcon="Find"
+                            PlaceholderText="Search songs, albums, artists... (Ctrl+E)"
+                            Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay}"
+                            QuerySubmitted="SearchBox_QuerySubmitted"
+                            Width="460" Height="36" CornerRadius="18"
+                            HorizontalAlignment="Center" />
         </Grid>
 
-        <!-- Main Scrollable Content -->
+        <!-- 2. Main Scrollable Content -->
         <ScrollViewer Grid.Row="1" Padding="32,0,32,0">
             <StackPanel Spacing="28">
 
-                <!-- Section 1: Top Results > (2-Row x 3-Column Dynamic Gradient Grid) -->
+                <!-- Mood & Genre Category Chips (YouTube Music Style) -->
+                <ScrollViewer HorizontalScrollBarVisibility="Hidden"
+                              VerticalScrollBarVisibility="Disabled"
+                              HorizontalScrollMode="Enabled"
+                              VerticalScrollMode="Disabled">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="कसरत (Workout)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="Workout songs" />
+                        <Button Content="फील गुड (Feel Good)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="Feel good songs" />
+                        <Button Content="रोमांस (Romance)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="Romantic songs" />
+                        <Button Content="सुकून (Relax)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="Relaxing acoustic songs" />
+                        <Button Content="पार्टी (Party)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="Party dance songs" />
+                        <Button Content="फ़ोकस (Focus)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="Lofi focus study music" />
+                        <Button Content="अच्छी नींद (Sleep)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="Calm sleep music" />
+                        <Button Content="जोश (Energy)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="High energy beats" />
+                        <Button Content="दुख भरा (Sad)" CornerRadius="16" Padding="14,6" FontSize="11" FontWeight="SemiBold"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                Click="MoodChip_Click" Tag="Sad soulful songs" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Loading Ring -->
+                <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                              Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
+                              HorizontalAlignment="Center" Width="36" Height="36" />
+
+                <!-- Section 1: Quick Picks / Top Songs (1-Click Play Rows) -->
                 <StackPanel Spacing="12">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock Text="Top Results"
-                                   FontWeight="Bold" FontSize="18" />
+                        <TextBlock Text="Quick Picks" FontWeight="Bold" FontSize="18" />
                         <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                     </StackPanel>
 
-                    <!-- Loading Indicator -->
-                    <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
-                                  Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
-                                  Width="32" Height="32" HorizontalAlignment="Left" />
-
-                    <!-- 2x3 Top Results Cards Grid -->
                     <GridView ItemsSource="{x:Bind ViewModel.TopResults, Mode=OneWay}"
                               SelectionMode="None"
                               IsItemClickEnabled="True"
                               ItemClick="TrackCard_Click">
-                        <GridView.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <ItemsWrapGrid MaximumRowsOrColumns="3" Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </GridView.ItemsPanel>
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="models:SearchResult">
-                                <Border Width="270" Height="68"
-                                        Background="{x:Bind GradientStart, Converter={StaticResource HexToBrushConverter}}"
+                                <Border Background="#1E2128"
                                         BorderBrush="{StaticResource GlassBorderBrush}"
                                         BorderThickness="1"
-                                        CornerRadius="12"
+                                        CornerRadius="10"
                                         Padding="8"
-                                        Margin="0,0,14,14">
+                                        Margin="0,0,12,12"
+                                        Width="260">
                                     <Grid ColumnSpacing="10">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="52" />
+                                            <ColumnDefinition Width="48" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Album Artwork -->
-                                        <Border CornerRadius="6" Width="52" Height="52">
+                                        <!-- Album Art -->
+                                        <Border Grid.Column="0" CornerRadius="6" Width="48" Height="48">
                                             <Image Stretch="UniformToFill">
                                                 <Image.Source>
                                                     <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
-                                                                 DecodePixelWidth="52" />
+                                                                 DecodePixelWidth="48" />
                                                 </Image.Source>
                                             </Image>
                                         </Border>
 
-                                        <!-- Track Metadata -->
+                                        <!-- Meta -->
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                            <TextBlock Text="{x:Bind Title}"
-                                                       FontWeight="SemiBold" FontSize="12.5"
+                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12"
                                                        MaxLines="1" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{x:Bind Subtitle}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                       FontSize="11"
-                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       FontSize="11" MaxLines="1" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
 
-                                        <!-- Trailing Action Button -->
-                                        <Button Grid.Column="2" Background="Transparent" BorderThickness="0"
-                                                Padding="6" VerticalAlignment="Center">
-                                            <FontIcon Glyph="&#xE712;" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                                        </Button>
+                                        <!-- 1-Click Play Icon -->
+                                        <FontIcon Grid.Column="2" Glyph="&#xE768;" FontSize="14"
+                                                  Foreground="{StaticResource AccentRedBrush}"
+                                                  VerticalAlignment="Center" Margin="0,0,4,0" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -162,53 +132,112 @@
                     </GridView>
                 </StackPanel>
 
-                <!-- Section 2: Artists (Circular Photos with Names Underneath) -->
-                <StackPanel Spacing="14">
-                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock Text="Artists"
-                                   FontWeight="Bold" FontSize="18" />
-                        <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                    </StackPanel>
+                <!-- Section 2: WinUI Expanding Gradient Color Hero Boxes (Hover Scale) -->
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Featured Vibes" FontWeight="Bold" FontSize="18" />
 
-                    <ListView ItemsSource="{x:Bind ViewModel.TopArtists, Mode=OneWay}"
-                              SelectionMode="None"
-                              IsItemClickEnabled="True"
-                              ItemClick="ArtistItem_Click">
-                        <ListView.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="24" />
-                            </ItemsPanelTemplate>
-                        </ListView.ItemsPanel>
-                        <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="models:SearchResult">
-                                <StackPanel Width="104" Spacing="8" HorizontalAlignment="Center">
-                                    <!-- Circular Artist Avatar -->
-                                    <Border Width="96" Height="96" CornerRadius="48"
-                                            Background="#25272E" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1"
-                                            HorizontalAlignment="Center">
-                                        <Image Stretch="UniformToFill">
-                                            <Image.Source>
-                                                <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
-                                                             DecodePixelWidth="96" />
-                                            </Image.Source>
-                                        </Image>
-                                    </Border>
-                                    <!-- Artist Name -->
-                                    <TextBlock Text="{x:Bind Artist}"
-                                               FontWeight="SemiBold" FontSize="12"
-                                               HorizontalAlignment="Center"
-                                               MaxLines="1" TextTrimming="CharacterEllipsis" />
+                    <Grid ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Box 1: Bollywood Romance -->
+                        <Border Grid.Column="0" CornerRadius="14" Height="110" Padding="14" Cursor="Hand"
+                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
+                                PointerPressed="HeroCard_PointerPressed" Tag="Bollywood Romance Songs">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#8A2387" Offset="0" />
+                                    <GradientStop Color="#E94057" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Bollywood" FontSize="11" Opacity="0.8" Foreground="White" />
+                                    <TextBlock Text="Pure Romance" FontSize="15" FontWeight="Bold" Foreground="White" />
                                 </StackPanel>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
+                                <FontIcon Glyph="&#xE768;" FontSize="18" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Box 2: Midnight Chill -->
+                        <Border Grid.Column="1" CornerRadius="14" Height="110" Padding="14" Cursor="Hand"
+                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
+                                PointerPressed="HeroCard_PointerPressed" Tag="Lofi chill beats">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#00c6ff" Offset="0" />
+                                    <GradientStop Color="#0072ff" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Night Drive" FontSize="11" Opacity="0.8" Foreground="White" />
+                                    <TextBlock Text="Midnight Chill" FontSize="15" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <FontIcon Glyph="&#xE768;" FontSize="18" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Box 3: Workout Motivation -->
+                        <Border Grid.Column="2" CornerRadius="14" Height="110" Padding="14" Cursor="Hand"
+                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
+                                PointerPressed="HeroCard_PointerPressed" Tag="Gym workout motivation songs">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#f12711" Offset="0" />
+                                    <GradientStop Color="#f5af19" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="High Energy" FontSize="11" Opacity="0.8" Foreground="White" />
+                                    <TextBlock Text="Workout Beast" FontSize="15" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <FontIcon Glyph="&#xE768;" FontSize="18" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Box 4: Punjabi Hits -->
+                        <Border Grid.Column="3" CornerRadius="14" Height="110" Padding="14" Cursor="Hand"
+                                PointerEntered="HeroCard_PointerEntered" PointerExited="HeroCard_PointerExited"
+                                PointerPressed="HeroCard_PointerPressed" Tag="Top Punjabi hits 2026">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#11998e" Offset="0" />
+                                    <GradientStop Color="#38ef7d" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.RenderTransform>
+                                <ScaleTransform ScaleX="1.0" ScaleY="1.0" />
+                            </Border.RenderTransform>
+                            <Grid>
+                                <StackPanel VerticalAlignment="Bottom">
+                                    <TextBlock Text="Trending" FontSize="11" Opacity="0.8" Foreground="White" />
+                                    <TextBlock Text="Punjabi Fire" FontSize="15" FontWeight="Bold" Foreground="White" />
+                                </StackPanel>
+                                <FontIcon Glyph="&#xE768;" FontSize="18" Foreground="White" HorizontalAlignment="Right" VerticalAlignment="Top" />
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </StackPanel>
 
-                <!-- Section 3: Trending & Albums -->
+                <!-- Section 3: Trending & Albums (फिर से सुनें) -->
                 <StackPanel Spacing="14">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock Text="Trending &amp; Albums"
-                                   FontWeight="Bold" FontSize="18" />
+                        <TextBlock Text="Trending &amp; Albums" FontWeight="Bold" FontSize="18" />
                         <FontIcon Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
                     </StackPanel>
 
@@ -218,7 +247,7 @@
                               ItemClick="TrackCard_Click">
                         <GridView.ItemTemplate>
                             <DataTemplate x:DataType="models:SearchResult">
-                                <Border Background="#202227"
+                                <Border Background="#1E2128"
                                         BorderBrush="{StaticResource GlassBorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="12"
@@ -235,13 +264,10 @@
                                             </Image>
                                         </Border>
                                         <StackPanel Spacing="2">
-                                            <TextBlock Text="{x:Bind Title}"
-                                                       FontWeight="SemiBold" FontSize="12"
+                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="12"
                                                        MaxLines="1" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{x:Bind Artist}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                       FontSize="11"
-                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Artist}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       FontSize="11" MaxLines="1" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>

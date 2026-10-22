@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using YTMusicClient.Models;
@@ -64,8 +67,51 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
 
             if (lines.Count > 0)
             {
-                foreach (var line in lines)
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    var line = lines[i];
+
+                    // If line has no word-level timestamps (e.g. standard LRCLIB), auto-generate them
+                    if (line.Words.Count == 0 && !string.IsNullOrWhiteSpace(line.Text))
+                    {
+                        var rawWords = line.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (rawWords.Length > 0)
+                        {
+                            TimeSpan lineDuration;
+                            if (line.EndTime > line.Timestamp)
+                            {
+                                lineDuration = line.EndTime - line.Timestamp;
+                            }
+                            else if (i + 1 < lines.Count && lines[i + 1].Timestamp > line.Timestamp)
+                            {
+                                lineDuration = lines[i + 1].Timestamp - line.Timestamp;
+                                if (lineDuration.TotalSeconds > 8) lineDuration = TimeSpan.FromSeconds(8);
+                            }
+                            else
+                            {
+                                lineDuration = TimeSpan.FromSeconds(Math.Max(2.5, rawWords.Length * 0.45));
+                            }
+
+                            var wordDurationMs = lineDuration.TotalMilliseconds / rawWords.Length;
+                            for (int w = 0; w < rawWords.Length; w++)
+                            {
+                                var wStart = line.Timestamp + TimeSpan.FromMilliseconds(w * wordDurationMs);
+                                var wEnd = wStart + TimeSpan.FromMilliseconds(wordDurationMs);
+                                line.Words.Add(new LyricWord
+                                {
+                                    Text = rawWords[w],
+                                    StartTime = wStart,
+                                    EndTime = wEnd
+                                });
+                            }
+                        }
+                    }
+
+                    line.RemainingWordsText = line.Text;
+                    line.ActiveWordsText = string.Empty;
                     Lyrics.Add(line);
+                }
+
                 HasLyrics = true;
                 StatusMessage = string.Empty;
             }
@@ -110,17 +156,20 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
 
         if (newActiveIndex != ActiveLyricIndex)
         {
-            // Deactivate previous
+            // Deactivate previous line
             if (ActiveLyricIndex >= 0 && ActiveLyricIndex < Lyrics.Count)
             {
-                Lyrics[ActiveLyricIndex].IsActive = false;
-                foreach (var w in Lyrics[ActiveLyricIndex].Words)
+                var prevLine = Lyrics[ActiveLyricIndex];
+                prevLine.IsActive = false;
+                prevLine.ActiveWordsText = string.Empty;
+                prevLine.RemainingWordsText = prevLine.Text;
+                foreach (var w in prevLine.Words)
                 {
                     w.IsActive = false;
                 }
             }
 
-            // Activate current
+            // Activate current line
             if (newActiveIndex >= 0 && newActiveIndex < Lyrics.Count)
             {
                 Lyrics[newActiveIndex].IsActive = true;
@@ -130,15 +179,34 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
             ActiveLyricChanged?.Invoke(this, newActiveIndex);
         }
 
-        // Real-time word-level synchronization for active line
+        // Real-time word-by-word karaoke synchronization for active line
         if (ActiveLyricIndex >= 0 && ActiveLyricIndex < Lyrics.Count)
         {
             var activeLine = Lyrics[ActiveLyricIndex];
-            if (activeLine.HasWords)
+            if (activeLine.Words.Count > 0)
             {
-                foreach (var w in activeLine.Words)
+                int activeCount = 0;
+                for (int w = 0; w < activeLine.Words.Count; w++)
                 {
-                    w.IsActive = position >= w.StartTime;
+                    bool isActive = position >= activeLine.Words[w].StartTime;
+                    activeLine.Words[w].IsActive = isActive;
+                    if (isActive) activeCount++;
+                }
+
+                if (activeCount == 0)
+                {
+                    activeLine.ActiveWordsText = string.Empty;
+                    activeLine.RemainingWordsText = activeLine.Text;
+                }
+                else if (activeCount >= activeLine.Words.Count)
+                {
+                    activeLine.ActiveWordsText = activeLine.Text;
+                    activeLine.RemainingWordsText = string.Empty;
+                }
+                else
+                {
+                    activeLine.ActiveWordsText = string.Join(" ", activeLine.Words.Take(activeCount).Select(w => w.Text));
+                    activeLine.RemainingWordsText = " " + string.Join(" ", activeLine.Words.Skip(activeCount).Select(w => w.Text));
                 }
             }
         }

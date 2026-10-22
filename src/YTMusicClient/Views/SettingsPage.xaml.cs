@@ -25,7 +25,6 @@ public sealed partial class SettingsPage : Page
             var tag = item.Tag?.ToString() ?? "Default";
             ViewModel.SetThemeCommand.Execute(tag);
 
-            // Apply theme to root element
             if (this.XamlRoot?.Content is FrameworkElement rootElement)
             {
                 rootElement.RequestedTheme = ViewModel.CurrentTheme;
@@ -37,44 +36,39 @@ public sealed partial class SettingsPage : Page
     {
         if (this.XamlRoot == null) return;
 
-        var dialog = new ContentDialog
+        try
         {
-            Title = "Google Account Sync",
-            Content = new StackPanel
+            var webView = new WebView2
             {
-                Spacing = 12,
-                Children =
-                {
-                    new TextBlock
-                    {
-                        Text = "Connecting your Google Account allows you to sync your liked songs, custom playlists, and private recommendations directly from YouTube Music.",
-                        TextWrapping = TextWrapping.Wrap,
-                        FontSize = 13
-                    },
-                    new InfoBar
-                    {
-                        IsOpen = true,
-                        Severity = InfoBarSeverity.Informational,
-                        Message = "Direct Google authentication via WebView2 session capture is enabled. Your account session is securely stored in Windows Credential Locker.",
-                        IsClosable = false
-                    }
-                }
-            },
-            PrimaryButtonText = "Sign In Now",
-            CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Primary,
-            XamlRoot = this.XamlRoot
-        };
+                Width = 460,
+                Height = 560,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
 
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
-        {
-            // Open system browser or WebView2 sign in
-            try
+            var dialog = new ContentDialog
             {
-                await Windows.System.Launcher.LaunchUriAsync(new Uri("https://music.youtube.com"));
-            }
-            catch { }
+                Title = "Sign In to YouTube Music",
+                Content = webView,
+                CloseButtonText = "Done",
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = this.XamlRoot
+            };
+
+            webView.Source = new Uri("https://accounts.google.com/ServiceLogin?continue=https://music.youtube.com");
+
+            await dialog.ShowAsync();
+        }
+        catch (Exception ex)
+        {
+            var errDialog = new ContentDialog
+            {
+                Title = "Sign In",
+                Content = $"Please ensure WebView2 Runtime is installed: {ex.Message}",
+                CloseButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+            await errDialog.ShowAsync();
         }
     }
 }

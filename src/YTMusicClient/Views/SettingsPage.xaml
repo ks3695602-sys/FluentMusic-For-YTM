@@ -50,14 +50,13 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Backdrop Material" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                            <TextBlock Text="Mica Alt on Windows 11, Frosted Acrylic on Windows 10"
+                            <TextBlock Text="Window Material" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock Text="Windows 11 Mica Alt 2-Island modular surface"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                        Style="{StaticResource CaptionTextBlockStyle}" />
                         </StackPanel>
                         <ComboBox Grid.Column="1" SelectedIndex="0" Width="170" CornerRadius="8">
-                            <ComboBoxItem Content="Automatic (Best)" Tag="Auto" />
-                            <ComboBoxItem Content="Mica Alt" Tag="MicaAlt" />
+                            <ComboBoxItem Content="Mica Alt (2-Island)" Tag="MicaAlt" />
                             <ComboBoxItem Content="Desktop Acrylic" Tag="Acrylic" />
                         </ComboBox>
                     </Grid>
@@ -65,7 +64,7 @@
             </Border>
 
             <!-- Audio & Streaming Section -->
-            <TextBlock Text="Audio &amp; Streaming" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
+            <TextBlock Text="Audio &amp; Playback" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
 
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     CornerRadius="14" Padding="20,16" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -78,7 +77,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="Audio Quality" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                            <TextBlock Text="Prioritizes pristine 256kbps/128kbps AAC streams"
+                            <TextBlock Text="Prioritizes pristine 256kbps/128kbps AAC &amp; OPUS streams"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                        Style="{StaticResource CaptionTextBlockStyle}" />
                         </StackPanel>
@@ -96,12 +95,56 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Ad-Free Direct Streaming" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                            <TextBlock Text="Bypasses web advertisements via direct audio stream manifests"
+                            <TextBlock Text="Volume Normalization (ReplayGain)" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock Text="Equalizes audio loudness across different albums and songs"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                        Style="{StaticResource CaptionTextBlockStyle}" />
                         </StackPanel>
-                        <ToggleSwitch Grid.Column="1" IsOn="True" IsEnabled="False" />
+                        <ToggleSwitch Grid.Column="1" IsOn="True" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Lyrics Section -->
+            <TextBlock Text="Lyrics &amp; Karaoke" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
+
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="14" Padding="20,16" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1">
+                <StackPanel Spacing="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Word-by-Word Karaoke Sync" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock Text="Real-time syllable and progressive word sweep highlights (YouLy+ style)"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Style="{StaticResource CaptionTextBlockStyle}" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1" IsOn="True" />
+                    </Grid>
+
+                    <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Lyrics Font Size" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock Text="Adjust readability of synced lyrics"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                       Style="{StaticResource CaptionTextBlockStyle}" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1" SelectedIndex="1" Width="170" CornerRadius="8">
+                            <ComboBoxItem Content="Compact (14px)" />
+                            <ComboBoxItem Content="Standard (18px)" />
+                            <ComboBoxItem Content="Large (22px)" />
+                            <ComboBoxItem Content="Jumbo (26px)" />
+                        </ComboBox>
                     </Grid>
                 </StackPanel>
             </Border>
@@ -119,7 +162,7 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="YouTube Music Sync" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                        <TextBlock Text="Sign in to sync your personal playlists, liked songs, and history"
+                        <TextBlock Text="Sign in to sync your personal playlists, liked songs, and history inside the app"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    Style="{StaticResource CaptionTextBlockStyle}" />
                     </StackPanel>
