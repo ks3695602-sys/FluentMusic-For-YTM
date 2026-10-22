@@ -62,8 +62,8 @@ public sealed partial class MainWindow : Window
             {
                 appWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
                 appWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
-                appWindow.TitleBar.ButtonHoverBackgroundColor = Microsoft.UI.Color.FromArgb(40, 255, 255, 255);
-                appWindow.TitleBar.ButtonPressedBackgroundColor = Microsoft.UI.Color.FromArgb(60, 255, 255, 255);
+                appWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(40, 255, 255, 255);
+                appWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 255, 255, 255);
             }
         }
         catch { }
