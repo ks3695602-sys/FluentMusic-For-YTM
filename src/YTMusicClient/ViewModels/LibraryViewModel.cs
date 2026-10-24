@@ -218,7 +218,6 @@ public partial class LibraryViewModel : ObservableObject
         else
             _playbackService.Enqueue(song);
     }
-    }
 
     [RelayCommand]
     public async Task PlaySongAsync(Song? song)
