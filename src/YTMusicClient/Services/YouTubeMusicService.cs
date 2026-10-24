@@ -17,8 +17,12 @@ namespace YTMusicClient.Services;
 public class YouTubeMusicService : IYouTubeMusicService
 {
     private readonly YoutubeClient _youtube;
-    private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(8) };
+    private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(15) };
     private const string BravePipeBase = "https://bppcaf.bot-keep.xyz";
+
+    private static string? _cachedVisitorData;
+    private static DateTime _visitorDataExpiration = DateTime.MinValue;
+    private static readonly SemaphoreSlim _visitorLock = new(1, 1);
 
     private static readonly string[] DiscoveryQueries = new[]
     {
@@ -289,7 +293,23 @@ public class YouTubeMusicService : IYouTubeMusicService
             }
         }
 
-        // 2. Try YoutubeExplode native extraction
+        // 2. Echo-Music Reverse-Engineered InnerTube Multi-Client Stream Engine (ANDROID_VR zero-cipher & IOS)
+        try
+        {
+            AppLogger.Log($"Resolving stream via Echo-Music InnerTube engine for {videoId}");
+            var echoStreamUrl = await GetEchoInnerTubeStreamUrlAsync(videoId, ct);
+            if (!string.IsNullOrEmpty(echoStreamUrl))
+            {
+                AppLogger.Log($"Echo-Music InnerTube stream SUCCESS: {echoStreamUrl.Substring(0, Math.Min(60, echoStreamUrl.Length))}...");
+                return echoStreamUrl;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"Echo-Music InnerTube stream resolution failed for {videoId}", ex);
+        }
+
+        // 3. Try YoutubeExplode native extraction
         try
         {
             AppLogger.Log($"Fetching YoutubeExplode manifest for {videoId}");
@@ -393,6 +413,262 @@ public class YouTubeMusicService : IYouTubeMusicService
 
         AppLogger.Log($"All streaming sources exhausted for {videoId}");
         return string.Empty;
+    }
+
+    private static async Task<string?> GetOrRefreshVisitorDataAsync(CancellationToken ct = default)
+    {
+        if (!string.IsNullOrEmpty(_cachedVisitorData) && DateTime.UtcNow < _visitorDataExpiration)
+        {
+            return _cachedVisitorData;
+        }
+
+        await _visitorLock.WaitAsync(ct);
+        try
+        {
+            if (!string.IsNullOrEmpty(_cachedVisitorData) && DateTime.UtcNow < _visitorDataExpiration)
+            {
+                return _cachedVisitorData;
+            }
+
+            using var req = new HttpRequestMessage(HttpMethod.Get, "https://music.youtube.com/sw.js_data");
+            req.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            using var resp = await _httpClient.SendAsync(req, ct);
+            if (resp.IsSuccessStatusCode)
+            {
+                var text = await resp.Content.ReadAsStringAsync(ct);
+                int idx = text.IndexOf('[');
+                if (idx >= 0)
+                {
+                    var jsonText = text.Substring(idx);
+                    using var doc = JsonDocument.Parse(jsonText);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
+                    {
+                        var first = doc.RootElement[0];
+                        if (first.ValueKind == JsonValueKind.Array && first.GetArrayLength() > 2)
+                        {
+                            var third = first[2];
+                            if (third.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var item in third.EnumerateArray())
+                                {
+                                    if (item.ValueKind == JsonValueKind.String)
+                                    {
+                                        var val = item.GetString();
+                                        if (val != null && System.Text.RegularExpressions.Regex.IsMatch(val, @"^Cg[ts]"))
+                                        {
+                                            _cachedVisitorData = val;
+                                            _visitorDataExpiration = DateTime.UtcNow.AddHours(12);
+                                            AppLogger.Log($"Acquired Echo-Music visitorData: {val.Substring(0, Math.Min(25, val.Length))}...");
+                                            return _cachedVisitorData;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("Failed to refresh visitorData", ex);
+        }
+        finally
+        {
+            _visitorLock.Release();
+        }
+
+        return _cachedVisitorData;
+    }
+
+    private async Task<string?> GetEchoInnerTubeStreamUrlAsync(string videoId, CancellationToken ct)
+    {
+        var visitorData = await GetOrRefreshVisitorDataAsync(ct);
+
+        // 1. Client: ANDROID_VR (1.65.10) - Echo-Music primary zero-cipher direct format client
+        try
+        {
+            var streamUrl = await QueryInnerTubePlayerAsync(videoId, "ANDROID_VR", "1.65.10", "28",
+                "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
+                visitorData, isAndroidVr: true, ct);
+            if (!string.IsNullOrEmpty(streamUrl))
+            {
+                AppLogger.Log($"Echo-Music ANDROID_VR direct stream SUCCESS for {videoId}");
+                return streamUrl;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"InnerTube ANDROID_VR player failed for {videoId}", ex);
+        }
+
+        // 2. Client: IOS (21.03.1) - Echo-Music secondary direct client
+        try
+        {
+            var streamUrl = await QueryInnerTubePlayerAsync(videoId, "IOS", "21.03.1", "5",
+                "com.google.ios.youtube/21.03.1 (iPhone16,2; U; CPU iOS 18_2 like Mac OS X;)",
+                visitorData, isAndroidVr: false, ct);
+            if (!string.IsNullOrEmpty(streamUrl))
+            {
+                AppLogger.Log($"Echo-Music IOS direct stream SUCCESS for {videoId}");
+                return streamUrl;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"InnerTube IOS player failed for {videoId}", ex);
+        }
+
+        // 3. Client: WEB_REMIX (with user cookies if signed in)
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            var cookies = localSettings.Values["GoogleAuthCookies"] as string;
+            if (!string.IsNullOrWhiteSpace(cookies))
+            {
+                var streamUrl = await QueryInnerTubePlayerAsync(videoId, "WEB_REMIX", "1.20260213.01.00", "67",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0",
+                    visitorData, isAndroidVr: false, ct, cookies: cookies);
+                if (!string.IsNullOrEmpty(streamUrl))
+                {
+                    AppLogger.Log($"Echo-Music WEB_REMIX auth stream SUCCESS for {videoId}");
+                    return streamUrl;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"InnerTube WEB_REMIX player failed for {videoId}", ex);
+        }
+
+        return null;
+    }
+
+    private async Task<string?> QueryInnerTubePlayerAsync(
+        string videoId,
+        string clientName,
+        string clientVersion,
+        string clientId,
+        string userAgent,
+        string? visitorData,
+        bool isAndroidVr,
+        CancellationToken ct,
+        string? cookies = null)
+    {
+        object clientContext = isAndroidVr
+            ? new
+            {
+                clientName,
+                clientVersion,
+                deviceMake = "Oculus",
+                deviceModel = "Quest 3",
+                osName = "Android",
+                osVersion = "12L",
+                androidSdkVersion = 32,
+                hl = "en",
+                gl = "US",
+                visitorData
+            }
+            : new
+            {
+                clientName,
+                clientVersion,
+                deviceMake = clientName == "IOS" ? "Apple" : "Generic",
+                deviceModel = clientName == "IOS" ? "iPhone16,2" : "Desktop",
+                osName = clientName == "IOS" ? "iOS" : "Windows",
+                osVersion = clientName == "IOS" ? "18.2.22C152" : "10.0",
+                hl = "en",
+                gl = "US",
+                visitorData
+            };
+
+        var requestBody = new
+        {
+            videoId,
+            context = new
+            {
+                client = clientContext
+            }
+        };
+
+        var jsonPayload = JsonSerializer.Serialize(requestBody);
+        using var req = new HttpRequestMessage(HttpMethod.Post, "https://www.youtube.com/youtubei/v1/player");
+        req.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+        req.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+        req.Headers.TryAddWithoutValidation("X-YouTube-Client-Name", clientId);
+        req.Headers.TryAddWithoutValidation("X-YouTube-Client-Version", clientVersion);
+        if (!string.IsNullOrEmpty(visitorData))
+        {
+            req.Headers.TryAddWithoutValidation("X-Goog-Visitor-Id", visitorData);
+        }
+
+        if (!string.IsNullOrWhiteSpace(cookies))
+        {
+            AddAuthorizationHeaders(req, cookies);
+        }
+
+        using var resp = await _httpClient.SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) return null;
+
+        var respJson = await resp.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(respJson);
+        var root = doc.RootElement;
+
+        if (root.TryGetProperty("playabilityStatus", out var playability) &&
+            playability.TryGetProperty("status", out var statusProp) &&
+            statusProp.GetString() == "OK" &&
+            root.TryGetProperty("streamingData", out var streamingData))
+        {
+            // First check adaptiveFormats for highest bitrate audio
+            if (streamingData.TryGetProperty("adaptiveFormats", out var adaptiveFormats) &&
+                adaptiveFormats.ValueKind == JsonValueKind.Array)
+            {
+                string? bestUrl = null;
+                int highestBitrate = 0;
+
+                foreach (var fmt in adaptiveFormats.EnumerateArray())
+                {
+                    string mime = fmt.TryGetProperty("mimeType", out var m) ? m.GetString() ?? "" : "";
+                    if (!mime.Contains("audio", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    if (fmt.TryGetProperty("url", out var urlProp))
+                    {
+                        var url = urlProp.GetString();
+                        if (!string.IsNullOrEmpty(url))
+                        {
+                            int bitrate = fmt.TryGetProperty("bitrate", out var b) ? b.GetInt32() : 0;
+                            // Prefer Opus (itag 251) or AAC (itag 140)
+                            if (bitrate > highestBitrate)
+                            {
+                                highestBitrate = bitrate;
+                                bestUrl = url;
+                            }
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(bestUrl))
+                {
+                    return bestUrl;
+                }
+            }
+
+            // Fallback to regular formats
+            if (streamingData.TryGetProperty("formats", out var formats) &&
+                formats.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var fmt in formats.EnumerateArray())
+                {
+                    if (fmt.TryGetProperty("url", out var urlProp))
+                    {
+                        var url = urlProp.GetString();
+                        if (!string.IsNullOrEmpty(url)) return url;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     public static void AddAuthorizationHeaders(HttpRequestMessage msg, string? cookies)

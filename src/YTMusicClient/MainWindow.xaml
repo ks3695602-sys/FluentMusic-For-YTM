@@ -13,13 +13,19 @@
             <ColumnDefinition Width="*" />   <!-- Island 2: Main Floating Stage Card -->
         </Grid.ColumnDefinitions>
 
-        <!-- ISLAND 1: Left Translucent Sidebar (Mica Alt Canvas) -->
-        <Grid Grid.Column="0" Margin="0,0,10,0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" /> <!-- Top Header / Drag Region -->
-                <RowDefinition Height="*" />    <!-- Navigation Category Items -->
-                <RowDefinition Height="Auto" /> <!-- Bottom User Account & Settings -->
-            </Grid.RowDefinitions>
+        <!-- ISLAND 1: Left Translucent Liquid Glass Sidebar -->
+        <Border Grid.Column="0" Margin="0,0,10,0"
+                CornerRadius="16"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{StaticResource GlassBorderBrush}"
+                BorderThickness="1"
+                Padding="4,6,4,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /> <!-- Top Header / Drag Region -->
+                    <RowDefinition Height="*" />    <!-- Navigation Category Items -->
+                    <RowDefinition Height="Auto" /> <!-- Bottom User Account & Settings -->
+                </Grid.RowDefinitions>
 
             <!-- Top Draggable Window Header with macOS Traffic Light Controls -->
             <Grid x:Name="SidebarDragArea" Grid.Row="0" Height="44" Background="Transparent">
@@ -148,10 +154,11 @@
                 </Button>
             </StackPanel>
         </Grid>
+        </Border>
 
         <!-- ISLAND 2: Main Floating Stage Card (Mica Surface Layer with Glass Border) -->
         <Border Grid.Column="1"
-                CornerRadius="12"
+                CornerRadius="16"
                 Background="{ThemeResource LayerFillColorDefaultBrush}"
                 BorderBrush="{StaticResource GlassBorderBrush}"
                 BorderThickness="1">

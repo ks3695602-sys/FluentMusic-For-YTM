@@ -17,10 +17,10 @@
     <Border Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
             BorderBrush="{StaticResource GlassBorderBrush}"
             BorderThickness="1"
-            CornerRadius="28"
-            Width="740"
-            Height="54"
-            Padding="12,4"
+            CornerRadius="30"
+            Width="780"
+            Height="60"
+            Padding="14,4"
             HorizontalAlignment="Center">
 
         <Grid VerticalAlignment="Center">
@@ -31,16 +31,16 @@
             </Grid.ColumnDefinitions>
 
             <!-- 1. Left Transport Controls -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="3">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
                 <!-- Shuffle Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="12"
                         Command="{x:Bind ViewModel.ToggleShuffleCommand}"
                         ToolTipService.ToolTip="Shuffle">
                     <FontIcon Glyph="&#xE8B1;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Button>
 
                 <!-- Previous Track Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="12"
                         Command="{x:Bind ViewModel.PreviousTrackCommand}"
                         ToolTipService.ToolTip="Previous Track">
                     <FontIcon Glyph="&#xE892;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
@@ -50,15 +50,15 @@
                 <Button Background="{StaticResource AccentRedBrush}"
                         BorderThickness="0"
                         Command="{x:Bind ViewModel.TogglePlayPauseCommand}"
-                        Width="34" Height="34" CornerRadius="17"
+                        Width="36" Height="36" CornerRadius="18"
                         Padding="0"
                         ToolTipService.ToolTip="Play / Pause">
                     <FontIcon Glyph="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource PlayPauseGlyph}}"
-                              FontSize="13.5" Foreground="White" />
+                              FontSize="14" Foreground="White" />
                 </Button>
 
                 <!-- Next Track Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="12"
                         Command="{x:Bind ViewModel.NextTrackCommand}"
                         ToolTipService.ToolTip="Next Track">
                     <FontIcon Glyph="&#xE893;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
@@ -68,11 +68,11 @@
             <!-- 2. Center: Dedicated Now-Playing LCD Box (Click to toggle Lyrics/NowPlaying) -->
             <Border Grid.Column="1"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderBrush="{StaticResource GlassBorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="8"
-                    Padding="6,4"
-                    Margin="10,0"
+                    CornerRadius="10"
+                    Padding="8,4"
+                    Margin="12,0"
                     VerticalAlignment="Center"
                     PointerPressed="CenterLcdPill_PointerPressed">
                 <Grid>
@@ -84,17 +84,17 @@
                     <!-- Top Row: Cover + Info + Quality Badge -->
                     <Grid Grid.Row="0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="32" />
+                            <ColumnDefinition Width="34" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
                         <!-- Square Album Art -->
-                        <Border CornerRadius="4" Width="32" Height="32" VerticalAlignment="Center">
+                        <Border CornerRadius="6" Width="34" Height="34" VerticalAlignment="Center">
                             <Image Stretch="UniformToFill">
                                 <Image.Source>
                                     <BitmapImage UriSource="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay, Converter={StaticResource StringToUriConverter}}"
-                                                 DecodePixelWidth="32" />
+                                                 DecodePixelWidth="34" />
                                 </Image.Source>
                             </Image>
                         </Border>

@@ -102,11 +102,18 @@ public class LocalMediaProxy : IDisposable
                 return;
             }
 
-            // Forward request with headers
+            // Forward request with matching headers
             var forwardReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
-            forwardReq.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-            forwardReq.Headers.Referrer = new Uri("https://www.youtube.com/");
-            forwardReq.Headers.TryAddWithoutValidation("Origin", "https://www.youtube.com");
+            if (targetUrl.Contains("googlevideo.com", StringComparison.OrdinalIgnoreCase))
+            {
+                forwardReq.Headers.TryAddWithoutValidation("User-Agent", "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip");
+            }
+            else
+            {
+                forwardReq.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                forwardReq.Headers.Referrer = new Uri("https://www.youtube.com/");
+                forwardReq.Headers.TryAddWithoutValidation("Origin", "https://www.youtube.com");
+            }
 
             // Forward Range header if present
             var rangeHeader = req.Headers["Range"];

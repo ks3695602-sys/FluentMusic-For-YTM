@@ -109,6 +109,14 @@
                                                 <TextBlock Text="Play All" FontSize="11.5" FontWeight="SemiBold" />
                                             </StackPanel>
                                         </Button>
+                                        <Button Click="PlayShelf_Click"
+                                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                                CornerRadius="14" Padding="12,6">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <FontIcon Glyph="&#xE8B1;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Text="Shuffle" FontSize="11.5" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Button>
                                     </StackPanel>
                                 </Grid>
 
@@ -211,7 +219,23 @@
                 <!-- VIEW B: Fallback / Search Results (When search query is active or personalized shelves empty) -->
                 <StackPanel Spacing="24"
                             Visibility="{x:Bind ViewModel.HasPersonalizedShelves, Mode=OneWay, Converter={StaticResource InverseBoolToVisibility}}">
-                    <TextBlock Text="Search &amp; Trending Results" FontSize="20" FontWeight="Bold" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Search &amp; Trending Results" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <Button Click="PlayShelf_Click"
+                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                    CornerRadius="14" Padding="14,6">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE768;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" />
+                                    <TextBlock Text="Play All" FontSize="11.5" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
 
                     <!-- Search / Trending Grid -->
                     <GridView ItemsSource="{x:Bind ViewModel.TopResults, Mode=OneWay}"
