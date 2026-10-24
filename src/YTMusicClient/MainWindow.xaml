@@ -139,7 +139,7 @@
 
         <!-- ISLAND 2: Main Floating Stage Card (Mica Surface Layer with Glass Border) -->
         <Border Grid.Column="1"
-                CornerRadius="16"
+                CornerRadius="12"
                 Background="{ThemeResource LayerFillColorDefaultBrush}"
                 BorderBrush="{StaticResource GlassBorderBrush}"
                 BorderThickness="1">
@@ -151,7 +151,7 @@
                            PanePlacement="Right"
                            OpenPaneLength="380"
                            DisplayMode="Overlay"
-                           PaneBackground="Transparent">
+                           PaneBackground="{ThemeResource SolidBackgroundFillColorBaseBrush}">
 
                     <!-- Lyrics Drawer Pane -->
                     <SplitView.Pane>
@@ -168,7 +168,7 @@
                             <Grid x:Name="NowPlayingOverlay"
                                   Visibility="Collapsed"
                                   Background="#101014"
-                                  CornerRadius="16">
+                                  CornerRadius="12">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" /> <!-- Top Header Bar -->
                                     <RowDefinition Height="*" />    <!-- Content Stage (Song vs Video) -->

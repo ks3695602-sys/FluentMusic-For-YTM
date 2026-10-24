@@ -242,7 +242,7 @@ public partial class HomeViewModel : ObservableObject
         // Add remaining tracks to queue
         foreach (var item in shelf.Items.Skip(1))
         {
-            _playbackService.UpNext.Add(new Song
+            _playbackService.Enqueue(new Song
             {
                 VideoId = item.VideoId,
                 Title = item.Title,
@@ -256,5 +256,27 @@ public partial class HomeViewModel : ObservableObject
                 FidelityTier = item.FidelityTier
             });
         }
+    }
+
+    public void EnqueueSong(SearchResult? result, bool playNext = false)
+    {
+        if (result == null) return;
+        var song = new Song
+        {
+            VideoId = result.VideoId,
+            Title = result.Title,
+            Artist = result.Artist,
+            Album = result.Album,
+            ThumbnailUrl = result.ThumbnailUrl,
+            Duration = result.Duration,
+            GradientColorStart = result.GradientStart,
+            GradientColorEnd = result.GradientEnd,
+            AudioQuality = result.AudioQuality,
+            FidelityTier = result.FidelityTier
+        };
+        if (playNext)
+            _playbackService.EnqueueNext(song);
+        else
+            _playbackService.Enqueue(song);
     }
 }

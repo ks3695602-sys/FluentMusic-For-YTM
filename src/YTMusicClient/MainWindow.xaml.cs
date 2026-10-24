@@ -54,6 +54,26 @@ public sealed partial class MainWindow : Window
         ViewModel.PlayerBar.PropertyChanged += (s, e) => UpdateNowPlayingContent();
 
         this.Activated += (s, e) => CheckGoogleSignInStatus();
+        ContentFrame.Navigated += (s, e) => CheckGoogleSignInStatus();
+
+        // Sync native video player state with media playback service
+        ViewModel.PlaybackService.PlaybackStateChanged += (s, state) =>
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (NpVideoStage.Visibility == Visibility.Visible && _nativeVideoPlayer != null)
+                {
+                    if (state == MediaPlaybackState.Playing && _nativeVideoPlayer.PlaybackSession.PlaybackState != Windows.Media.Playback.MediaPlaybackState.Playing)
+                    {
+                        _nativeVideoPlayer.Play();
+                    }
+                    else if (state == MediaPlaybackState.Paused && _nativeVideoPlayer.PlaybackSession.PlaybackState != Windows.Media.Playback.MediaPlaybackState.Paused)
+                    {
+                        _nativeVideoPlayer.Pause();
+                    }
+                }
+            });
+        };
 
         // Navigate to Home by default
         ContentFrame.Navigate(typeof(HomePage));
@@ -67,10 +87,16 @@ public sealed partial class MainWindow : Window
         try
         {
             var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
-            bool isSignedIn = localSettings.Values["IsGoogleSignedIn"] is bool b && b;
+            bool isSignedIn = (localSettings.Values["IsGoogleSignedIn"] is bool b && b) ||
+                              (localSettings.Values["GoogleAuthCookies"] is string cookies && !string.IsNullOrWhiteSpace(cookies));
+
             if (isSignedIn)
             {
-                var userName = localSettings.Values["UserDisplayName"] as string ?? "Google User";
+                var userName = localSettings.Values["UserDisplayName"] as string;
+                if (string.IsNullOrWhiteSpace(userName) || userName == "Google User")
+                {
+                    userName = "JPGRS_GAMING09";
+                }
                 var userAvatar = localSettings.Values["UserAvatarUrl"] as string;
 
                 UserAccountStatusTitle.Text = userName;
@@ -210,6 +236,7 @@ public sealed partial class MainWindow : Window
     }
 
     private Windows.Media.Playback.MediaPlayer? _nativeVideoPlayer;
+    private DispatcherTimer? _videoSyncTimer;
 
     private void VideoAudioSyncToggle_Click(object sender, RoutedEventArgs e)
     {
@@ -293,12 +320,51 @@ public sealed partial class MainWindow : Window
             {
                 _nativeVideoPlayer = new Windows.Media.Playback.MediaPlayer();
                 _nativeVideoPlayer.AudioCategory = Windows.Media.Playback.MediaPlayerAudioCategory.Media;
+                _nativeVideoPlayer.PlaybackSession.PlaybackStateChanged += (sender, args) =>
+                {
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        if (VideoAudioSyncToggle.IsChecked == true)
+                        {
+                            if (sender.PlaybackState == Windows.Media.Playback.MediaPlaybackState.Buffering)
+                            {
+                                ViewModel.PlaybackService.Pause();
+                            }
+                            else if (sender.PlaybackState == Windows.Media.Playback.MediaPlaybackState.Playing && !ViewModel.PlaybackService.IsPlaying)
+                            {
+                                ViewModel.PlaybackService.Resume();
+                            }
+                        }
+                    });
+                };
                 NpVideoPlayer.SetMediaPlayer(_nativeVideoPlayer);
+
+                _videoSyncTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+                _videoSyncTimer.Tick += (s, e) =>
+                {
+                    if (NpVideoStage.Visibility == Visibility.Visible &&
+                        VideoAudioSyncToggle.IsChecked == true &&
+                        _nativeVideoPlayer != null &&
+                        ViewModel.PlaybackService.IsPlaying)
+                    {
+                        var audioPos = ViewModel.PlaybackService.Position;
+                        var videoPos = _nativeVideoPlayer.PlaybackSession.Position;
+                        var drift = Math.Abs((videoPos - audioPos).TotalMilliseconds);
+                        if (drift > 350)
+                        {
+                            _nativeVideoPlayer.PlaybackSession.Position = audioPos;
+                        }
+                    }
+                };
+                _videoSyncTimer.Start();
             }
 
             bool muteVideo = VideoAudioSyncToggle.IsChecked == true;
             _nativeVideoPlayer.IsMuted = muteVideo;
-            _nativeVideoPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(videoUrl));
+
+            var mediaProxy = App.Services.GetRequiredService<LocalMediaProxy>();
+            string proxiedUrl = mediaProxy.GetProxiedStreamUrl(videoUrl);
+            _nativeVideoPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(proxiedUrl));
 
             if (ViewModel.PlaybackService.Position > TimeSpan.Zero)
             {

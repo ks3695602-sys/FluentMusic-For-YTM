@@ -15,10 +15,10 @@
     </UserControl.Resources>
 
     <Border Padding="22,18"
-            Background="#F6131315"
+            Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
             BorderBrush="{StaticResource GlassBorderBrush}"
             BorderThickness="1,0,0,0"
-            CornerRadius="16,0,0,16">
+            CornerRadius="12,0,0,12">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />

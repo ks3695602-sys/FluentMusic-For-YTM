@@ -96,4 +96,48 @@ public sealed partial class HomePage : Page
             await ViewModel.PlayShelfAsync(shelf);
         }
     }
+
+    private async void MenuPlayNow_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement el && el.DataContext is SearchResult item)
+        {
+            await ViewModel.PlaySongAsync(item);
+        }
+    }
+
+    private void MenuPlayNext_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement el && el.DataContext is SearchResult item)
+        {
+            ViewModel.EnqueueSong(item, playNext: true);
+        }
+    }
+
+    private void MenuAddToQueue_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement el && el.DataContext is SearchResult item)
+        {
+            ViewModel.EnqueueSong(item, playNext: false);
+        }
+    }
+
+    private async void MenuDownload_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement el && el.DataContext is SearchResult item)
+        {
+            var downloadService = App.Services.GetService(typeof(Services.IDownloadService)) as Services.IDownloadService;
+            if (downloadService != null)
+            {
+                var song = new Song
+                {
+                    VideoId = item.VideoId,
+                    Title = item.Title,
+                    Artist = item.Artist,
+                    ThumbnailUrl = item.ThumbnailUrl,
+                    Duration = item.Duration
+                };
+                await downloadService.DownloadSongAsync(song);
+            }
+        }
+    }
 }

@@ -206,9 +206,23 @@ public class YouTubeMusicService : IYouTubeMusicService
                 {
                     var json = await resp.Content.ReadAsStringAsync(ct);
                     using var doc = JsonDocument.Parse(json);
-                    if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
+                    JsonElement tracksArray = default;
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
                     {
-                        var first = doc.RootElement[0];
+                        tracksArray = doc.RootElement;
+                    }
+                    else if (doc.RootElement.TryGetProperty("tracks", out var tProp) && tProp.ValueKind == JsonValueKind.Array)
+                    {
+                        tracksArray = tProp;
+                    }
+                    else if (doc.RootElement.TryGetProperty("results", out var rProp) && rProp.ValueKind == JsonValueKind.Array)
+                    {
+                        tracksArray = rProp;
+                    }
+
+                    if (tracksArray.ValueKind == JsonValueKind.Array && tracksArray.GetArrayLength() > 0)
+                    {
+                        var first = tracksArray[0];
                         string? qId = null;
                         if (first.TryGetProperty("id", out var idProp)) qId = idProp.GetString();
                         else if (first.TryGetProperty("videoId", out var vProp)) qId = vProp.GetString();

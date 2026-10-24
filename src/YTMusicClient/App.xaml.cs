@@ -23,6 +23,7 @@ public partial class App : Application
         services.AddSingleton<IYouTubeMusicService, YouTubeMusicService>();
         services.AddSingleton<ILyricsService, LyricsService>();
         services.AddSingleton<IDownloadService, DownloadService>();
+        services.AddSingleton<LocalMediaProxy>();
 
         // Register ViewModels
         services.AddSingleton<ShellViewModel>();

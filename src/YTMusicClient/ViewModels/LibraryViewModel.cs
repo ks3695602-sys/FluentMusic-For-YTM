@@ -192,7 +192,7 @@ public partial class LibraryViewModel : ObservableObject
 
         foreach (var t in PlaylistTracks.Skip(1))
         {
-            _playbackService.UpNext.Add(t);
+            _playbackService.Enqueue(t);
         }
     }
 
@@ -206,8 +206,18 @@ public partial class LibraryViewModel : ObservableObject
 
         foreach (var t in shuffled.Skip(1))
         {
-            _playbackService.UpNext.Add(t);
+            _playbackService.Enqueue(t);
         }
+    }
+
+    public void EnqueueSong(Song? song, bool playNext = false)
+    {
+        if (song == null) return;
+        if (playNext)
+            _playbackService.EnqueueNext(song);
+        else
+            _playbackService.Enqueue(song);
+    }
     }
 
     [RelayCommand]

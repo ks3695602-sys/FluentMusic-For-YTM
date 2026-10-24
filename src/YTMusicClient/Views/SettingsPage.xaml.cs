@@ -57,10 +57,15 @@ public sealed partial class SettingsPage : Page
         try
         {
             var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
-            bool isSignedIn = localSettings.Values["IsGoogleSignedIn"] is bool b && b;
+            bool isSignedIn = (localSettings.Values["IsGoogleSignedIn"] is bool b && b) ||
+                              (localSettings.Values["GoogleAuthCookies"] is string cookies && !string.IsNullOrWhiteSpace(cookies));
             if (isSignedIn)
             {
-                var user = localSettings.Values["UserDisplayName"] as string ?? "Google User";
+                var user = localSettings.Values["UserDisplayName"] as string;
+                if (string.IsNullOrWhiteSpace(user) || user == "Google User")
+                {
+                    user = "JPGRS_GAMING09";
+                }
                 var avatarUrl = localSettings.Values["UserAvatarUrl"] as string;
 
                 AccountStatusTitle.Text = $"Connected: {user}";
@@ -141,6 +146,7 @@ public sealed partial class SettingsPage : Page
             localSettings.Values.Remove("UserDisplayName");
             localSettings.Values.Remove("UserAvatarUrl");
             RefreshAccountUI();
+            (App.MainWindow as MainWindow)?.CheckGoogleSignInStatus();
 
             var outDialog = new ContentDialog
             {
@@ -224,6 +230,7 @@ public sealed partial class SettingsPage : Page
                                 localSettings.Values["GoogleAuthCookies"] = cookieHeader;
 
                                 RefreshAccountUI();
+                                (App.MainWindow as MainWindow)?.CheckGoogleSignInStatus();
                                 dialog.Hide();
 
                                 var successDialog = new ContentDialog

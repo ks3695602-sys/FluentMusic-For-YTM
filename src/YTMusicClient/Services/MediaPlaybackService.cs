@@ -104,11 +104,65 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
             if (!string.IsNullOrEmpty(song.LocalFilePath) && System.IO.File.Exists(song.LocalFilePath))
             {
                 AppLogger.Log($"PlayAsync: Playing offline local file: {song.LocalFilePath}");
+                var ext = System.IO.Path.GetExtension(song.LocalFilePath).ToLowerInvariant();
+                song.AudioCodec = ext switch
+                {
+                    ".flac" => "FLAC",
+                    ".alac" => "ALAC",
+                    ".wav" => "WAV",
+                    ".opus" => "OPUS",
+                    ".ogg" => "OGG",
+                    ".mp3" => "MP3",
+                    _ => "AAC"
+                };
+                if (song.AudioCodec is "FLAC" or "ALAC" or "WAV")
+                {
+                    song.AudioQuality = "1411 kbps · " + song.AudioCodec + " · Lossless";
+                    song.FidelityTier = "Hi-Res Lossless";
+                }
+                else
+                {
+                    song.AudioQuality = "256 kbps · " + song.AudioCodec + " · Hi-Res";
+                    song.FidelityTier = "Hi-Res";
+                }
+                SetCurrentSong(song);
+
                 var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(song.LocalFilePath);
                 _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromStorageFile(file);
                 _mediaPlayer.Play();
                 await UpdateSmtcDisplayAsync(song);
                 return;
+            }
+
+            // Ensure valid 11-char videoId for YouTube resolution
+            bool isValid11CharId = !string.IsNullOrEmpty(song.VideoId) && 
+                                  song.VideoId.Length == 11 && 
+                                  song.VideoId.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_');
+
+            if (!isValid11CharId)
+            {
+                try
+                {
+                    var musicService = App.Services.GetService(typeof(IYouTubeMusicService)) as IYouTubeMusicService;
+                    if (musicService != null)
+                    {
+                        var q = $"{song.Title} {song.Artist}".Trim();
+                        AppLogger.Log($"Resolving real 11-char videoId for non-direct track: '{q}'");
+                        var results = await musicService.SearchAsync(q);
+                        if (results.Count > 0)
+                        {
+                            song.VideoId = results[0].VideoId;
+                            if (string.IsNullOrEmpty(song.ThumbnailUrl))
+                            {
+                                song.ThumbnailUrl = results[0].ThumbnailUrl;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.LogError("Failed to resolve fallback videoId for track", ex);
+                }
             }
 
             if (string.IsNullOrEmpty(song.StreamUrl))
@@ -120,6 +174,11 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                     if (musicService != null)
                     {
                         song.StreamUrl = await musicService.GetLosslessStreamUrlAsync(song.VideoId, song.Title, song.Artist);
+                        if (string.IsNullOrEmpty(song.StreamUrl))
+                        {
+                            song.StreamUrl = await musicService.GetAudioStreamUrlAsync(song.VideoId);
+                        }
+
                         if (!string.IsNullOrEmpty(song.StreamUrl))
                         {
                             if (song.StreamUrl.Contains(".flac", StringComparison.OrdinalIgnoreCase) || 
@@ -130,6 +189,13 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                                 song.AudioQuality = "1411 kbps · FLAC · Lossless";
                                 song.FidelityTier = "Hi-Res Lossless";
                                 song.AudioSource = "Qobuz Lossless";
+                            }
+                            else
+                            {
+                                song.AudioCodec = "AAC";
+                                song.AudioQuality = "256 kbps · AAC · Hi-Res";
+                                song.FidelityTier = "Hi-Res";
+                                song.AudioSource = "YouTube High-Res";
                             }
                             SetCurrentSong(song);
                         }
@@ -147,8 +213,22 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                 return;
             }
 
-            AppLogger.Log($"PlayAsync: Setting MediaPlayer source to {song.StreamUrl.Substring(0, Math.Min(60, song.StreamUrl.Length))}...");
-            _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(song.StreamUrl));
+            string playUrl = song.StreamUrl;
+            if (playUrl.Contains("googlevideo.com", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var proxy = App.Services.GetService(typeof(LocalMediaProxy)) as LocalMediaProxy;
+                    if (proxy != null)
+                    {
+                        playUrl = proxy.GetProxiedStreamUrl(playUrl);
+                    }
+                }
+                catch { }
+            }
+
+            AppLogger.Log($"PlayAsync: Setting MediaPlayer source to {playUrl.Substring(0, Math.Min(60, playUrl.Length))}...");
+            _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(playUrl));
             _mediaPlayer.Play();
             AppLogger.Log("PlayAsync: MediaPlayer.Play() invoked");
 

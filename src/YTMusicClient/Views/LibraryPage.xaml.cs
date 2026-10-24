@@ -65,4 +65,40 @@ public sealed partial class LibraryPage : Page
             await ViewModel.PlaySongCommand.ExecuteAsync(song);
         }
     }
+
+    private async void MenuPlayNow_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement el && el.DataContext is Song item)
+        {
+            await ViewModel.PlaySongCommand.ExecuteAsync(item);
+        }
+    }
+
+    private void MenuPlayNext_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement el && el.DataContext is Song item)
+        {
+            ViewModel.EnqueueSong(item, playNext: true);
+        }
+    }
+
+    private void MenuAddToQueue_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement el && el.DataContext is Song item)
+        {
+            ViewModel.EnqueueSong(item, playNext: false);
+        }
+    }
+
+    private async void MenuDownload_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement el && el.DataContext is Song item)
+        {
+            var downloadService = App.Services.GetService(typeof(Services.IDownloadService)) as Services.IDownloadService;
+            if (downloadService != null)
+            {
+                await downloadService.DownloadSongAsync(item);
+            }
+        }
+    }
 }

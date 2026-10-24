@@ -50,6 +50,9 @@ public sealed partial class DownloadsPage : Page
             picker.FileTypeFilter.Add(".wav");
             picker.FileTypeFilter.Add(".aac");
             picker.FileTypeFilter.Add(".opus");
+            picker.FileTypeFilter.Add(".ogg");
+            picker.FileTypeFilter.Add(".alac");
+            picker.FileTypeFilter.Add(".wma");
 
             var window = App.MainWindow;
             if (window != null)

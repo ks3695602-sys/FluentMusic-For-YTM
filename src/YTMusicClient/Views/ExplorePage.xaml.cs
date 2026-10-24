@@ -36,4 +36,64 @@ public sealed partial class ExplorePage : Page
             await ViewModel.PlaySongCommand.ExecuteAsync(result);
         }
     }
+
+    private async void MenuPlayNow_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is Microsoft.UI.Xaml.FrameworkElement el && el.DataContext is SearchResult item)
+        {
+            await ViewModel.PlaySongCommand.ExecuteAsync(item);
+        }
+    }
+
+    private void MenuPlayNext_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is Microsoft.UI.Xaml.FrameworkElement el && el.DataContext is SearchResult item)
+        {
+            var playback = App.Services.GetService(typeof(Services.IMediaPlaybackService)) as Services.IMediaPlaybackService;
+            playback?.EnqueueNext(new Song
+            {
+                VideoId = item.VideoId,
+                Title = item.Title,
+                Artist = item.Artist,
+                ThumbnailUrl = item.ThumbnailUrl,
+                Duration = item.Duration
+            });
+        }
+    }
+
+    private void MenuAddToQueue_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is Microsoft.UI.Xaml.FrameworkElement el && el.DataContext is SearchResult item)
+        {
+            var playback = App.Services.GetService(typeof(Services.IMediaPlaybackService)) as Services.IMediaPlaybackService;
+            playback?.Enqueue(new Song
+            {
+                VideoId = item.VideoId,
+                Title = item.Title,
+                Artist = item.Artist,
+                ThumbnailUrl = item.ThumbnailUrl,
+                Duration = item.Duration
+            });
+        }
+    }
+
+    private async void MenuDownload_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is Microsoft.UI.Xaml.FrameworkElement el && el.DataContext is SearchResult item)
+        {
+            var downloadService = App.Services.GetService(typeof(Services.IDownloadService)) as Services.IDownloadService;
+            if (downloadService != null)
+            {
+                var song = new Song
+                {
+                    VideoId = item.VideoId,
+                    Title = item.Title,
+                    Artist = item.Artist,
+                    ThumbnailUrl = item.ThumbnailUrl,
+                    Duration = item.Duration
+                };
+                await downloadService.DownloadSongAsync(song);
+            }
+        }
+    }
 }
