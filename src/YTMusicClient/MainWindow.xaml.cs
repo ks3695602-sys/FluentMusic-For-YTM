@@ -477,4 +477,46 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(typeof(SettingsPage));
         SetActiveNavButton(3);
     }
+
+    private void MacCloseBtn_Click(object sender, RoutedEventArgs e)
+    {
+        this.Close();
+    }
+
+    private void MacMinimizeBtn_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+            if (appWindow?.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
+            {
+                presenter.Minimize();
+            }
+        }
+        catch { }
+    }
+
+    private void MacMaximizeBtn_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+            if (appWindow?.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
+            {
+                if (presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Maximized)
+                {
+                    presenter.Restore();
+                }
+                else
+                {
+                    presenter.Maximize();
+                }
+            }
+        }
+        catch { }
+    }
 }

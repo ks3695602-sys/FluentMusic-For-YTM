@@ -46,16 +46,15 @@
                     <FontIcon Glyph="&#xE892;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                 </Button>
 
-                <!-- Play / Pause Button -->
-                <Button Background="{ThemeResource SubtleFillColorTransparentBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
+                <!-- Play / Pause Button (Apple Music macOS Golden Gate Style) -->
+                <Button Background="{StaticResource AccentRedBrush}"
+                        BorderThickness="0"
                         Command="{x:Bind ViewModel.TogglePlayPauseCommand}"
-                        Width="32" Height="32" CornerRadius="16"
+                        Width="34" Height="34" CornerRadius="17"
                         Padding="0"
                         ToolTipService.ToolTip="Play / Pause">
                     <FontIcon Glyph="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource PlayPauseGlyph}}"
-                              FontSize="13" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                              FontSize="13.5" Foreground="White" />
                 </Button>
 
                 <!-- Next Track Button -->
