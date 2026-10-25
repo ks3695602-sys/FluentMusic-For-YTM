@@ -15,6 +15,8 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
     private readonly ILyricsService _lyricsService;
     private readonly IMediaPlaybackService _playbackService;
 
+    public IMediaPlaybackService PlaybackService => _playbackService;
+
     [ObservableProperty]
     private bool _isLoading;
 

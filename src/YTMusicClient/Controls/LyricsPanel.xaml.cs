@@ -67,7 +67,7 @@ public sealed partial class LyricsPanel : UserControl
                         doc.RootElement.TryGetProperty("timeMs", out var timeMs))
                     {
                         var sec = timeMs.GetDouble() / 1000.0;
-                        ViewModel.PlaybackService.Seek(sec);
+                        ViewModel.PlaybackService.Seek(TimeSpan.FromSeconds(sec));
                     }
                 }
                 catch { }
@@ -93,9 +93,9 @@ public sealed partial class LyricsPanel : UserControl
             var lines = ViewModel.Lyrics.Select(l => new
             {
                 text = l.Text,
-                translation = l.Translation,
-                startTimeMs = l.StartTime.TotalMilliseconds,
-                startSec = l.StartTime.TotalSeconds
+                translation = l.TranslatedText,
+                startTimeMs = l.Timestamp.TotalMilliseconds,
+                startSec = l.Timestamp.TotalSeconds
             }).ToList();
 
             var payload = JsonSerializer.Serialize(new { type = "lyrics", data = lines });
