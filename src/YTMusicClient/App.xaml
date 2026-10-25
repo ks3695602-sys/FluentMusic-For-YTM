@@ -40,6 +40,11 @@
             <SolidColorBrush x:Key="MainStageMatteBrush" Color="#FF0F0E0E" />
             <SolidColorBrush x:Key="SidebarMicaBrush" Color="#D9161618" />
             <SolidColorBrush x:Key="LiquidGlassPillBrush" Color="#A61A1A1A" />
+            <AcrylicBrush x:Key="PillAcrylicBrush"
+                          BackgroundSource="Backdrop"
+                          TintColor="#1A1A1A"
+                          TintOpacity="0.65"
+                          FallbackColor="#1F1F22" />
             <SolidColorBrush x:Key="LiquidGlassBrush" Color="#18202530" />
             <SolidColorBrush x:Key="GlassBorderBrush" Color="#28FFFFFF" />
             <SolidColorBrush x:Key="SubtleBorderBrush" Color="#18FFFFFF" />

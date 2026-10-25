@@ -15,10 +15,13 @@ namespace YTMusicClient;
 
 public sealed partial class MainWindow : Window
 {
+    public static MainWindow? Current { get; private set; }
     public ShellViewModel ViewModel { get; }
+    private bool _isSidebarCollapsed = false;
 
     public MainWindow()
     {
+        Current = this;
         this.InitializeComponent();
 
         ViewModel = App.Services.GetRequiredService<ShellViewModel>();
@@ -432,33 +435,120 @@ public sealed partial class MainWindow : Window
         catch { }
     }
 
-    private void TrafficLights_PointerEntered(object sender, PointerRoutedEventArgs e)
+    public void SetBackdrop(string backdropType)
     {
-        CloseGlyph.Opacity = 1.0;
-        MinimizeGlyph.Opacity = 1.0;
-        MaximizeGlyph.Opacity = 1.0;
-    }
-
-    private void TrafficLights_PointerExited(object sender, PointerRoutedEventArgs e)
-    {
-        CloseGlyph.Opacity = 0.0;
-        MinimizeGlyph.Opacity = 0.0;
-        MaximizeGlyph.Opacity = 0.0;
+        try
+        {
+            if (backdropType == "Acrylic" && Microsoft.UI.Composition.SystemBackdrops.DesktopAcrylicController.IsSupported())
+            {
+                this.SystemBackdrop = new DesktopAcrylicBackdrop();
+            }
+            else if (backdropType == "Mica" && Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
+            {
+                this.SystemBackdrop = new MicaBackdrop
+                {
+                    Kind = Microsoft.UI.Composition.SystemBackdrops.MicaKind.Base
+                };
+            }
+            else if (Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
+            {
+                this.SystemBackdrop = new MicaBackdrop
+                {
+                    Kind = Microsoft.UI.Composition.SystemBackdrops.MicaKind.BaseAlt
+                };
+            }
+        }
+        catch { }
     }
 
     private void TrySetBackdrop()
     {
-        if (Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
+        var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+        string material = localSettings.Values["WindowMaterial"] as string ?? "MicaAlt";
+        SetBackdrop(material);
+    }
+
+    private void SidebarToggleBtn_Click(object sender, RoutedEventArgs e)
+    {
+        _isSidebarCollapsed = !_isSidebarCollapsed;
+        if (_isSidebarCollapsed)
         {
-            this.SystemBackdrop = new MicaBackdrop
+            SidebarColDef.Width = new GridLength(0);
+            SidebarPane.Visibility = Visibility.Collapsed;
+            CollapsedSidebarRevealBtn.Visibility = Visibility.Visible;
+            SidebarPeekTrigger.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            SidebarColDef.Width = new GridLength(220);
+            SidebarPane.Visibility = Visibility.Visible;
+            CollapsedSidebarRevealBtn.Visibility = Visibility.Collapsed;
+            SidebarPeekTrigger.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void SidebarPeekTrigger_PointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        if (_isSidebarCollapsed)
+        {
+            // Hover peek sidebar
+            SidebarColDef.Width = new GridLength(220);
+            SidebarPane.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void CaptionControls_PointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        CaptionControlsBorder.Opacity = 1.0;
+    }
+
+    private void CaptionControls_PointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        CaptionControlsBorder.Opacity = 0.0;
+    }
+
+    private void WinCloseBtn_Click(object sender, RoutedEventArgs e)
+    {
+        this.Close();
+    }
+
+    private void WinMinimizeBtn_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+            if (appWindow?.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
             {
-                Kind = Microsoft.UI.Composition.SystemBackdrops.MicaKind.BaseAlt
-            };
+                presenter.Minimize();
+            }
         }
-        else if (Microsoft.UI.Composition.SystemBackdrops.DesktopAcrylicController.IsSupported())
+        catch { }
+    }
+
+    private void WinMaximizeBtn_Click(object sender, RoutedEventArgs e)
+    {
+        try
         {
-            this.SystemBackdrop = new DesktopAcrylicBackdrop();
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+            if (appWindow?.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
+            {
+                if (presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Maximized)
+                {
+                    presenter.Restore();
+                    WinMaximizeGlyph.Glyph = "\uE922";
+                }
+                else
+                {
+                    presenter.Maximize();
+                    WinMaximizeGlyph.Glyph = "\uE923";
+                }
+            }
         }
+        catch { }
     }
 
     private void SetActiveNavButton(int index)
@@ -519,47 +609,5 @@ public sealed partial class MainWindow : Window
     {
         ContentFrame.Navigate(typeof(SettingsPage));
         SetActiveNavButton(3);
-    }
-
-    private void MacCloseBtn_Click(object sender, RoutedEventArgs e)
-    {
-        this.Close();
-    }
-
-    private void MacMinimizeBtn_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
-            var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-            if (appWindow?.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
-            {
-                presenter.Minimize();
-            }
-        }
-        catch { }
-    }
-
-    private void MacMaximizeBtn_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
-            var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-            if (appWindow?.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter)
-            {
-                if (presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Maximized)
-                {
-                    presenter.Restore();
-                }
-                else
-                {
-                    presenter.Maximize();
-                }
-            }
-        }
-        catch { }
     }
 }

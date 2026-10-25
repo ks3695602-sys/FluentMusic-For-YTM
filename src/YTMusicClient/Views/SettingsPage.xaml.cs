@@ -237,6 +237,7 @@ public sealed partial class SettingsPage : Page
         {
             var tag = item.Tag?.ToString() ?? "MicaAlt";
             ApplicationData.Current.LocalSettings.Values["WindowMaterial"] = tag;
+            MainWindow.Current?.SetBackdrop(tag);
         }
     }
 

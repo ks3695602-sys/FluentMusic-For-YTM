@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using YTMusicClient.ViewModels;
@@ -7,13 +10,98 @@ namespace YTMusicClient.Controls;
 public sealed partial class LyricsPanel : UserControl
 {
     public LyricsViewModel ViewModel { get; }
+    private bool _isWebViewInitialized = false;
 
     public LyricsPanel()
     {
         ViewModel = App.Services.GetRequiredService<LyricsViewModel>();
         this.InitializeComponent();
         ViewModel.ActiveLyricChanged += OnActiveLyricChanged;
-        this.Loaded += (s, e) => UpdatePillState();
+        this.Loaded += (s, e) =>
+        {
+            UpdatePillState();
+            InitializeSpicyLyricsAsync();
+        };
+
+        ViewModel.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(ViewModel.Lyrics) || e.PropertyName == nameof(ViewModel.HasLyrics))
+            {
+                PushLyricsToSpicy();
+            }
+        };
+
+        ViewModel.PlaybackService.PositionChanged += (s, pos) =>
+        {
+            if (_isWebViewInitialized)
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    try
+                    {
+                        var timeMs = pos.TotalMilliseconds;
+                        var payload = JsonSerializer.Serialize(new { type = "timeupdate", timeMs });
+                        SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(payload);
+                    }
+                    catch { }
+                });
+            }
+        };
+    }
+
+    private async void InitializeSpicyLyricsAsync()
+    {
+        if (_isWebViewInitialized) return;
+        try
+        {
+            await SpicyLyricsWebView.EnsureCoreWebView2Async();
+            SpicyLyricsWebView.DefaultBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
+            SpicyLyricsWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+
+            SpicyLyricsWebView.CoreWebView2.WebMessageReceived += (s, e) =>
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(e.WebMessageAsJson);
+                    if (doc.RootElement.TryGetProperty("type", out var type) && type.GetString() == "seek" &&
+                        doc.RootElement.TryGetProperty("timeMs", out var timeMs))
+                    {
+                        var sec = timeMs.GetDouble() / 1000.0;
+                        ViewModel.PlaybackService.Seek(sec);
+                    }
+                }
+                catch { }
+            };
+
+            var packagePath = Windows.ApplicationModel.Package.Current.InstalledLocation.Path;
+            var htmlPath = System.IO.Path.Combine(packagePath, "Assets", "SpicyLyrics", "index.html");
+            if (System.IO.File.Exists(htmlPath))
+            {
+                SpicyLyricsWebView.CoreWebView2.Navigate(new Uri(htmlPath).AbsoluteUri);
+            }
+            _isWebViewInitialized = true;
+            PushLyricsToSpicy();
+        }
+        catch { }
+    }
+
+    private void PushLyricsToSpicy()
+    {
+        if (!_isWebViewInitialized) return;
+        try
+        {
+            var lines = ViewModel.Lyrics.Select(l => new
+            {
+                text = l.Text,
+                translation = l.Translation,
+                startTimeMs = l.StartTime.TotalMilliseconds,
+                startSec = l.StartTime.TotalSeconds
+            }).ToList();
+
+            var payload = JsonSerializer.Serialize(new { type = "lyrics", data = lines });
+            SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(payload);
+        }
+        catch { }
     }
 
     private void UpdatePillState()
@@ -34,7 +122,7 @@ public sealed partial class LyricsPanel : UserControl
         TransHinglishBtn.Background = mode == "Hinglish" ? activeBg : transBg;
         TransHinglishBtn.FontWeight = mode == "Hinglish" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
 
-        ModeBadgeText.Text = ViewModel.LyricsMode == "ENHANCED" ? "Enhanced Karaoke" : "V2 Liquid Glow";
+        ModeBadgeText.Text = "Spicy Lyrics 🌶️";
     }
 
     private async void TransPill_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -43,6 +131,7 @@ public sealed partial class LyricsPanel : UserControl
         {
             await ViewModel.SetTranslationModeAsync(mode);
             UpdatePillState();
+            PushLyricsToSpicy();
         }
     }
 
@@ -50,7 +139,6 @@ public sealed partial class LyricsPanel : UserControl
     {
         if (activeIndex >= 0 && activeIndex < ViewModel.Lyrics.Count)
         {
-            // Smooth scroll to the active lyric line
             LyricsListView.UpdateLayout();
             var item = LyricsListView.ContainerFromIndex(activeIndex);
             if (item is ListViewItem listViewItem)

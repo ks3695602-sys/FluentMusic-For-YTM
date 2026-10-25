@@ -6,20 +6,20 @@
     xmlns:controls="using:YTMusicClient.Controls"
     Title="FluentMusic">
 
-    <!-- 2-Island Modular Glass Layout on Windows 11 Mica Alt -->
-    <Grid Padding="10,8,10,10">
+    <!-- Zero-Gap Full-Window Canvas with Dynamic Mica Alt / Acrylic Backdrop -->
+    <Grid Background="Transparent">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220" /> <!-- Island 1: Left Floating Sidebar on Mica Alt -->
-            <ColumnDefinition Width="*" />   <!-- Island 2: Main Floating Stage Card -->
+            <ColumnDefinition x:Name="SidebarColDef" Width="220" />
+            <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- ISLAND 1: Left Translucent Liquid Glass Sidebar on Windows 11 Mica Alt -->
-        <Border Grid.Column="0" Margin="0,0,10,0"
-                CornerRadius="16"
+        <!-- Sidebar Flush Edge-to-Edge Pane -->
+        <Border x:Name="SidebarPane"
+                Grid.Column="0"
                 Background="{StaticResource SidebarMicaBrush}"
                 BorderBrush="{StaticResource SubtleBorderBrush}"
-                BorderThickness="1"
-                Padding="4,6,4,8">
+                BorderThickness="0,0,1,0"
+                Padding="6,8,6,8">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" /> <!-- Top Header / Drag Region -->
@@ -27,60 +27,37 @@
                     <RowDefinition Height="Auto" /> <!-- Bottom User Account & Settings -->
                 </Grid.RowDefinitions>
 
-            <!-- Top Draggable Window Header with True macOS Traffic Light Controls (Apple HIG) -->
-            <Grid x:Name="SidebarDragArea" Grid.Row="0" Height="48" Background="Transparent">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+                <!-- Top Header with Apple Sidebar Toggle [| ] & App Title -->
+                <Grid x:Name="SidebarDragArea" Grid.Row="0" Height="44" Background="Transparent">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                <!-- True macOS Traffic Light Window Controls (Apple HIG) -->
-                <StackPanel x:Name="TrafficLightsContainer"
+                    <!-- Apple Notes/Safari Style Sidebar Toggle Icon [| ] -->
+                    <Button x:Name="SidebarToggleBtn" Click="SidebarToggleBtn_Click"
                             Grid.Column="0"
-                            Orientation="Horizontal"
-                            Spacing="8"
-                            Margin="16,12,0,0"
-                            VerticalAlignment="Top"
-                            PointerEntered="TrafficLights_PointerEntered"
-                            PointerExited="TrafficLights_PointerExited">
-                    <!-- Close: #FF5F56 -->
-                    <Button x:Name="MacCloseBtn" Click="MacCloseBtn_Click"
-                            Width="12" Height="12" CornerRadius="6"
-                            Padding="0" Background="#FF5F56" BorderBrush="#E0443E" BorderThickness="0.5"
-                            ToolTipService.ToolTip="Close">
-                        <TextBlock x:Name="CloseGlyph" Text="&#x2715;" FontSize="7" FontWeight="Bold"
-                                   Foreground="#4D0000" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Opacity="0" Margin="0,-1,0,0" />
+                            Width="32" Height="30" Padding="0"
+                            Margin="6,0,0,0"
+                            Background="Transparent" BorderThickness="0" CornerRadius="6"
+                            ToolTipService.ToolTip="Hide Sidebar">
+                        <Grid Width="16" Height="13">
+                            <Border BorderBrush="{ThemeResource TextFillColorSecondaryBrush}"
+                                    BorderThickness="1.5" CornerRadius="3" />
+                            <Border Width="1.5" HorizontalAlignment="Left" Margin="4.5,0,0,0"
+                                    Background="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Grid>
                     </Button>
-                    <!-- Minimize: #FFBD2E -->
-                    <Button x:Name="MacMinimizeBtn" Click="MacMinimizeBtn_Click"
-                            Width="12" Height="12" CornerRadius="6"
-                            Padding="0" Background="#FFBD2E" BorderBrush="#DEA123" BorderThickness="0.5"
-                            ToolTipService.ToolTip="Minimize">
-                        <TextBlock x:Name="MinimizeGlyph" Text="&#x2013;" FontSize="8" FontWeight="Bold"
-                                   Foreground="#593E00" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Opacity="0" Margin="0,-2,0,0" />
-                    </Button>
-                    <!-- Maximize/Fullscreen: #27C93F -->
-                    <Button x:Name="MacMaximizeBtn" Click="MacMaximizeBtn_Click"
-                            Width="12" Height="12" CornerRadius="6"
-                            Padding="0" Background="#27C93F" BorderBrush="#1AAB29" BorderThickness="0.5"
-                            ToolTipService.ToolTip="Zoom / Maximize">
-                        <TextBlock x:Name="MaximizeGlyph" Text="&#x2922;" FontSize="6" FontWeight="Bold"
-                                   Foreground="#003D08" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Opacity="0" Margin="0,-1,0,0" />
-                    </Button>
-                </StackPanel>
 
-                <!-- Symmetrical FluentMusic Brand Note -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7" Margin="14,10,0,0" VerticalAlignment="Top">
-                    <Border Width="18" Height="18" CornerRadius="9" Background="{StaticResource AppleAccentGradient}">
-                        <FontIcon Glyph="&#xE8D6;" FontSize="9" Foreground="White"
-                                  HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,0,0,0" />
-                    </Border>
-                    <TextBlock Text="FluentMusic" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" CharacterSpacing="-20" />
-                </StackPanel>
-            </Grid>
+                    <!-- Symmetrical FluentMusic Brand Note -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <Border Width="20" Height="20" CornerRadius="10" Background="{StaticResource AppleAccentGradient}">
+                            <FontIcon Glyph="&#xE8D6;" FontSize="10" Foreground="White"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,0,0,0" />
+                        </Border>
+                        <TextBlock Text="FluentMusic" FontWeight="SemiBold" FontSize="13.5" VerticalAlignment="Center" CharacterSpacing="-20" />
+                    </StackPanel>
+                </Grid>
 
             <!-- Navigation Links -->
             <StackPanel Grid.Row="1" Spacing="4" Margin="4,16,4,0">
@@ -188,21 +165,82 @@
         </Grid>
         </Border>
 
-        <!-- ISLAND 2: Main Floating Stage Card (Solid Deep Matte Black Canvas) -->
-        <Border Grid.Column="1"
-                CornerRadius="16"
-                Background="{StaticResource MainStageMatteBrush}"
-                BorderBrush="{StaticResource SubtleBorderBrush}"
-                BorderThickness="1">
+        <!-- Main Content Stage (Zero-Gap Full Screen) -->
+        <Grid Grid.Column="1" Background="{StaticResource MainStageMatteBrush}">
+            <!-- Far-left hover trigger strip for sidebar peek when collapsed -->
+            <Border x:Name="SidebarPeekTrigger"
+                    HorizontalAlignment="Left"
+                    Width="12"
+                    Background="Transparent"
+                    Visibility="Collapsed"
+                    Canvas.ZIndex="99"
+                    PointerEntered="SidebarPeekTrigger_PointerEntered" />
 
-            <Grid>
-                <!-- SplitView for Lyrics Panel Drawer -->
-                <SplitView x:Name="LyricsSplitView"
-                           IsPaneOpen="{x:Bind ViewModel.IsLyricsPanelOpen, Mode=TwoWay}"
-                           PanePlacement="Right"
-                           OpenPaneLength="380"
-                           DisplayMode="Overlay"
-                           PaneBackground="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+            <!-- Top Draggable Bar over Main Stage with Reveal Button & Caption Buttons -->
+            <Grid VerticalAlignment="Top" Height="44" Canvas.ZIndex="50">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Sidebar Reveal Button when collapsed -->
+                <Button x:Name="CollapsedSidebarRevealBtn" Click="SidebarToggleBtn_Click"
+                        Grid.Column="0"
+                        Width="32" Height="30" Padding="0"
+                        Margin="10,7,0,0"
+                        Visibility="Collapsed"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0" CornerRadius="6"
+                        ToolTipService.ToolTip="Show Sidebar">
+                    <Grid Width="16" Height="13">
+                        <Border BorderBrush="{ThemeResource TextFillColorSecondaryBrush}"
+                                BorderThickness="1.5" CornerRadius="3" />
+                        <Border Width="1.5" HorizontalAlignment="Left" Margin="4.5,0,0,0"
+                                Background="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                </Button>
+
+                <!-- Draggable Middle Spacer -->
+                <Grid x:Name="MainStageDragArea" Grid.Column="1" Background="Transparent" />
+
+                <!-- Minimal Windows Caption Controls (Auto-hiding on Hover) -->
+                <Border x:Name="CaptionControlsBorder"
+                        Grid.Column="2"
+                        VerticalAlignment="Top"
+                        Opacity="0"
+                        Background="Transparent"
+                        PointerEntered="CaptionControls_PointerEntered"
+                        PointerExited="CaptionControls_PointerExited">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="WinMinimizeBtn" Click="WinMinimizeBtn_Click"
+                                Width="46" Height="32" Padding="0"
+                                Background="Transparent" BorderThickness="0" CornerRadius="0"
+                                ToolTipService.ToolTip="Minimize">
+                            <FontIcon Glyph="&#xE921;" FontSize="10" />
+                        </Button>
+                        <Button x:Name="WinMaximizeBtn" Click="WinMaximizeBtn_Click"
+                                Width="46" Height="32" Padding="0"
+                                Background="Transparent" BorderThickness="0" CornerRadius="0"
+                                ToolTipService.ToolTip="Maximize">
+                            <FontIcon x:Name="WinMaximizeGlyph" Glyph="&#xE922;" FontSize="10" />
+                        </Button>
+                        <Button x:Name="WinCloseBtn" Click="WinCloseBtn_Click"
+                                Width="46" Height="32" Padding="0"
+                                Background="Transparent" BorderThickness="0" CornerRadius="0"
+                                ToolTipService.ToolTip="Close">
+                            <FontIcon Glyph="&#xE8BB;" FontSize="10" />
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- SplitView for Lyrics Panel Drawer -->
+            <SplitView x:Name="LyricsSplitView"
+                       IsPaneOpen="{x:Bind ViewModel.IsLyricsPanelOpen, Mode=TwoWay}"
+                       PanePlacement="Right"
+                       OpenPaneLength="420"
+                       DisplayMode="Overlay"
+                       PaneBackground="{ThemeResource SolidBackgroundFillColorBaseBrush}">
 
                     <!-- Lyrics Drawer Pane -->
                     <SplitView.Pane>
@@ -382,6 +420,5 @@
                     </SplitView.Content>
                 </SplitView>
             </Grid>
-        </Border>
     </Grid>
 </Window>

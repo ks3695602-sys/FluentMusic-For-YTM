@@ -215,10 +215,18 @@ public partial class HomeViewModel : ObservableObject
                 var searchResults = await _musicService.SearchAsync(query);
                 if (searchResults.Count > 0)
                 {
-                    song.VideoId = searchResults[0].VideoId;
+                    var match = searchResults.FirstOrDefault(r => 
+                        string.Equals(r.Title, song.Title, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(r.Artist, song.Artist, StringComparison.OrdinalIgnoreCase))
+                        ?? searchResults.FirstOrDefault(r => 
+                            r.Title.Contains(song.Title, StringComparison.OrdinalIgnoreCase) &&
+                            (string.IsNullOrEmpty(song.Artist) || r.Artist.Contains(song.Artist, StringComparison.OrdinalIgnoreCase)))
+                        ?? searchResults[0];
+
+                    song.VideoId = match.VideoId;
                     if (string.IsNullOrEmpty(song.ThumbnailUrl))
                     {
-                        song.ThumbnailUrl = searchResults[0].ThumbnailUrl;
+                        song.ThumbnailUrl = match.ThumbnailUrl;
                     }
                 }
             }

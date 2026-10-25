@@ -14,7 +14,7 @@
     </UserControl.Resources>
 
     <!-- Floating Capsule Player (Apple Music macOS Liquid Glass style) -->
-    <Border Background="{StaticResource LiquidGlassPillBrush}"
+    <Border Background="{StaticResource PillAcrylicBrush}"
             BorderBrush="{StaticResource GlassBorderBrush}"
             BorderThickness="1"
             CornerRadius="24"

@@ -1006,11 +1006,18 @@ public class YouTubeMusicService : IYouTubeMusicService
         // Type B: musicTwoRowItemRenderer
         else if (item.TryGetProperty("musicTwoRowItemRenderer", out var twoRow))
         {
-            if (twoRow.TryGetProperty("navigationEndpoint", out var nav) &&
-                nav.TryGetProperty("watchEndpoint", out var watch) &&
-                watch.TryGetProperty("videoId", out var wVid))
+            if (twoRow.TryGetProperty("navigationEndpoint", out var nav))
             {
-                videoId = wVid.GetString() ?? string.Empty;
+                if (nav.TryGetProperty("watchEndpoint", out var watch) &&
+                    watch.TryGetProperty("videoId", out var wVid))
+                {
+                    videoId = wVid.GetString() ?? string.Empty;
+                }
+                else if (nav.TryGetProperty("watchPlaylistEndpoint", out var wp) &&
+                         wp.TryGetProperty("videoId", out var wpVid))
+                {
+                    videoId = wpVid.GetString() ?? string.Empty;
+                }
             }
 
             if (twoRow.TryGetProperty("title", out var tObj) &&
@@ -1038,19 +1045,53 @@ public class YouTubeMusicService : IYouTubeMusicService
                 thumbOver.TryGetProperty("musicItemThumbnailOverlayRenderer", out var overlayRend) &&
                 overlayRend.TryGetProperty("content", out var oContent) &&
                 oContent.TryGetProperty("musicPlayButtonRenderer", out var pBtn) &&
-                pBtn.TryGetProperty("playNavigationEndpoint", out var playNav) &&
-                playNav.TryGetProperty("watchEndpoint", out var pWatch) &&
-                pWatch.TryGetProperty("videoId", out var pVid))
+                pBtn.TryGetProperty("playNavigationEndpoint", out var playNav))
             {
-                videoId = pVid.GetString() ?? string.Empty;
+                if (playNav.TryGetProperty("watchEndpoint", out var pWatch) &&
+                    pWatch.TryGetProperty("videoId", out var pVid))
+                {
+                    videoId = pVid.GetString() ?? string.Empty;
+                }
+                else if (playNav.TryGetProperty("watchPlaylistEndpoint", out var pWp) &&
+                         pWp.TryGetProperty("videoId", out var pWpVid))
+                {
+                    videoId = pWpVid.GetString() ?? string.Empty;
+                }
             }
 
             // Extract videoId from onTap endpoint
-            if (string.IsNullOrEmpty(videoId) && twoRow.TryGetProperty("onTap", out var onTap) &&
-                onTap.TryGetProperty("watchEndpoint", out var otWatch) &&
-                otWatch.TryGetProperty("videoId", out var otVid))
+            if (string.IsNullOrEmpty(videoId) && twoRow.TryGetProperty("onTap", out var onTap))
             {
-                videoId = otVid.GetString() ?? string.Empty;
+                if (onTap.TryGetProperty("watchEndpoint", out var otWatch) &&
+                    otWatch.TryGetProperty("videoId", out var otVid))
+                {
+                    videoId = otVid.GetString() ?? string.Empty;
+                }
+                else if (onTap.TryGetProperty("watchPlaylistEndpoint", out var otWp) &&
+                         otWp.TryGetProperty("videoId", out var otWpVid))
+                {
+                    videoId = otWpVid.GetString() ?? string.Empty;
+                }
+            }
+
+            // Extract videoId from menu items
+            if (string.IsNullOrEmpty(videoId) && twoRow.TryGetProperty("menu", out var menu) &&
+                menu.TryGetProperty("menuRenderer", out var menuRend) &&
+                menuRend.TryGetProperty("items", out var menuItems) && menuItems.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var mItem in menuItems.EnumerateArray())
+                {
+                    if (mItem.TryGetProperty("menuNavigationItemRenderer", out var mNav) &&
+                        mNav.TryGetProperty("navigationEndpoint", out var mEndpoint))
+                    {
+                        if (mEndpoint.TryGetProperty("watchEndpoint", out var mWatch) &&
+                            mWatch.TryGetProperty("videoId", out var mVid))
+                        {
+                            videoId = mVid.GetString() ?? string.Empty;
+                            if (!string.IsNullOrEmpty(videoId)) break;
+                        }
+                    }
+                }
             }
         }
 

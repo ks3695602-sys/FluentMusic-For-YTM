@@ -105,6 +105,12 @@
                     </Style>
                 </ListView.ItemContainerStyle>
             </ListView>
+
+            <!-- Spicy Lyrics WebView2 Container (Apple Syllable Karaoke & Ambient Canvas) -->
+            <WebView2 x:Name="SpicyLyricsWebView"
+                      Grid.Row="1"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch" />
         </Grid>
     </Border>
 </UserControl>
