@@ -194,10 +194,6 @@
                 Background="{StaticResource MainStageMatteBrush}"
                 BorderBrush="{StaticResource SubtleBorderBrush}"
                 BorderThickness="1">
-                CornerRadius="16"
-                Background="{ThemeResource LayerFillColorDefaultBrush}"
-                BorderBrush="{StaticResource GlassBorderBrush}"
-                BorderThickness="1">
 
             <Grid>
                 <!-- SplitView for Lyrics Panel Drawer -->
