@@ -28,15 +28,6 @@
                 <Setter Property="FontFamily" Value="Segoe UI Variable" />
             </Style>
 
-            <!-- Ultra-Thin Floating ScrollBar Theme Overrides (4px) -->
-            <x:Double x:Key="ScrollBarSize">4</x:Double>
-            <CornerRadius x:Key="ScrollBarCornerRadius">2</CornerRadius>
-            <SolidColorBrush x:Key="ScrollBarTrackBackground" Color="Transparent" />
-            <SolidColorBrush x:Key="ScrollBarTrackBackgroundPointerOver" Color="Transparent" />
-            <SolidColorBrush x:Key="ScrollBarThumbBackground" Color="#33FFFFFF" />
-            <SolidColorBrush x:Key="ScrollBarThumbBackgroundPointerOver" Color="#66FFFFFF" />
-            <SolidColorBrush x:Key="ScrollBarThumbBackgroundPressed" Color="#99FFFFFF" />
-
             <!-- Apple Music signature colors & gradients -->
             <Color x:Key="AccentRed">#FFFA2D48</Color>
             <SolidColorBrush x:Key="AccentRedBrush" Color="{StaticResource AccentRed}" />

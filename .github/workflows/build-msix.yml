@@ -84,6 +84,7 @@ jobs:
       - name: Build & Package MSIX
         shell: pwsh
         run: |
+          dotnet --info
           dotnet build ${{ env.SOLUTION_NAME }} `
             --configuration ${{ env.CONFIGURATION }} `
             --no-restore `
@@ -114,14 +115,16 @@ jobs:
             Copy-Item $_.FullName "ci_debug\" -Force
           }
           try {
-            Push-Location "src\YTMusicClient"
             $compiler = (Get-ChildItem -Path "C:\Users\runneradmin\.nuget\packages\microsoft.windowsappsdk" -Recurse -Filter "XamlCompiler.exe" | Where-Object { $_.FullName -like "*net472*" } | Select-Object -First 1).FullName
-            Write-Host "Directly executing XamlCompiler: $compiler in $(Get-Location)"
-            $directLog = & $compiler "obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\input.json" "obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\output.json" 2>&1
+            Write-Host "Directly executing XamlCompiler: $compiler in src\YTMusicClient"
+            $inputJson = Resolve-Path "src\YTMusicClient\obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\input.json"
+            $outputJson = "$($env:GITHUB_WORKSPACE)\src\YTMusicClient\obj\x64\Release\net8.0-windows10.0.19041.0\win-x64\output.json"
+            Push-Location "src\YTMusicClient"
+            $directLog = & $compiler $inputJson $outputJson 2>&1
             Pop-Location
-            $directLog | Out-File -FilePath "ci_debug\direct_compiler.log" -Encoding utf8
+            $directLog | Out-File -FilePath "$($env:GITHUB_WORKSPACE)\ci_debug\direct_compiler.log" -Encoding utf8
           } catch {
-            $_ | Out-File -FilePath "ci_debug\direct_compiler.log" -Encoding utf8
+            $_ | Out-File -FilePath "$($env:GITHUB_WORKSPACE)\ci_debug\direct_compiler.log" -Encoding utf8
           }
           git add -f ci_debug
           git commit -m "chore: save CI failure diagnostics"
