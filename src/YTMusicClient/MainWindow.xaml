@@ -78,7 +78,7 @@
                         <FontIcon Glyph="&#xE8D6;" FontSize="9" Foreground="White"
                                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,0,0,0" />
                     </Border>
-                    <TextBlock Text="FluentMusic" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" LetterSpacing="-0.2" />
+                    <TextBlock Text="FluentMusic" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" CharacterSpacing="-20" />
                 </StackPanel>
             </Grid>
 

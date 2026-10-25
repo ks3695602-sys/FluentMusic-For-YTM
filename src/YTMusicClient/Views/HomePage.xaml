@@ -30,7 +30,7 @@
 
             <!-- Hero Header Title (Apple HIG Typography) -->
             <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
-                <TextBlock x:Name="HomeHeaderTitle" Text="Listen Now" FontSize="28" FontWeight="Bold" LetterSpacing="-0.5" />
+                <TextBlock x:Name="HomeHeaderTitle" Text="Listen Now" FontSize="28" FontWeight="Bold" CharacterSpacing="-30" />
                 <TextBlock x:Name="HomeHeaderSubtitle" Text="Top picks, personalized mixes, and lossless studio masters"
                            FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
