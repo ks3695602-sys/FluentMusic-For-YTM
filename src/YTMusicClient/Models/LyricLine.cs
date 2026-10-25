@@ -31,4 +31,7 @@ public partial class LyricLine : ObservableObject
 
     [ObservableProperty]
     private string _remainingWordsText = string.Empty;
+
+    [ObservableProperty]
+    private string? _translatedText;
 }

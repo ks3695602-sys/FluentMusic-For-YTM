@@ -519,7 +519,24 @@ public class YouTubeMusicService : IYouTubeMusicService
             AppLogger.LogError($"InnerTube IOS player failed for {videoId}", ex);
         }
 
-        // 3. Client: WEB_REMIX (with user cookies if signed in)
+        // 3. Client: VISIONOS (0.1) - Echo-Music visionOS unthrottled WebKit client
+        try
+        {
+            var streamUrl = await QueryInnerTubePlayerAsync(videoId, "VISIONOS", "0.1", "101",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
+                visitorData, isAndroidVr: false, ct);
+            if (!string.IsNullOrEmpty(streamUrl))
+            {
+                AppLogger.Log($"Echo-Music VISIONOS direct stream SUCCESS for {videoId}");
+                return streamUrl;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"InnerTube VISIONOS player failed for {videoId}", ex);
+        }
+
+        // 4. Client: WEB_REMIX (with user cookies if signed in)
         try
         {
             var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
@@ -573,10 +590,10 @@ public class YouTubeMusicService : IYouTubeMusicService
             {
                 clientName,
                 clientVersion,
-                deviceMake = clientName == "IOS" ? "Apple" : "Generic",
-                deviceModel = clientName == "IOS" ? "iPhone16,2" : "Desktop",
-                osName = clientName == "IOS" ? "iOS" : "Windows",
-                osVersion = clientName == "IOS" ? "18.2.22C152" : "10.0",
+                deviceMake = clientName == "VISIONOS" ? "Apple" : (clientName == "IOS" ? "Apple" : "Generic"),
+                deviceModel = clientName == "VISIONOS" ? "RealityDevice14,1" : (clientName == "IOS" ? "iPhone16,2" : "Desktop"),
+                osName = clientName == "VISIONOS" ? "visionOS" : (clientName == "IOS" ? "iOS" : "Windows"),
+                osVersion = clientName == "VISIONOS" ? "1.3.21O771" : (clientName == "IOS" ? "18.2.22C152" : "10.0"),
                 hl = "en",
                 gl = "US",
                 visitorData

@@ -19,40 +19,79 @@ namespace YTMusicClient.Services;
 public class LyricsService : ILyricsService
 {
     private readonly HttpClient _httpClient;
-    private const string BetterLyricsBaseUrl = "https://api.betterlyrics.org";
-    private const string YouLyPlusBaseUrl = "https://lyricsplus.prjktla.my.id/v2/lyrics/get";
+    private static readonly string[] BetterLyricsEndpoints = new[]
+    {
+        "https://lyrics-api.boidu.dev/getLyrics",
+        "https://api.betterlyrics.org/getLyrics"
+    };
+    private static readonly string[] YouLyPlusEndpoints = new[]
+    {
+        "https://lyricsplus.binimum.org/v2/lyrics/get",
+        "https://lyricsplus.prjktla.my.id/v2/lyrics/get",
+        "https://lyricsplus.atomix.one/v2/lyrics/get"
+    };
     private const string LrcLibBaseUrl = "https://lrclib.net/api";
+    private const string SimpMusicBaseUrl = "https://api-lyrics.simpmusic.org/v1";
 
     public LyricsService()
     {
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(6) };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) FluentMusic/1.0.3");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("ArchiveTune/1.0 (Windows NT 10.0; Win64; x64) FluentMusic/1.1.1");
     }
 
     public async Task<IReadOnlyList<LyricLine>> GetSyncedLyricsAsync(
         string title,
         string artist,
         TimeSpan duration,
+        string? videoId = null,
         CancellationToken ct = default)
     {
         var cleanTitle = CleanSongTitle(title);
         var cleanArtist = CleanArtistName(artist);
         var durationSec = (int)Math.Round(duration.TotalSeconds);
 
-        // 1. Primary Engine: Better Lyrics API (Word-by-Word TTML)
-        try
+        // 1. SimpMusic API (Direct YouTube VideoId resolution from ArchiveTune)
+        if (!string.IsNullOrEmpty(videoId))
         {
-            AppLogger.Log($"LyricsService: Querying Better Lyrics for '{cleanTitle}' - '{cleanArtist}'");
-            var betterLyricsUrl = $"{BetterLyricsBaseUrl}/getLyrics?s={Uri.EscapeDataString(cleanTitle)}&a={Uri.EscapeDataString(cleanArtist)}&d={durationSec}";
-            var response = await _httpClient.GetAsync(betterLyricsUrl, ct);
-
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var json = await response.Content.ReadAsStringAsync(ct);
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("ttml", out var ttmlProp))
+                AppLogger.Log($"LyricsService: Querying SimpMusic for videoId '{videoId}'");
+                var simpLines = await FetchSimpMusicLyricsAsync(videoId, durationSec, ct);
+                if (simpLines.Count > 0)
                 {
-                    var ttml = ttmlProp.GetString();
+                    AppLogger.Log($"SimpMusic SUCCESS: {simpLines.Count} lines parsed");
+                    return simpLines;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log($"SimpMusic fetch failed: {ex.Message}");
+            }
+        }
+
+        // 2. Primary Engine: Better Lyrics API (Word-by-Word TTML from ArchiveTune)
+        foreach (var betterLyricsUrlBase in BetterLyricsEndpoints)
+        {
+            try
+            {
+                AppLogger.Log($"LyricsService: Querying Better Lyrics at {betterLyricsUrlBase} for '{cleanTitle}' - '{cleanArtist}'");
+                var betterLyricsUrl = $"{betterLyricsUrlBase}?s={Uri.EscapeDataString(cleanTitle)}&a={Uri.EscapeDataString(cleanArtist)}&d={durationSec}";
+                var response = await _httpClient.GetAsync(betterLyricsUrl, ct);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync(ct);
+                    using var doc = JsonDocument.Parse(json);
+                    string? ttml = null;
+                    if (doc.RootElement.TryGetProperty("ttml", out var ttmlProp))
+                    {
+                        ttml = ttmlProp.GetString();
+                    }
+                    else if (doc.RootElement.TryGetProperty("lyrics", out var lyrProp))
+                    {
+                        ttml = lyrProp.GetString();
+                    }
+
                     if (!string.IsNullOrWhiteSpace(ttml))
                     {
                         var parsed = ParseTtml(ttml);
@@ -64,36 +103,55 @@ public class LyricsService : ILyricsService
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            AppLogger.Log($"Better Lyrics fetch failed: {ex.Message}");
+            catch (Exception ex)
+            {
+                AppLogger.Log($"Better Lyrics fetch failed from {betterLyricsUrlBase}: {ex.Message}");
+            }
         }
 
-        // 2. Secondary Engine: YouLy+ / LyricsPlus API (Multi-Source Apple/Spotify/Musixmatch)
+        // 3. Secondary Engine: YouLy+ / LyricsPlus API (Multi-Source Apple/Spotify/Musixmatch from ArchiveTune)
+        foreach (var youLyBaseUrl in YouLyPlusEndpoints)
+        {
+            try
+            {
+                AppLogger.Log($"LyricsService: Querying YouLy+ at {youLyBaseUrl} for '{cleanTitle}' - '{cleanArtist}'");
+                var youLyUrl = $"{youLyBaseUrl}?title={Uri.EscapeDataString(cleanTitle)}&artist={Uri.EscapeDataString(cleanArtist)}&duration={durationSec}&source=apple,musixmatch,spotify";
+                var response = await _httpClient.GetAsync(youLyUrl, ct);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync(ct);
+                    var parsed = ParseYouLyPlusJson(json);
+                    if (parsed.Count > 0)
+                    {
+                        AppLogger.Log($"YouLy+ SUCCESS: {parsed.Count} lines parsed");
+                        return parsed;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log($"YouLy+ fetch failed from {youLyBaseUrl}: {ex.Message}");
+            }
+        }
+
+        // 4. KuGou Music Lyrics Engine (Direct from ArchiveTune)
         try
         {
-            AppLogger.Log($"LyricsService: Querying YouLy+ for '{cleanTitle}' - '{cleanArtist}'");
-            var youLyUrl = $"{YouLyPlusBaseUrl}?title={Uri.EscapeDataString(cleanTitle)}&artist={Uri.EscapeDataString(cleanArtist)}&duration={durationSec}&source=apple,musixmatch,spotify";
-            var response = await _httpClient.GetAsync(youLyUrl, ct);
-
-            if (response.IsSuccessStatusCode)
+            AppLogger.Log($"LyricsService: Querying KuGou for '{cleanTitle}' - '{cleanArtist}'");
+            var kugouLines = await FetchKuGouLyricsAsync(cleanTitle, cleanArtist, durationSec, ct);
+            if (kugouLines.Count > 0)
             {
-                var json = await response.Content.ReadAsStringAsync(ct);
-                var parsed = ParseYouLyPlusJson(json);
-                if (parsed.Count > 0)
-                {
-                    AppLogger.Log($"YouLy+ SUCCESS: {parsed.Count} lines parsed");
-                    return parsed;
-                }
+                AppLogger.Log($"KuGou SUCCESS: {kugouLines.Count} lines parsed");
+                return kugouLines;
             }
         }
         catch (Exception ex)
         {
-            AppLogger.Log($"YouLy+ fetch failed: {ex.Message}");
+            AppLogger.Log($"KuGou fetch failed: {ex.Message}");
         }
 
-        // 3. Tertiary Engine: LRCLIB API Fallback (Line-Synced)
+        // 4. Quaternary Engine: LRCLIB API Fallback (Line-Synced)
         try
         {
             AppLogger.Log($"LyricsService: Fallback to LRCLIB for '{cleanTitle}' - '{cleanArtist}'");
@@ -343,6 +401,215 @@ public class LyricsService : ILyricsService
                 Text = text
             })
             .ToList();
+    }
+
+    private async Task<IReadOnlyList<LyricLine>> FetchSimpMusicLyricsAsync(string videoId, int durationSec, CancellationToken ct)
+    {
+        try
+        {
+            var url = $"{SimpMusicBaseUrl}/{Uri.EscapeDataString(videoId)}";
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.UserAgent.Clear();
+            req.Headers.UserAgent.ParseAdd("SimpMusicLyrics/1.0");
+
+            var resp = await _httpClient.SendAsync(req, ct);
+            if (!resp.IsSuccessStatusCode) return Array.Empty<LyricLine>();
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("data", out var dataArr) && dataArr.ValueKind == JsonValueKind.Array && dataArr.GetArrayLength() > 0)
+            {
+                JsonElement bestTrack = default;
+                int bestDiff = int.MaxValue;
+
+                foreach (var track in dataArr.EnumerateArray())
+                {
+                    if (track.TryGetProperty("syncedLyrics", out var sProp) && !string.IsNullOrWhiteSpace(sProp.GetString()))
+                    {
+                        int dur = track.TryGetProperty("duration", out var dProp) && dProp.TryGetInt32(out var d) ? d : 0;
+                        int diff = durationSec > 0 ? Math.Abs(dur - durationSec) : 0;
+                        if (diff < bestDiff)
+                        {
+                            bestDiff = diff;
+                            bestTrack = track;
+                        }
+                    }
+                }
+
+                if (bestTrack.ValueKind != JsonValueKind.Undefined)
+                {
+                    if (bestTrack.TryGetProperty("syncedLyrics", out var syn) && !string.IsNullOrWhiteSpace(syn.GetString()))
+                    {
+                        return ParseLrc(syn.GetString()!);
+                    }
+                    if (bestTrack.TryGetProperty("plainLyrics", out var pln) && !string.IsNullOrWhiteSpace(pln.GetString()))
+                    {
+                        return ParsePlainLyrics(pln.GetString()!);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Log($"FetchSimpMusicLyricsAsync error: {ex.Message}");
+        }
+
+        return Array.Empty<LyricLine>();
+    }
+
+    private async Task<IReadOnlyList<LyricLine>> FetchKuGouLyricsAsync(string title, string artist, int durationSec, CancellationToken ct)
+    {
+        try
+        {
+            var searchUrl = $"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&keyword={Uri.EscapeDataString($"{title} - {artist}")}&duration={durationSec * 1000}";
+            var resp = await _httpClient.GetAsync(searchUrl, ct);
+            if (!resp.IsSuccessStatusCode) return Array.Empty<LyricLine>();
+
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
+            {
+                var first = candidates[0];
+                if (first.TryGetProperty("id", out var idProp) && first.TryGetProperty("accesskey", out var keyProp))
+                {
+                    var id = idProp.GetInt64();
+                    var key = keyProp.GetString();
+                    if (!string.IsNullOrEmpty(key))
+                    {
+                        var downloadUrl = $"https://lyrics.kugou.com/download?fmt=lrc&charset=utf8&client=pc&ver=1&id={id}&accesskey={key}";
+                        var downResp = await _httpClient.GetAsync(downloadUrl, ct);
+                        if (downResp.IsSuccessStatusCode)
+                        {
+                            var downJson = await downResp.Content.ReadAsStringAsync(ct);
+                            using var downDoc = JsonDocument.Parse(downJson);
+                            if (downDoc.RootElement.TryGetProperty("content", out var contentProp))
+                            {
+                                var b64 = contentProp.GetString();
+                                if (!string.IsNullOrEmpty(b64))
+                                {
+                                    var lrcBytes = Convert.FromBase64String(b64);
+                                    var lrcText = System.Text.Encoding.UTF8.GetString(lrcBytes);
+                                    return ParseLrc(lrcText);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Log($"FetchKuGouLyricsAsync error: {ex.Message}");
+        }
+
+        return Array.Empty<LyricLine>();
+    }
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _translationCache = new();
+
+    public async Task<string> TranslateAsync(string text, string targetLanguage, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return text;
+        var cacheKey = $"{targetLanguage}_{text}";
+        if (_translationCache.TryGetValue(cacheKey, out var cached)) return cached;
+
+        bool isHinglish = targetLanguage.Equals("hinglish", StringComparison.OrdinalIgnoreCase) ||
+                          targetLanguage.Equals("hi-latn", StringComparison.OrdinalIgnoreCase);
+        string langCode = isHinglish ? "hi" : targetLanguage;
+
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get,
+                $"https://translate.googleapis.com/translate_a/single?client=at&dt=t&ie=UTF-8&oe=UTF-8&sl=auto&tl={langCode}&q={Uri.EscapeDataString(text)}");
+            req.Headers.UserAgent.Clear();
+            req.Headers.UserAgent.ParseAdd("ArchiveTune Android");
+
+            var resp = await _httpClient.SendAsync(req, ct);
+            if (resp.IsSuccessStatusCode)
+            {
+                var json = await resp.Content.ReadAsStringAsync(ct);
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
+                {
+                    var segs = doc.RootElement[0];
+                    var sb = new System.Text.StringBuilder();
+                    foreach (var seg in segs.EnumerateArray())
+                    {
+                        if (seg.GetArrayLength() > 0)
+                        {
+                            sb.Append(seg[0].GetString());
+                        }
+                    }
+                    var translated = sb.ToString();
+                    if (!string.IsNullOrWhiteSpace(translated))
+                    {
+                        if (isHinglish)
+                        {
+                            translated = TransliterateDevanagariToLatin(translated);
+                        }
+                        _translationCache[cacheKey] = translated;
+                        return translated;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Log($"Lyrics Translation error: {ex.Message}");
+        }
+
+        return text;
+    }
+
+    public static string TransliterateDevanagariToLatin(string devanagariText)
+    {
+        if (string.IsNullOrEmpty(devanagariText)) return devanagariText;
+
+        var map = new Dictionary<string, string>
+        {
+            ["क"] = "ka", ["ख"] = "kha", ["ग"] = "ga", ["घ"] = "gha", ["ङ"] = "nga",
+            ["च"] = "cha", ["छ"] = "chha", ["ज"] = "ja", ["झ"] = "jha", ["ञ"] = "nya",
+            ["ट"] = "ta", ["ठ"] = "tha", ["ड"] = "da", ["ढ"] = "dha", ["ण"] = "na",
+            ["त"] = "ta", ["थ"] = "tha", ["द"] = "da", ["ध"] = "dha", ["न"] = "na",
+            ["प"] = "pa", ["फ"] = "pha", ["ब"] = "ba", ["भ"] = "bha", ["म"] = "ma",
+            ["य"] = "ya", ["र"] = "ra", ["ल"] = "la", ["व"] = "va",
+            ["श"] = "sha", ["ष"] = "sha", ["स"] = "sa", ["ह"] = "ha",
+            ["ा"] = "a", ["ि"] = "i", ["ी"] = "ee", ["ु"] = "u", ["ू"] = "oo",
+            ["ृ"] = "ri", ["े"] = "e", ["ै"] = "ai", ["ो"] = "o", ["ौ"] = "au",
+            ["ं"] = "n", ["ँ"] = "n", ["ः"] = "h", ["्"] = "",
+            ["अ"] = "a", ["आ"] = "aa", ["इ"] = "i", ["ई"] = "ee", ["उ"] = "u", ["ऊ"] = "oo",
+            ["ऋ"] = "ri", ["ए"] = "e", ["ऐ"] = "ai", ["ओ"] = "o", ["औ"] = "au"
+        };
+
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < devanagariText.Length; i++)
+        {
+            string ch = devanagariText[i].ToString();
+            // check for matra following consonant
+            if (i + 1 < devanagariText.Length && map.ContainsKey(devanagariText[i + 1].ToString()) && "ािीुूृेैोौ्".Contains(devanagariText[i + 1]))
+            {
+                if (map.TryGetValue(ch, out var cons))
+                {
+                    // drop the trailing inherent 'a'
+                    if (cons.EndsWith("a")) cons = cons.Substring(0, cons.Length - 1);
+                    var matra = map[devanagariText[i + 1].ToString()];
+                    sb.Append(cons).Append(matra);
+                    i++;
+                    continue;
+                }
+            }
+
+            if (map.TryGetValue(ch, out var roman))
+            {
+                sb.Append(roman);
+            }
+            else
+            {
+                sb.Append(ch);
+            }
+        }
+
+        return sb.ToString();
     }
 
     private static string CleanSongTitle(string title)

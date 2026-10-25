@@ -9,9 +9,9 @@
         <StackPanel Spacing="20" MaxWidth="760" HorizontalAlignment="Left">
             <!-- Header -->
             <StackPanel Spacing="4">
-                <TextBlock Text="Settings" Style="{StaticResource TitleLargeTextBlockStyle}"
+                <TextBlock x:Name="SettingsHeaderTitle" Text="Settings" Style="{StaticResource TitleLargeTextBlockStyle}"
                            FontWeight="Bold" FontSize="28" />
-                <TextBlock Text="Customize audio fidelity, user account sync, appearance and downloads"
+                <TextBlock x:Name="SettingsHeaderSubtitle" Text="Customize audio fidelity, user account sync, appearance and downloads"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            Style="{StaticResource CaptionTextBlockStyle}" />
             </StackPanel>
@@ -21,26 +21,32 @@
                 <StackPanel Orientation="Horizontal" Spacing="4"
                             Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="18" Padding="3">
                     <Button x:Name="TabAppearanceBtn" Content="Appearance" Click="Tab_Click" Tag="0"
-                            CornerRadius="15" Padding="16,6"
-                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" FontWeight="SemiBold" />
-                    <Button x:Name="TabAudioBtn" Content="Audio &amp; Fidelity" Click="Tab_Click" Tag="1"
-                            CornerRadius="15" Padding="16,6"
-                            Background="Transparent" FontWeight="Normal" />
-                    <Button x:Name="TabAccountBtn" Content="Account &amp; Sync" Click="Tab_Click" Tag="2"
-                            CornerRadius="15" Padding="16,6"
-                            Background="Transparent" FontWeight="Normal" />
-                    <Button x:Name="TabDownloadsBtn" Content="Downloads" Click="Tab_Click" Tag="3"
-                            CornerRadius="15" Padding="16,6"
-                            Background="Transparent" FontWeight="Normal" />
-                    <Button x:Name="TabAboutBtn" Content="About" Click="Tab_Click" Tag="4"
-                            CornerRadius="15" Padding="16,6"
-                            Background="Transparent" FontWeight="Normal" />
+                            CornerRadius="15" Padding="14,6"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" FontWeight="SemiBold" BorderThickness="0" />
+                    <Button x:Name="TabLanguageBtn" Content="Language (भाषा)" Click="Tab_Click" Tag="1"
+                            CornerRadius="15" Padding="14,6"
+                            Background="Transparent" FontWeight="Normal" BorderThickness="0" />
+                    <Button x:Name="TabAudioBtn" Content="Audio &amp; Fidelity" Click="Tab_Click" Tag="2"
+                            CornerRadius="15" Padding="14,6"
+                            Background="Transparent" FontWeight="Normal" BorderThickness="0" />
+                    <Button x:Name="TabLyricsBtn" Content="Lyrics &amp; Animations" Click="Tab_Click" Tag="3"
+                            CornerRadius="15" Padding="14,6"
+                            Background="Transparent" FontWeight="Normal" BorderThickness="0" />
+                    <Button x:Name="TabDownloadsBtn" Content="Storage &amp; Cache" Click="Tab_Click" Tag="4"
+                            CornerRadius="15" Padding="14,6"
+                            Background="Transparent" FontWeight="Normal" BorderThickness="0" />
+                    <Button x:Name="TabAccountBtn" Content="Account &amp; Sync" Click="Tab_Click" Tag="5"
+                            CornerRadius="15" Padding="14,6"
+                            Background="Transparent" FontWeight="Normal" BorderThickness="0" />
+                    <Button x:Name="TabAboutBtn" Content="About" Click="Tab_Click" Tag="6"
+                            CornerRadius="15" Padding="14,6"
+                            Background="Transparent" FontWeight="Normal" BorderThickness="0" />
                 </StackPanel>
             </ScrollViewer>
 
             <!-- TAB 0: Appearance -->
             <StackPanel x:Name="SectionAppearance" Spacing="16">
-                <TextBlock Text="Appearance &amp; Window" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
+                <TextBlock Text="Appearance &amp; Window Material" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
 
                 <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         CornerRadius="14" Padding="20,16" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -57,7 +63,7 @@
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                            Style="{StaticResource CaptionTextBlockStyle}" />
                             </StackPanel>
-                            <ComboBox Grid.Column="1" SelectedIndex="0" Width="170" CornerRadius="8"
+                            <ComboBox x:Name="ThemeCombo" Grid.Column="1" SelectedIndex="0" Width="170" CornerRadius="8"
                                       SelectionChanged="ThemeCombo_SelectionChanged">
                                 <ComboBoxItem Content="System Default" Tag="Default" />
                                 <ComboBoxItem Content="Dark Mode" Tag="Dark" />
@@ -78,36 +84,47 @@
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                            Style="{StaticResource CaptionTextBlockStyle}" />
                             </StackPanel>
-                            <ComboBox Grid.Column="1" SelectedIndex="0" Width="170" CornerRadius="8">
+                            <ComboBox x:Name="WindowMaterialCombo" Grid.Column="1" SelectedIndex="0" Width="170" CornerRadius="8"
+                                      SelectionChanged="WindowMaterialCombo_SelectionChanged">
                                 <ComboBoxItem Content="Mica Alt (2-Island)" Tag="MicaAlt" />
                                 <ComboBoxItem Content="Desktop Acrylic" Tag="Acrylic" />
-                            </ComboBox>
-                        </Grid>
-
-                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Player Island Corner Radius" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                <TextBlock Text="Adjust the curve of the floating player dock"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                           Style="{StaticResource CaptionTextBlockStyle}" />
-                            </StackPanel>
-                            <ComboBox Grid.Column="1" SelectedIndex="0" Width="170" CornerRadius="8">
-                                <ComboBoxItem Content="12px (Modern Clean)" Tag="12" />
-                                <ComboBoxItem Content="16px (Standard Rounded)" Tag="16" />
-                                <ComboBoxItem Content="27px (Capsule Pill)" Tag="27" />
                             </ComboBox>
                         </Grid>
                     </StackPanel>
                 </Border>
             </StackPanel>
 
-            <!-- TAB 1: Audio & Fidelity -->
+            <!-- TAB 1: Language & Localization -->
+            <StackPanel x:Name="SectionLanguage" Spacing="16" Visibility="Collapsed">
+                <TextBlock Text="Language &amp; Region" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
+
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="14" Padding="20,16" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1">
+                    <StackPanel Spacing="16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="App Interface Language" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock Text="Switch between Pure English, Pure Hindi, or Hinglish"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="LanguageCombo" Grid.Column="1" SelectedIndex="0" Width="200" CornerRadius="8"
+                                      SelectionChanged="LanguageCombo_SelectionChanged">
+                                <ComboBoxItem Content="English" Tag="English" />
+                                <ComboBoxItem Content="हिन्दी (Pure Hindi)" Tag="Hindi" />
+                                <ComboBoxItem Content="Hinglish (Mix)" Tag="Hinglish" />
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- TAB 2: Audio & Fidelity -->
             <StackPanel x:Name="SectionAudio" Spacing="16" Visibility="Collapsed">
                 <TextBlock Text="Audio Fidelity &amp; Playback Source" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
 
@@ -126,7 +143,8 @@
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                            Style="{StaticResource CaptionTextBlockStyle}" />
                             </StackPanel>
-                            <ComboBox Grid.Column="1" SelectedIndex="0" Width="190" CornerRadius="8">
+                            <ComboBox x:Name="AudioSourceCombo" Grid.Column="1" SelectedIndex="0" Width="220" CornerRadius="8"
+                                      SelectionChanged="AudioSourceCombo_SelectionChanged">
                                 <ComboBoxItem Content="Lossless FLAC / High-Res" Tag="FLAC" />
                                 <ComboBoxItem Content="AAC 256kbps High-Fidelity" Tag="AAC" />
                                 <ComboBoxItem Content="YouTube Video Native Audio" Tag="YT" />
@@ -135,22 +153,25 @@
 
                         <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
 
+                        <!-- Equal-Power Crossfade Slider (Echo-Music / ArchiveTune Engine) -->
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="220" />
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Video-Audio 1:1 Second Lockstep Sync" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                <TextBlock Text="Play high quality FLAC audio in tight second-by-second sync with muted YouTube music video"
+                                <TextBlock Text="Equal-Power Crossfade Duration" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock x:Name="CrossfadeLabel" Text="Smooth transition between songs: 4.0s"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                            Style="{StaticResource CaptionTextBlockStyle}" />
                             </StackPanel>
-                            <ToggleSwitch Grid.Column="1" IsOn="True" />
+                            <Slider x:Name="CrossfadeSlider" Grid.Column="1" Minimum="0" Maximum="12" StepFrequency="0.5" Value="4"
+                                    ValueChanged="CrossfadeSlider_ValueChanged" />
                         </Grid>
 
                         <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
 
+                        <!-- Volume Normalization (ReplayGain) -->
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -162,13 +183,210 @@
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                            Style="{StaticResource CaptionTextBlockStyle}" />
                             </StackPanel>
-                            <ToggleSwitch Grid.Column="1" IsOn="True" />
+                            <ToggleSwitch x:Name="ReplayGainToggle" Grid.Column="1" IsOn="True" Toggled="ReplayGainToggle_Toggled" />
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
+                        <!-- 1:1 Video Sync -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Video-Audio 1:1 Second Lockstep Sync" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock Text="Play high quality FLAC audio in tight second-by-second sync with muted YouTube music video"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="VideoSyncToggle" Grid.Column="1" IsOn="True" Toggled="VideoSyncToggle_Toggled" />
                         </Grid>
                     </StackPanel>
                 </Border>
             </StackPanel>
 
-            <!-- TAB 2: Account & Sync -->
+            <!-- TAB 3: Lyrics & Animations (ArchiveTune Engine) -->
+            <StackPanel x:Name="SectionLyrics" Spacing="16" Visibility="Collapsed">
+                <TextBlock Text="Lyrics Engine &amp; Animations (ArchiveTune)" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
+
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="14" Padding="20,16" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1">
+                    <StackPanel Spacing="16">
+                        <!-- Lyrics Animation Style: V2 vs ENHANCED -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Lyrics Animation Style" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock Text="Choose between V2 Liquid Glow &amp; Spring Bounce or Enhanced Syllable Karaoke"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="LyricsStyleCombo" Grid.Column="1" SelectedIndex="0" Width="220" CornerRadius="8"
+                                      SelectionChanged="LyricsStyleCombo_SelectionChanged">
+                                <ComboBoxItem Content="V2 (Liquid Glow &amp; Spring Bounce)" Tag="V2" />
+                                <ComboBoxItem Content="Enhanced (Apple Syllable Karaoke)" Tag="ENHANCED" />
+                            </ComboBox>
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
+                        <!-- Line Bounce Effect Switch -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Line Bounce Effect" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock Text="Enable spring bounce animation for line-synced (LRC) lyrics"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="LrcBounceToggle" Grid.Column="1" IsOn="True" Toggled="LrcBounceToggle_Toggled" />
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
+                        <!-- Bounce Amplitude Slider -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="220" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Bounce Amplitude" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock x:Name="BounceLabel" Text="Adjust the bounce effect when a word is sung (100%)"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <Slider x:Name="BounceSlider" Grid.Column="1" Minimum="0" Maximum="2" StepFrequency="0.1" Value="1.0"
+                                    ValueChanged="BounceSlider_ValueChanged" />
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
+                        <!-- Glow Intensity Slider -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="220" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Glow Intensity" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock x:Name="GlowLabel" Text="Adjust the glow brightness of the sung word (100%)"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <Slider x:Name="GlowSlider" Grid.Column="1" Minimum="0" Maximum="2" StepFrequency="0.1" Value="1.0"
+                                    ValueChanged="GlowSlider_ValueChanged" />
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
+                        <!-- Fill Transition Smoothness Slider -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="220" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Fill Transition Smoothness" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock x:Name="FillLabel" Text="Adjust the gradient edge width of the liquid fill effect (8 px)"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <Slider x:Name="FillSlider" Grid.Column="1" Minimum="2" Maximum="24" StepFrequency="1" Value="8"
+                                    ValueChanged="FillSlider_ValueChanged" />
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
+                        <!-- Hindi Romanization (Hinglish) Toggle -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Romanize Hindi Lyrics (Hinglish)" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock Text="Auto-convert Devanagari Hindi text to Roman phonetic Hinglish"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="RomanizeHindiToggle" Grid.Column="1" IsOn="True" Toggled="RomanizeHindiToggle_Toggled" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- TAB 4: Storage & Downloads -->
+            <StackPanel x:Name="SectionDownloads" Spacing="16" Visibility="Collapsed">
+                <TextBlock Text="Offline Downloads &amp; Storage" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
+
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        CornerRadius="14" Padding="20,16" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1">
+                    <StackPanel Spacing="16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Download Audio Quality" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock Text="Primary format for offline songs (lossless studio FLAC or 256kbps AAC)"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="DownloadQualityCombo" Grid.Column="1" SelectedIndex="0" Width="200" CornerRadius="8"
+                                      SelectionChanged="DownloadQualityCombo_SelectionChanged">
+                                <ComboBoxItem Content="Lossless FLAC (Studio Quality)" Tag="FLAC" />
+                                <ComboBoxItem Content="AAC 256kbps (.m4a)" Tag="AAC" />
+                            </ComboBox>
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Download Folder" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock x:Name="DownloadFolderPathText" Text="Music/FluentMusic/Downloads"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="Open Folder" CornerRadius="8" Padding="14,6" Click="OpenDownloadFolder_Click" />
+                        </Grid>
+
+                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
+                        <!-- Clear Cache -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Audio Streaming Cache" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock x:Name="CacheStatusText" Text="Calculating cache size..."
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Style="{StaticResource CaptionTextBlockStyle}" />
+                            </StackPanel>
+                            <Button x:Name="ClearCacheBtn" Grid.Column="1" Content="Clear Cache" CornerRadius="8" Padding="14,6" Click="ClearCache_Click" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- TAB 5: Account & Sync -->
             <StackPanel x:Name="SectionAccount" Spacing="16" Visibility="Collapsed">
                 <TextBlock Text="Google &amp; YouTube Music Account" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
 
@@ -209,71 +427,11 @@
                                 </StackPanel>
                             </Button>
                         </Grid>
-
-                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Sync Liked Songs &amp; History" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                <TextBlock Text="Auto-refresh your liked tracks from YouTube Music on app launch"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                           Style="{StaticResource CaptionTextBlockStyle}" />
-                            </StackPanel>
-                            <ToggleSwitch Grid.Column="1" IsOn="True" />
-                        </Grid>
                     </StackPanel>
                 </Border>
             </StackPanel>
 
-            <!-- TAB 3: Downloads -->
-            <StackPanel x:Name="SectionDownloads" Spacing="16" Visibility="Collapsed">
-                <TextBlock Text="Offline Downloads &amp; Storage" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
-
-                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        CornerRadius="14" Padding="20,16" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1">
-                    <StackPanel Spacing="16">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Download Audio Quality" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                <TextBlock Text="Primacy format for offline songs (lossless studio FLAC or 256kbps AAC)"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                           Style="{StaticResource CaptionTextBlockStyle}" />
-                            </StackPanel>
-                            <ComboBox Grid.Column="1" SelectedIndex="0" Width="180" CornerRadius="8">
-                                <ComboBoxItem Content="Lossless FLAC (Studio Quality)" Tag="FLAC" />
-                                <ComboBoxItem Content="AAC 256kbps (.m4a)" Tag="AAC" />
-                            </ComboBox>
-                        </Grid>
-
-                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Download Folder" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                <TextBlock Text="Music/FluentMusic/Downloads"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                           Style="{StaticResource CaptionTextBlockStyle}" />
-                            </StackPanel>
-                            <Button Grid.Column="1" Content="Open Folder" CornerRadius="8" Padding="14,6" Click="OpenDownloadFolder_Click" />
-                        </Grid>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-
-            <!-- TAB 4: About -->
+            <!-- TAB 6: About -->
             <StackPanel x:Name="SectionAbout" Spacing="16" Visibility="Collapsed">
                 <TextBlock Text="About FluentMusic" Style="{StaticResource SubtitleTextBlockStyle}" FontWeight="SemiBold" FontSize="18" />
 
@@ -290,10 +448,10 @@
                                 <Run Text="FluentMusic v1.1.0.0" />
                             </TextBlock>
                         </StackPanel>
-                        <TextBlock Text="A native, high-performance YouTube Music client merging macOS Apple Music elegance with Windows 11 Fluent Design and high-fidelity lossless streaming."
+                        <TextBlock Text="A native, high-performance YouTube Music client merging macOS Apple Music elegance with Windows 11 Fluent Design, ArchiveTune Lyrics engine, and lossless audio streaming."
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                    Style="{StaticResource CaptionTextBlockStyle}" />
-                        <TextBlock Text="Built with WinUI 3, Windows App SDK 1.5, .NET 8, and YouTube Innertube API."
+                        <TextBlock Text="Built with WinUI 3, Windows App SDK 1.5, .NET 8, and InnerTube Zero-Cipher stream engine."
                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                                    Style="{StaticResource CaptionTextBlockStyle}" />
                     </StackPanel>

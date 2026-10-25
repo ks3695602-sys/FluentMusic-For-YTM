@@ -18,6 +18,8 @@ public interface IMediaPlaybackService
     double PlaybackRate { get; set; }
     bool IsShuffleEnabled { get; set; }
     int RepeatMode { get; set; } // 0 = Off, 1 = Repeat All, 2 = Repeat One
+    double CrossfadeDurationSeconds { get; set; }
+    bool IsVolumeNormalizationEnabled { get; set; }
 
     ObservableCollection<Song> UpNext { get; }
     ObservableCollection<Song> History { get; }

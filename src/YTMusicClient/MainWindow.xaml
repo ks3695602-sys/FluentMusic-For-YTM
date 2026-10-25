@@ -13,11 +13,11 @@
             <ColumnDefinition Width="*" />   <!-- Island 2: Main Floating Stage Card -->
         </Grid.ColumnDefinitions>
 
-        <!-- ISLAND 1: Left Translucent Liquid Glass Sidebar -->
+        <!-- ISLAND 1: Left Translucent Liquid Glass Sidebar on Windows 11 Mica Alt -->
         <Border Grid.Column="0" Margin="0,0,10,0"
                 CornerRadius="16"
-                Background="{ThemeResource LayerFillColorDefaultBrush}"
-                BorderBrush="{StaticResource GlassBorderBrush}"
+                Background="{StaticResource SidebarMicaBrush}"
+                BorderBrush="{StaticResource SubtleBorderBrush}"
                 BorderThickness="1"
                 Padding="4,6,4,8">
             <Grid>
@@ -27,26 +27,58 @@
                     <RowDefinition Height="Auto" /> <!-- Bottom User Account & Settings -->
                 </Grid.RowDefinitions>
 
-            <!-- Top Draggable Window Header with macOS Traffic Light Controls -->
-            <Grid x:Name="SidebarDragArea" Grid.Row="0" Height="44" Background="Transparent">
-                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="14,0,0,0">
-                    <!-- macOS Traffic Light Window Controls (Apple HIG) -->
-                    <Button x:Name="MacCloseBtn" Click="MacCloseBtn_Click" Width="12" Height="12" CornerRadius="6"
-                            Padding="0" Background="#FF5F56" BorderBrush="#E0443E" BorderThickness="0.5"
-                            ToolTipService.ToolTip="Close" Margin="0,0,1,0" />
-                    <Button x:Name="MacMinimizeBtn" Click="MacMinimizeBtn_Click" Width="12" Height="12" CornerRadius="6"
-                            Padding="0" Background="#FFBD2E" BorderBrush="#DEA123" BorderThickness="0.5"
-                            ToolTipService.ToolTip="Minimize" Margin="0,0,1,0" />
-                    <Button x:Name="MacMaximizeBtn" Click="MacMaximizeBtn_Click" Width="12" Height="12" CornerRadius="6"
-                            Padding="0" Background="#27C93F" BorderBrush="#1AAB29" BorderThickness="0.5"
-                            ToolTipService.ToolTip="Zoom / Maximize" Margin="0,0,8,0" />
+            <!-- Top Draggable Window Header with True macOS Traffic Light Controls (Apple HIG) -->
+            <Grid x:Name="SidebarDragArea" Grid.Row="0" Height="48" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-                    <!-- FluentMusic Brand Note -->
-                    <Border Width="22" Height="22" CornerRadius="11" Background="{StaticResource AccentRedBrush}">
-                        <FontIcon Glyph="&#xE8D6;" FontSize="11" Foreground="White"
+                <!-- True macOS Traffic Light Window Controls (Apple HIG) -->
+                <StackPanel x:Name="TrafficLightsContainer"
+                            Grid.Column="0"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Margin="16,12,0,0"
+                            VerticalAlignment="Top"
+                            PointerEntered="TrafficLights_PointerEntered"
+                            PointerExited="TrafficLights_PointerExited">
+                    <!-- Close: #FF5F56 -->
+                    <Button x:Name="MacCloseBtn" Click="MacCloseBtn_Click"
+                            Width="12" Height="12" CornerRadius="6"
+                            Padding="0" Background="#FF5F56" BorderBrush="#E0443E" BorderThickness="0.5"
+                            ToolTipService.ToolTip="Close">
+                        <TextBlock x:Name="CloseGlyph" Text="&#x2715;" FontSize="7" FontWeight="Bold"
+                                   Foreground="#4D0000" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Opacity="0" Margin="0,-1,0,0" />
+                    </Button>
+                    <!-- Minimize: #FFBD2E -->
+                    <Button x:Name="MacMinimizeBtn" Click="MacMinimizeBtn_Click"
+                            Width="12" Height="12" CornerRadius="6"
+                            Padding="0" Background="#FFBD2E" BorderBrush="#DEA123" BorderThickness="0.5"
+                            ToolTipService.ToolTip="Minimize">
+                        <TextBlock x:Name="MinimizeGlyph" Text="&#x2013;" FontSize="8" FontWeight="Bold"
+                                   Foreground="#593E00" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Opacity="0" Margin="0,-2,0,0" />
+                    </Button>
+                    <!-- Maximize/Fullscreen: #27C93F -->
+                    <Button x:Name="MacMaximizeBtn" Click="MacMaximizeBtn_Click"
+                            Width="12" Height="12" CornerRadius="6"
+                            Padding="0" Background="#27C93F" BorderBrush="#1AAB29" BorderThickness="0.5"
+                            ToolTipService.ToolTip="Zoom / Maximize">
+                        <TextBlock x:Name="MaximizeGlyph" Text="&#x2922;" FontSize="6" FontWeight="Bold"
+                                   Foreground="#003D08" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Opacity="0" Margin="0,-1,0,0" />
+                    </Button>
+                </StackPanel>
+
+                <!-- Symmetrical FluentMusic Brand Note -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7" Margin="14,10,0,0" VerticalAlignment="Top">
+                    <Border Width="18" Height="18" CornerRadius="9" Background="{StaticResource AppleAccentGradient}">
+                        <FontIcon Glyph="&#xE8D6;" FontSize="9" Foreground="White"
                                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,0,0,0" />
                     </Border>
-                    <TextBlock Text="FluentMusic" FontWeight="Bold" FontSize="13.5" VerticalAlignment="Center" />
+                    <TextBlock Text="FluentMusic" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" LetterSpacing="-0.2" />
                 </StackPanel>
             </Grid>
 
@@ -56,20 +88,20 @@
                 <Button x:Name="NavHomeBtn" Click="NavHome_Click"
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                         Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                        BorderThickness="0" CornerRadius="10" Padding="12,9">
+                        BorderThickness="1" BorderBrush="Transparent" CornerRadius="12" Padding="12,9">
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <FontIcon Glyph="&#xE80F;" FontSize="16" Foreground="{StaticResource AccentRedBrush}" />
-                        <TextBlock Text="Home" FontSize="13" FontWeight="SemiBold" />
+                        <TextBlock x:Name="NavHomeText" Text="Home" FontSize="13" FontWeight="SemiBold" />
                     </StackPanel>
                 </Button>
 
                 <!-- Explore -->
                 <Button x:Name="NavExploreBtn" Click="NavExplore_Click"
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                        Background="Transparent" BorderThickness="0" CornerRadius="10" Padding="12,9">
+                        Background="Transparent" BorderThickness="1" BorderBrush="Transparent" CornerRadius="12" Padding="12,9">
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <FontIcon Glyph="&#xF6FA;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="Explore" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="NavExploreText" Text="Explore" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
                 </Button>
 
@@ -82,10 +114,10 @@
 
                     <Button x:Name="NavLibraryBtn" Click="NavLibrary_Click"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                            Background="Transparent" BorderThickness="0" CornerRadius="10" Padding="12,9">
+                            Background="Transparent" BorderThickness="1" BorderBrush="Transparent" CornerRadius="12" Padding="12,9">
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <FontIcon Glyph="&#xE8F1;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock Text="Library" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="NavLibraryText" Text="Library" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
                     </Button>
 
@@ -101,11 +133,11 @@
                 <!-- Downloads Sub-Item (Revealed by Arrow) -->
                 <Button x:Name="NavDownloadsBtn" Click="NavDownloads_Click"
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                        Background="Transparent" BorderThickness="0" CornerRadius="10"
+                        Background="Transparent" BorderThickness="1" BorderBrush="Transparent" CornerRadius="12"
                         Padding="26,8,12,8" Margin="0,1,0,0">
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xE896;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="Downloads" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="NavDownloadsText" Text="Downloads" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
                 </Button>
             </StackPanel>
@@ -146,18 +178,22 @@
                 <!-- Settings Button -->
                 <Button x:Name="NavSettingsBtn" Click="NavSettings_Click"
                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                        Background="Transparent" BorderThickness="0" CornerRadius="10" Padding="12,8">
+                        Background="Transparent" BorderThickness="1" BorderBrush="Transparent" CornerRadius="12" Padding="12,8">
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <FontIcon Glyph="&#xE713;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="Settings" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="NavSettingsText" Text="Settings" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
                 </Button>
             </StackPanel>
         </Grid>
         </Border>
 
-        <!-- ISLAND 2: Main Floating Stage Card (Mica Surface Layer with Glass Border) -->
+        <!-- ISLAND 2: Main Floating Stage Card (Solid Deep Matte Black Canvas) -->
         <Border Grid.Column="1"
+                CornerRadius="16"
+                Background="{StaticResource MainStageMatteBrush}"
+                BorderBrush="{StaticResource SubtleBorderBrush}"
+                BorderThickness="1">
                 CornerRadius="16"
                 Background="{ThemeResource LayerFillColorDefaultBrush}"
                 BorderBrush="{StaticResource GlassBorderBrush}"
@@ -341,11 +377,11 @@
                                 </Grid>
                             </Grid>
 
-                            <!-- Floating Liquid Glass Player Capsule (Layer 1: Hovers centered above content!) -->
-                            <controls:PlayerBar x:Name="PlayerBarControl"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Bottom"
-                                                Margin="0,0,0,20" />
+                            <!-- Floating Liquid Glass Player Capsule with Drop Shadow -->
+                            <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,18">
+                                <Border Width="828" Height="68" CornerRadius="26" Background="#33000000" Margin="-4,-3,-4,-3" />
+                                <controls:PlayerBar x:Name="PlayerBarControl" />
+                            </Grid>
                         </Grid>
                     </SplitView.Content>
                 </SplitView>

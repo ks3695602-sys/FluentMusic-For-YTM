@@ -14,13 +14,13 @@
     </UserControl.Resources>
 
     <!-- Floating Capsule Player (Apple Music macOS Liquid Glass style) -->
-    <Border Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+    <Border Background="{StaticResource LiquidGlassPillBrush}"
             BorderBrush="{StaticResource GlassBorderBrush}"
             BorderThickness="1"
-            CornerRadius="30"
-            Width="780"
-            Height="60"
-            Padding="14,4"
+            CornerRadius="24"
+            Width="820"
+            Height="62"
+            Padding="12,8,12,8"
             HorizontalAlignment="Center">
 
         <Grid VerticalAlignment="Center">
@@ -46,8 +46,8 @@
                     <FontIcon Glyph="&#xE892;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                 </Button>
 
-                <!-- Play / Pause Button (Apple Music macOS Golden Gate Style) -->
-                <Button Background="{StaticResource AccentRedBrush}"
+                <!-- Play / Pause Button (Apple Music macOS Golden Gate Style with Apple Red Gradient) -->
+                <Button Background="{StaticResource AppleAccentGradient}"
                         BorderThickness="0"
                         Command="{x:Bind ViewModel.TogglePlayPauseCommand}"
                         Width="36" Height="36" CornerRadius="18"
@@ -167,7 +167,7 @@
                     <ProgressBar Grid.Row="1" Minimum="0" Maximum="100"
                                  Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}"
                                  Height="2.5" Margin="0,3,0,0"
-                                 Foreground="{StaticResource AccentRedBrush}"
+                                 Foreground="{StaticResource AppleAccentGradient}"
                                  Background="{ThemeResource ControlStrokeColorDefaultBrush}" />
                 </Grid>
             </Border>

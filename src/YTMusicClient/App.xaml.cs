@@ -24,6 +24,7 @@ public partial class App : Application
         services.AddSingleton<ILyricsService, LyricsService>();
         services.AddSingleton<IDownloadService, DownloadService>();
         services.AddSingleton<LocalMediaProxy>();
+        services.AddSingleton(LocalizationService.Instance);
 
         // Register ViewModels
         services.AddSingleton<ShellViewModel>();

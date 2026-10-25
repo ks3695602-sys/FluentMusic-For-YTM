@@ -26,7 +26,22 @@ public sealed partial class HomePage : Page
                 rootElement.KeyDown -= OnRootKeyDown;
                 rootElement.KeyDown += OnRootKeyDown;
             }
+            ApplyLocalization();
         };
+
+        Services.LocalizationService.Instance.LanguageChanged += (s, e) => ApplyLocalization();
+    }
+
+    private void ApplyLocalization()
+    {
+        try
+        {
+            var loc = Services.LocalizationService.Instance;
+            HomeHeaderTitle.Text = loc.GetString("ListenNow");
+            HomeHeaderSubtitle.Text = loc.GetString("ListenNowSubtitle");
+            SearchBox.PlaceholderText = loc.GetString("SearchPlaceholder");
+        }
+        catch { }
     }
 
     private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)

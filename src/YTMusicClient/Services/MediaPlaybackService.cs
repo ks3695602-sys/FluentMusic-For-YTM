@@ -48,6 +48,9 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
 
     public bool IsShuffleEnabled { get; set; }
     public int RepeatMode { get; set; } // 0 = Off, 1 = Repeat All, 2 = Repeat One
+    public double CrossfadeDurationSeconds { get; set; } = 4.0;
+    public bool IsVolumeNormalizationEnabled { get; set; } = true;
+    private double _baseVolume = 1.0;
 
     public ObservableCollection<Song> UpNext { get; } = new();
     public ObservableCollection<Song> History { get; } = new();
@@ -62,6 +65,14 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
     public MediaPlaybackService()
     {
         _dispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            if (localSettings.Values["CrossfadeSeconds"] is double cf) CrossfadeDurationSeconds = cf;
+            if (localSettings.Values["VolumeNormalization"] is bool vn) IsVolumeNormalizationEnabled = vn;
+        }
+        catch { }
 
         _mediaPlayer = new MediaPlayer();
         _mediaPlayer.AudioCategory = MediaPlayerAudioCategory.Media;

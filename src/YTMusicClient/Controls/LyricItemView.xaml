@@ -4,7 +4,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid x:Name="RootGrid" Padding="0,6" Margin="0,2">
+    <StackPanel x:Name="RootStack" Padding="4,6" Margin="0,2">
         <TextBlock x:Name="LineTextBlock" TextWrapping="Wrap" />
-    </Grid>
+        <TextBlock x:Name="TranslationTextBlock" TextWrapping="Wrap"
+                   FontSize="13" FontWeight="Medium" Opacity="0.75"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                   Visibility="Collapsed" Margin="0,3,0,0" />
+    </StackPanel>
 </UserControl>

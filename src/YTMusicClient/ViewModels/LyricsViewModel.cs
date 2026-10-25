@@ -27,6 +27,24 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private int _activeLyricIndex = -1;
 
+    [ObservableProperty]
+    private string _lyricsMode = "V2"; // "V2" (Liquid Glow & Spring Bounce) or "ENHANCED" (Apple Syllable Morphing)
+
+    [ObservableProperty]
+    private double _bounceFactor = 1.0;
+
+    [ObservableProperty]
+    private double _glowFactor = 1.0;
+
+    [ObservableProperty]
+    private double _fillTransitionWidth = 8.0;
+
+    [ObservableProperty]
+    private bool _lrcBounceEnabled = true;
+
+    [ObservableProperty]
+    private string _selectedTranslationMode = "Original"; // "Original", "EN", "HI", "Hinglish"
+
     public ObservableCollection<LyricLine> Lyrics { get; } = new();
 
     public event EventHandler<int>? ActiveLyricChanged;
@@ -38,10 +56,89 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
         _playbackService.SongChanged += OnSongChanged;
         _playbackService.PositionChanged += OnPositionChanged;
 
+        LoadPreferences();
+
         if (_playbackService.CurrentSong != null)
         {
             _ = LoadLyricsAsync(_playbackService.CurrentSong);
         }
+    }
+
+    public void LoadPreferences()
+    {
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            if (localSettings.Values["LyricsMode"] is string mode && !string.IsNullOrWhiteSpace(mode))
+                LyricsMode = mode;
+            if (localSettings.Values["LyricsV2BounceFactor"] is double bounce)
+                BounceFactor = bounce;
+            if (localSettings.Values["LyricsV2GlowFactor"] is double glow)
+                GlowFactor = glow;
+            if (localSettings.Values["LyricsV2FillTransitionWidth"] is double fill)
+                FillTransitionWidth = fill;
+            if (localSettings.Values["LyricsV2LrcBounceEnabled"] is bool lrcBounce)
+                LrcBounceEnabled = lrcBounce;
+            if (localSettings.Values["LyricsTranslationMode"] is string transMode && !string.IsNullOrWhiteSpace(transMode))
+                SelectedTranslationMode = transMode;
+        }
+        catch { }
+    }
+
+    [RelayCommand]
+    public async Task SetTranslationModeAsync(string mode)
+    {
+        SelectedTranslationMode = mode;
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["LyricsTranslationMode"] = mode;
+        }
+        catch { }
+
+        if (mode == "Original" || string.IsNullOrWhiteSpace(mode))
+        {
+            foreach (var line in Lyrics)
+            {
+                line.TranslatedText = null;
+            }
+            return;
+        }
+
+        string targetLang = mode switch
+        {
+            "EN" => "en",
+            "HI" => "hi",
+            "Hinglish" => "hinglish",
+            _ => "en"
+        };
+
+        await TranslateCurrentLyricsAsync(targetLang);
+    }
+
+    private async Task TranslateCurrentLyricsAsync(string targetLang)
+    {
+        if (Lyrics.Count == 0) return;
+
+        var dispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+        var snapshot = Lyrics.ToList();
+
+        _ = Task.Run(async () =>
+        {
+            foreach (var line in snapshot)
+            {
+                if (string.IsNullOrWhiteSpace(line.Text)) continue;
+                try
+                {
+                    var trans = await _lyricsService.TranslateAsync(line.Text, targetLang);
+                    dispatcherQueue?.TryEnqueue(() =>
+                    {
+                        line.TranslatedText = trans;
+                    });
+                }
+                catch { }
+            }
+        });
     }
 
     private async void OnSongChanged(object? sender, Song song)
@@ -63,7 +160,7 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
         try
         {
             var lines = await _lyricsService.GetSyncedLyricsAsync(
-                song.Title, song.Artist, song.Duration);
+                song.Title, song.Artist, song.Duration, song.VideoId);
 
             if (lines.Count > 0)
             {
@@ -114,6 +211,18 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
 
                 HasLyrics = true;
                 StatusMessage = string.Empty;
+
+                if (SelectedTranslationMode != "Original" && !string.IsNullOrWhiteSpace(SelectedTranslationMode))
+                {
+                    string targetLang = SelectedTranslationMode switch
+                    {
+                        "EN" => "en",
+                        "HI" => "hi",
+                        "Hinglish" => "hinglish",
+                        _ => "en"
+                    };
+                    await TranslateCurrentLyricsAsync(targetLang);
+                }
             }
             else
             {

@@ -8,5 +8,11 @@ public interface ILyricsService
         string title,
         string artist,
         TimeSpan duration,
+        string? videoId = null,
+        CancellationToken ct = default);
+
+    Task<string> TranslateAsync(
+        string text,
+        string targetLanguage,
         CancellationToken ct = default);
 }

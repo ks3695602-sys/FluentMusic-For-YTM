@@ -41,6 +41,10 @@ public sealed partial class MainWindow : Window
         var navService = App.Services.GetRequiredService<INavigationService>();
         navService.Frame = ContentFrame;
 
+        // Wire Localization dynamic updates
+        LocalizationService.Instance.LanguageChanged += (s, e) => ApplyLocalization();
+        ApplyLocalization();
+
         // Wire Floating PlayerBar lyrics and now-playing events
         PlayerBarControl.LyricsToggled += (s, e) =>
         {
@@ -402,11 +406,44 @@ public sealed partial class MainWindow : Window
             {
                 appWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
                 appWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
-                appWindow.TitleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(40, 255, 255, 255);
-                appWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(60, 255, 255, 255);
+                appWindow.TitleBar.ButtonForegroundColor = Microsoft.UI.Colors.Transparent;
+                appWindow.TitleBar.ButtonInactiveForegroundColor = Microsoft.UI.Colors.Transparent;
+                appWindow.TitleBar.ButtonHoverBackgroundColor = Microsoft.UI.Colors.Transparent;
+                appWindow.TitleBar.ButtonHoverForegroundColor = Microsoft.UI.Colors.Transparent;
+                appWindow.TitleBar.ButtonPressedBackgroundColor = Microsoft.UI.Colors.Transparent;
+                appWindow.TitleBar.ButtonPressedForegroundColor = Microsoft.UI.Colors.Transparent;
             }
         }
         catch { }
+    }
+
+    private void ApplyLocalization()
+    {
+        try
+        {
+            var loc = LocalizationService.Instance;
+            NavHomeText.Text = loc.GetString("Home");
+            NavExploreText.Text = loc.GetString("Explore");
+            NavLibraryText.Text = loc.GetString("Library");
+            NavDownloadsText.Text = loc.GetString("Downloads");
+            NavSettingsText.Text = loc.GetString("Settings");
+            UserAccountStatusTitle.Text = loc.GetString("GoogleSync");
+        }
+        catch { }
+    }
+
+    private void TrafficLights_PointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        CloseGlyph.Opacity = 1.0;
+        MinimizeGlyph.Opacity = 1.0;
+        MaximizeGlyph.Opacity = 1.0;
+    }
+
+    private void TrafficLights_PointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        CloseGlyph.Opacity = 0.0;
+        MinimizeGlyph.Opacity = 0.0;
+        MaximizeGlyph.Opacity = 0.0;
     }
 
     private void TrySetBackdrop()
@@ -426,14 +463,19 @@ public sealed partial class MainWindow : Window
 
     private void SetActiveNavButton(int index)
     {
-        var activeBg = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"];
-        var inactiveBg = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        var activeBg = new SolidColorBrush(Windows.UI.Color.FromArgb(0x28, 0xFA, 0x2D, 0x48));
+        var activeBorder = new SolidColorBrush(Windows.UI.Color.FromArgb(0x55, 0xFA, 0x2D, 0x48));
+        var transBrush = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
 
-        NavHomeBtn.Background = index == 0 ? activeBg : inactiveBg;
-        NavExploreBtn.Background = index == 1 ? activeBg : inactiveBg;
-        NavLibraryBtn.Background = index == 2 ? activeBg : inactiveBg;
-        NavSettingsBtn.Background = index == 3 ? activeBg : inactiveBg;
-        NavDownloadsBtn.Background = index == 4 ? activeBg : inactiveBg;
+        var buttons = new[] { NavHomeBtn, NavExploreBtn, NavLibraryBtn, NavSettingsBtn, NavDownloadsBtn };
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            bool isActive = (i == index);
+            buttons[i].Background = isActive ? activeBg : transBrush;
+            buttons[i].BorderBrush = isActive ? activeBorder : transBrush;
+            buttons[i].BorderThickness = new Thickness(1);
+            buttons[i].CornerRadius = new CornerRadius(12);
+        }
     }
 
     private void NavHome_Click(object sender, RoutedEventArgs e)

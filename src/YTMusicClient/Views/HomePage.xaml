@@ -28,11 +28,11 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Hero Header Title -->
+            <!-- Hero Header Title (Apple HIG Typography) -->
             <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
-                <TextBlock Text="Listen Now" FontSize="26" FontWeight="Bold" />
-                <TextBlock Text="Top picks, personalized mixes, and lossless studio masters"
-                           FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="HomeHeaderTitle" Text="Listen Now" FontSize="28" FontWeight="Bold" LetterSpacing="-0.5" />
+                <TextBlock x:Name="HomeHeaderSubtitle" Text="Top picks, personalized mixes, and lossless studio masters"
+                           FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
 
             <!-- Floating Search Capsule (Apple Music Pill) -->
@@ -135,7 +135,7 @@
                                     </ListView.ItemsPanel>
                                     <ListView.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Width="160" Height="220" CornerRadius="12"
+                                            <Border Width="160" Height="220" CornerRadius="10"
                                                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                                                     Padding="8">
