@@ -26,9 +26,9 @@ public sealed partial class MainWindow : Window
 
         ViewModel = App.Services.GetRequiredService<ShellViewModel>();
 
-        // Zero-titlebar edge-to-edge window shell with draggable sidebar
+        // Zero-titlebar edge-to-edge window shell with draggable stage area
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(SidebarDragArea);
+        SetTitleBar(MainStageDragArea);
 
         // Make window caption buttons transparent so they seamlessly blend
         ConfigureTransparentCaptionButtons();
@@ -78,6 +78,23 @@ public sealed partial class MainWindow : Window
                     else if (state == MediaPlaybackState.Paused && _nativeVideoPlayer.PlaybackSession.PlaybackState != Windows.Media.Playback.MediaPlaybackState.Paused)
                     {
                         _nativeVideoPlayer.Pause();
+                    }
+                }
+            });
+        };
+
+        ViewModel.PlaybackService.PositionChanged += (s, pos) =>
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (NowPlayingOverlay.Visibility == Visibility.Visible && ViewModel?.PlaybackService != null)
+                {
+                    var dur = ViewModel.PlaybackService.Duration;
+                    NpPositionText.Text = FormatTime(pos);
+                    NpDurationText.Text = FormatTime(dur);
+                    if (dur.TotalSeconds > 0)
+                    {
+                        NpPositionSlider.Value = (pos.TotalSeconds / dur.TotalSeconds) * 100.0;
                     }
                 }
             });
@@ -158,6 +175,8 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private bool _isUserSeeking = false;
+
     private void UpdateNowPlayingContent()
     {
         try
@@ -169,14 +188,27 @@ public sealed partial class MainWindow : Window
             {
                 NpTitleText.Text = !string.IsNullOrEmpty(pb.Title) ? pb.Title : "Not Playing";
                 NpArtistText.Text = !string.IsNullOrEmpty(pb.Artist) ? pb.Artist : "Choose a song to start listening";
-                NpQualityText.Text = !string.IsNullOrEmpty(pb.AudioQualityBadge) ? pb.AudioQualityBadge : "256 kbps · AAC · Hi-Res";
-                NpFidelityText.Text = pb.FidelityBadgeText;
-                NpFidelityPill.Background = pb.FidelityBadgeBackground;
-                NpFidelityText.Foreground = pb.FidelityBadgeForeground;
 
                 if (!string.IsNullOrEmpty(pb.ThumbnailUrl) && Uri.TryCreate(pb.ThumbnailUrl, UriKind.Absolute, out var uri))
                 {
                     NpAlbumBitmap.UriSource = uri;
+                }
+
+                if (NpPlayPauseIcon != null && ViewModel?.PlaybackService != null)
+                {
+                    NpPlayPauseIcon.Glyph = ViewModel.PlaybackService.IsPlaying ? "\uE769" : "\uE768";
+                }
+
+                if (ViewModel?.PlaybackService != null && NpPositionText != null && NpDurationText != null)
+                {
+                    var pos = ViewModel.PlaybackService.Position;
+                    var dur = ViewModel.PlaybackService.Duration;
+                    NpPositionText.Text = FormatTime(pos);
+                    NpDurationText.Text = FormatTime(dur);
+                    if (!_isUserSeeking && dur.TotalSeconds > 0)
+                    {
+                        NpPositionSlider.Value = (pos.TotalSeconds / dur.TotalSeconds) * 100.0;
+                    }
                 }
             }
 
@@ -186,6 +218,57 @@ public sealed partial class MainWindow : Window
             }
         }
         catch { }
+    }
+
+    private static string FormatTime(TimeSpan t)
+    {
+        return $"{(int)t.TotalMinutes}:{t.Seconds:D2}";
+    }
+
+    private void PlayerPlayPause_Click(object sender, RoutedEventArgs e)
+    {
+        ViewModel?.PlayerBar?.TogglePlayPauseCommand?.Execute(null);
+        if (NpPlayPauseIcon != null && ViewModel?.PlaybackService != null)
+        {
+            NpPlayPauseIcon.Glyph = ViewModel.PlaybackService.IsPlaying ? "\uE768" : "\uE769";
+        }
+    }
+
+    private async void PlayerNext_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.PlaybackService != null)
+            await ViewModel.PlaybackService.PlayNextAsync();
+    }
+
+    private async void PlayerPrev_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.PlaybackService != null)
+            await ViewModel.PlaybackService.PlayPreviousAsync();
+    }
+
+    private void PlayerShuffle_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.PlaybackService != null)
+            ViewModel.PlaybackService.IsShuffleEnabled = !ViewModel.PlaybackService.IsShuffleEnabled;
+    }
+
+    private void PlayerRepeat_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel?.PlaybackService != null)
+            ViewModel.PlaybackService.RepeatMode = (ViewModel.PlaybackService.RepeatMode + 1) % 3;
+    }
+
+    private void NpPositionSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        if (ViewModel?.PlaybackService != null && Math.Abs(e.NewValue - e.OldValue) > 1.0)
+        {
+            var dur = ViewModel.PlaybackService.Duration.TotalSeconds;
+            if (dur > 0)
+            {
+                var targetSec = (e.NewValue / 100.0) * dur;
+                ViewModel.PlaybackService.Seek(TimeSpan.FromSeconds(targetSec));
+            }
+        }
     }
 
     private void UpdateMeshGradients(string hex1, string hex2)

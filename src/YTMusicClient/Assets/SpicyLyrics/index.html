@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Spicy Lyrics</title>
+  <title>FluentMusic Lyrics Engine</title>
   <style>
     :root {
-      --accent-color: #FA2D48;
+      --accent: #FA2D48;
       --active-text: #FFFFFF;
-      --inactive-text: rgba(255, 255, 255, 0.28);
+      --inactive-text: rgba(255, 255, 255, 0.32);
       --passed-text: rgba(255, 255, 255, 0.45);
       --font-family: "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-scale: 1.0;
+      --bounce-mult: 1.0;
+      --blur-amount: 3.5px;
     }
 
     * {
@@ -30,7 +33,7 @@
       color: #fff;
     }
 
-    /* Ambient Reactive Background Glow */
+    /* Dynamic Reactive Canvas Ambient Backdrop */
     #ambient-canvas {
       position: fixed;
       top: 0;
@@ -39,20 +42,20 @@
       height: 100%;
       z-index: 0;
       pointer-events: none;
-      filter: blur(60px);
-      opacity: 0.55;
+      filter: blur(65px) saturate(2.2);
+      opacity: 0.65;
       transition: opacity 0.8s ease;
     }
 
-    /* Scroller */
+    /* Scroller Container */
     #lyrics-container {
       position: relative;
-      z-index: 1;
+      z-index: 2;
       width: 100%;
       height: 100%;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 120px 24px 240px 24px;
+      padding: 140px 32px 280px 32px;
       scroll-behavior: smooth;
     }
 
@@ -60,196 +63,364 @@
       width: 4px;
     }
     #lyrics-container::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.16);
       border-radius: 4px;
     }
 
-    /* Empty state */
-    #empty-state {
+    /* Floating Top Action Capsule (Spicy Lyrics & YouLy+ Controls) */
+    #view-controls {
+      position: fixed;
+      top: 20px;
+      right: 28px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(20, 20, 24, 0.65);
+      backdrop-filter: blur(20px) saturate(1.8);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.4);
+      border-radius: 20px;
+      padding: 4px 10px;
+      opacity: 0.85;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #view-controls:hover {
+      opacity: 1.0;
+      transform: translateY(-1px);
+    }
+
+    .pill-btn {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .pill-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    .pill-btn.active {
+      background: rgba(250, 45, 72, 0.28);
+      color: #FA2D48;
+      border: 1px solid rgba(250, 45, 72, 0.4);
+    }
+
+    /* Loading Shimmer / Empty State */
+    #status-overlay {
       position: absolute;
       top: 45%;
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
-      color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.6);
       font-size: 14px;
-      font-weight: 500;
-      width: 80%;
+      font-weight: 600;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
+      pointer-events: none;
     }
 
-    .spicy-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      background: rgba(250, 45, 72, 0.15);
-      color: #FA2D48;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.3px;
+    .pulse-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #FA2D48;
+      box-shadow: 0 0 16px #FA2D48;
+      animation: pulseAnim 1.6s ease-in-out infinite;
     }
 
-    /* Lyric Line styling (Apple Music / Spicy Lyrics Syllable Karaoke) */
-    .lyric-line {
+    @keyframes pulseAnim {
+      0%, 100% { transform: scale(0.9); opacity: 0.4; }
+      50% { transform: scale(1.35); opacity: 1.0; }
+    }
+
+    /* ==========================================================================
+       ENGINE 1: SPICY LYRICS (Dynamic Mesh Glow + Syllable Spring Wash)
+       ========================================================================== */
+    body.mode-spicy .lyric-line {
       display: block;
-      margin: 18px 0;
-      font-size: 26px;
-      font-weight: 700;
-      line-height: 1.35;
+      margin: 22px 0;
+      font-size: calc(30px * var(--font-scale));
+      font-weight: 800;
+      line-height: 1.3;
+      letter-spacing: -0.02em;
       color: var(--inactive-text);
       cursor: pointer;
-      transition: color 0.35s cubic-bezier(0.25, 1, 0.5, 1),
-                  transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  filter 0.35s ease,
-                  opacity 0.35s ease;
       transform-origin: left center;
-      filter: blur(0.3px);
+      transition: color 0.28s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+      filter: blur(0.4px);
     }
 
-    .lyric-line:hover {
-      color: rgba(255, 255, 255, 0.65);
+    body.mode-spicy .lyric-line:hover {
+      color: rgba(255, 255, 255, 0.75);
       transform: scale(1.02);
       filter: blur(0px);
     }
 
-    /* Active Line: Spring bounce scale + liquid glow */
-    .lyric-line.active {
+    body.mode-spicy .lyric-line.active {
       color: var(--active-text);
-      transform: scale(1.045);
-      filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.4)) blur(0px);
-      text-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
+      transform: scale(calc(1.04 * var(--bounce-mult)));
+      filter: blur(0px);
+      text-shadow: 0 0 24px rgba(255, 255, 255, 0.45), 0 0 8px rgba(255, 255, 255, 0.7);
     }
 
-    .lyric-line.passed {
+    body.mode-spicy .lyric-line.passed {
       color: var(--passed-text);
+      transform: scale(1.0);
+      filter: blur(0.3px);
+    }
+
+    body.mode-spicy .syllable-word {
+      display: inline-block;
+      position: relative;
+      margin-right: 0.28em;
+      background: linear-gradient(to right, #FFFFFF var(--progress, 0%), rgba(255, 255, 255, 0.28) var(--progress, 0%));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      transition: transform 0.18s ease;
+    }
+
+    body.mode-spicy .syllable-word.sung {
+      --progress: 100%;
+      -webkit-text-fill-color: #FFFFFF;
+    }
+
+    /* ==========================================================================
+       ENGINE 2: YOULY+ (Apple Music Pure TTML with Depth-of-Field Gaussian Blur)
+       ========================================================================== */
+    body.mode-youly .lyric-line {
+      display: block;
+      margin: 24px 0;
+      font-size: calc(32px * var(--font-scale));
+      font-weight: 700;
+      line-height: 1.35;
+      letter-spacing: -0.015em;
+      color: rgba(255, 255, 255, 0.25);
+      cursor: pointer;
+      transform-origin: left center;
+      transition: color 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.4s ease, opacity 0.4s ease;
+      filter: blur(var(--blur-amount));
+      opacity: 0.35;
+    }
+
+    body.mode-youly .lyric-line:hover {
+      opacity: 0.85;
+      filter: blur(0.5px);
+      transform: scale(1.015);
+    }
+
+    body.mode-youly .lyric-line.active {
+      color: #FFFFFF;
+      opacity: 1.0;
+      transform: scale(1.05);
+      filter: blur(0px);
+      text-shadow: 0 0 28px rgba(255, 255, 255, 0.55), 0 0 12px rgba(255, 255, 255, 0.8);
+    }
+
+    body.mode-youly .lyric-line.passed {
+      color: rgba(255, 255, 255, 0.55);
+      opacity: 0.6;
+      filter: blur(0.6px);
       transform: scale(1.0);
     }
 
-    /* Syllable Karaoke Fill (Apple Music wash effect) */
-    .syllable {
+    body.mode-youly .syllable-word {
       display: inline-block;
-      position: relative;
-      background: linear-gradient(to right, #ffffff var(--progress, 0%), rgba(255, 255, 255, 0.3) var(--progress, 0%));
+      margin-right: 0.3em;
+      background: linear-gradient(to right, #FFFFFF var(--progress, 0%), rgba(255, 255, 255, 0.35) var(--progress, 0%));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       transition: filter 0.2s ease;
     }
 
-    .syllable.completed {
+    body.mode-youly .syllable-word.sung {
       --progress: 100%;
+      -webkit-text-fill-color: #FFFFFF;
     }
 
-    /* Subtitle / Hindi Translation */
+    /* Subtitle Translation / Romanization */
     .lyric-sub {
       display: block;
-      font-size: 14px;
+      font-size: calc(15px * var(--font-scale));
       font-weight: 500;
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 4px;
-      letter-spacing: 0.1px;
+      color: rgba(255, 255, 255, 0.48);
+      margin-top: 6px;
+      letter-spacing: 0.05px;
+      line-height: 1.4;
     }
 
     .active .lyric-sub {
-      color: rgba(255, 255, 255, 0.85);
+      color: rgba(255, 255, 255, 0.88);
+      text-shadow: none;
     }
   </style>
 </head>
-<body>
-  <!-- Dynamic Ambient Canvas -->
+<body class="mode-spicy">
+  <!-- Dynamic Ambient Canvas Background -->
   <canvas id="ambient-canvas"></canvas>
 
+  <!-- Top Glass Controls Capsule -->
+  <div id="view-controls">
+    <button id="engine-btn" class="pill-btn active" title="Switch Engine: Spicy vs YouLy+">
+      <span id="engine-icon">🌶️</span> <span id="engine-text">Spicy Lyrics</span>
+    </button>
+    <button id="roman-btn" class="pill-btn" title="Toggle Romanization (Hinglish/Romaji)">
+      <span>Aa</span>
+    </button>
+  </div>
+
+  <!-- Lyrics Scrolling Area -->
   <div id="lyrics-container">
-    <div id="empty-state">
-      <div class="spicy-badge">🌶️ Spicy Lyrics Engine</div>
-      <div id="status-text">Play a song to load synchronized karaoke lyrics</div>
+    <div id="status-overlay">
+      <div class="pulse-dot"></div>
+      <div id="status-text">Synchronizing lyrics...</div>
     </div>
   </div>
 
   <script>
     const container = document.getElementById('lyrics-container');
-    const emptyState = document.getElementById('empty-state');
+    const statusOverlay = document.getElementById('status-overlay');
     const statusText = document.getElementById('status-text');
     const canvas = document.getElementById('ambient-canvas');
     const ctx = canvas.getContext('2d');
+    const engineBtn = document.getElementById('engine-btn');
+    const engineIcon = document.getElementById('engine-icon');
+    const engineText = document.getElementById('engine-text');
+    const romanBtn = document.getElementById('roman-btn');
 
     let currentLyrics = [];
     let activeLineIndex = -1;
-    let trackColors = ['#FA2D48', '#3B82F6'];
+    let currentEngine = 'spicy'; // 'spicy' or 'youly'
+    let isRomanized = false;
+    let trackColors = ['#FA2D48', '#3B82F6', '#8B5CF6', '#F59E0B'];
+    let animAngle = 0;
 
-    // Canvas resize
+    // Engine toggle
+    engineBtn.addEventListener('click', () => {
+      setEngine(currentEngine === 'spicy' ? 'youly' : 'spicy');
+    });
+
+    function setEngine(engine) {
+      currentEngine = engine;
+      document.body.className = `mode-${engine}`;
+      if (engine === 'spicy') {
+        engineIcon.innerText = '🌶️';
+        engineText.innerText = 'Spicy Lyrics';
+      } else {
+        engineIcon.innerText = '⚡';
+        engineText.innerText = 'YouLy+';
+      }
+      renderLyrics();
+    }
+
+    // Romanization toggle
+    romanBtn.addEventListener('click', () => {
+      isRomanized = !isRomanized;
+      romanBtn.classList.toggle('active', isRomanized);
+      renderLyrics();
+    });
+
+    // Ambient Canvas Fluid Mesh Animation
     function resizeCanvas() {
-      canvas.width = window.innerWidth / 4;
-      canvas.height = window.innerHeight / 4;
-      drawAmbientBackground();
+      canvas.width = Math.max(160, Math.floor(window.innerWidth / 3));
+      canvas.height = Math.max(160, Math.floor(window.innerHeight / 3));
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    function drawAmbientBackground() {
+    function drawAmbient() {
       if (!ctx) return;
+      animAngle += 0.006;
       const w = canvas.width;
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
-      
-      const grad = ctx.createLinearGradient(0, 0, w, h);
-      grad.addColorStop(0, trackColors[0] || '#FA2D48');
-      grad.addColorStop(1, trackColors[1] || '#3B82F6');
+
+      // Rotating flowing mesh gradient
+      const cx = w / 2 + Math.cos(animAngle) * (w * 0.25);
+      const cy = h / 2 + Math.sin(animAngle) * (h * 0.25);
+      const rad = Math.max(w, h) * 0.85;
+
+      const grad = ctx.createRadialGradient(cx, cy, 10, w / 2, h / 2, rad);
+      grad.addColorStop(0, trackColors[0]);
+      grad.addColorStop(0.45, trackColors[1] || trackColors[0]);
+      grad.addColorStop(0.85, trackColors[2] || '#1A1A24');
+      grad.addColorStop(1, '#0C0C12');
+
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
-    }
 
-    // Two-way IPC with WinUI 3 C# Host
+      requestAnimationFrame(drawAmbient);
+    }
+    requestAnimationFrame(drawAmbient);
+
+    // Two-way IPC Bridge with WinUI 3
     window.chrome?.webview?.addEventListener('message', (event) => {
       const msg = event.data;
       if (!msg) return;
 
       if (msg.type === 'lyrics') {
-        loadLyrics(msg.data);
+        currentLyrics = msg.data || [];
+        renderLyrics();
       } else if (msg.type === 'timeupdate') {
         updateTime(msg.timeMs);
+      } else if (msg.type === 'engine') {
+        setEngine(msg.engine);
       } else if (msg.type === 'colors') {
         if (msg.colors && msg.colors.length >= 2) {
           trackColors = msg.colors;
-          drawAmbientBackground();
         }
       } else if (msg.type === 'status') {
-        if (statusText) statusText.innerText = msg.text;
+        if (statusText) statusText.innerText = msg.text || '';
+        if (statusOverlay) statusOverlay.style.display = msg.text ? 'flex' : 'none';
+      } else if (msg.type === 'settings') {
+        if (msg.fontScale) document.documentElement.style.setProperty('--font-scale', msg.fontScale);
+        if (msg.bounce) document.documentElement.style.setProperty('--bounce-mult', msg.bounce);
       }
     });
 
-    function loadLyrics(lines) {
-      currentLyrics = lines || [];
-      activeLineIndex = -1;
+    function renderLyrics() {
       container.innerHTML = '';
+      activeLineIndex = -1;
 
       if (!currentLyrics || currentLyrics.length === 0) {
-        container.appendChild(emptyState);
+        if (statusOverlay) statusOverlay.style.display = 'flex';
+        container.appendChild(statusOverlay);
         return;
       }
+
+      if (statusOverlay) statusOverlay.style.display = 'none';
 
       currentLyrics.forEach((line, idx) => {
         const div = document.createElement('div');
         div.className = 'lyric-line';
         div.id = `line-${idx}`;
 
-        // Syllable support or line text
-        if (line.syllables && line.syllables.length > 0) {
-          line.syllables.forEach((syl, sIdx) => {
-            const span = document.createElement('span');
-            span.className = 'syllable';
-            span.id = `syl-${idx}-${sIdx}`;
-            span.innerText = syl.text + ' ';
-            div.appendChild(span);
-          });
-        } else {
-          div.innerText = line.text;
-        }
+        // Word-level / syllable break
+        const words = (line.words && line.words.length > 0) ? line.words : generateWordsForLine(line, idx);
 
+        words.forEach((w, wIdx) => {
+          const span = document.createElement('span');
+          span.className = 'syllable-word';
+          span.id = `word-${idx}-${wIdx}`;
+          span.innerText = w.text;
+          div.appendChild(span);
+        });
+
+        // Translation / Romanization
         if (line.translation) {
           const sub = document.createElement('span');
           sub.className = 'lyric-sub';
@@ -258,9 +429,10 @@
         }
 
         div.addEventListener('click', () => {
+          const seekTime = line.startTimeMs || (line.startSec * 1000) || 0;
           window.chrome?.webview?.postMessage({
             type: 'seek',
-            timeMs: line.startTimeMs || (line.startSec * 1000)
+            timeMs: seekTime
           });
         });
 
@@ -268,13 +440,35 @@
       });
     }
 
+    // Fallback syllable timing generator for line-synced LRC tracks
+    function generateWordsForLine(line, idx) {
+      const text = line.text || '';
+      const tokens = text.split(' ').filter(t => t.length > 0);
+      if (tokens.length === 0) return [];
+
+      const start = line.startTimeMs || (line.startSec * 1000) || 0;
+      let nextStart = start + 3500;
+      if (idx + 1 < currentLyrics.length) {
+        const nLine = currentLyrics[idx + 1];
+        nextStart = nLine.startTimeMs || (nLine.startSec * 1000) || (start + 3500);
+      }
+      const dur = Math.max(1200, nextStart - start);
+      const step = dur / tokens.length;
+
+      return tokens.map((token, i) => ({
+        text: token,
+        startMs: start + (i * step),
+        endMs: start + ((i + 1) * step)
+      }));
+    }
+
     function updateTime(timeMs) {
       if (!currentLyrics || currentLyrics.length === 0) return;
 
       let newIndex = -1;
       for (let i = 0; i < currentLyrics.length; i++) {
-        const start = currentLyrics[i].startTimeMs || (currentLyrics[i].startSec * 1000);
-        if (timeMs >= start) {
+        const lineStart = currentLyrics[i].startTimeMs || (currentLyrics[i].startSec * 1000) || 0;
+        if (timeMs >= lineStart) {
           newIndex = i;
         } else {
           break;
@@ -298,7 +492,6 @@
             activeElem.classList.add('active');
             activeElem.classList.remove('passed');
 
-            // Smooth scroll into center view
             activeElem.scrollIntoView({
               behavior: 'smooth',
               block: 'center'
@@ -307,23 +500,27 @@
         }
       }
 
-      // Syllable karaoke wash animation on active line
-      if (activeLineIndex >= 0 && currentLyrics[activeLineIndex].syllables) {
-        const syls = currentLyrics[activeLineIndex].syllables;
-        syls.forEach((syl, sIdx) => {
-          const sylElem = document.getElementById(`syl-${activeLineIndex}-${sIdx}`);
-          if (!sylElem) return;
+      // Syllable wash animation for words on active line
+      if (activeLineIndex >= 0) {
+        const activeLine = currentLyrics[activeLineIndex];
+        const words = (activeLine.words && activeLine.words.length > 0) 
+                      ? activeLine.words 
+                      : generateWordsForLine(activeLine, activeLineIndex);
 
-          const sStart = syl.startTimeMs;
-          const sEnd = syl.endTimeMs || (sStart + syl.durationMs);
+        words.forEach((w, wIdx) => {
+          const wElem = document.getElementById(`word-${activeLineIndex}-${wIdx}`);
+          if (!wElem) return;
 
-          if (timeMs < sStart) {
-            sylElem.style.setProperty('--progress', '0%');
-          } else if (timeMs >= sEnd) {
-            sylElem.style.setProperty('--progress', '100%');
+          if (timeMs < w.startMs) {
+            wElem.style.setProperty('--progress', '0%');
+            wElem.classList.remove('sung');
+          } else if (timeMs >= w.endMs) {
+            wElem.style.setProperty('--progress', '100%');
+            wElem.classList.add('sung');
           } else {
-            const pct = Math.min(100, Math.max(0, ((timeMs - sStart) / (sEnd - sStart)) * 100));
-            sylElem.style.setProperty('--progress', `${pct}%`);
+            const pct = Math.min(100, Math.max(0, ((timeMs - w.startMs) / (w.endMs - w.startMs)) * 100));
+            wElem.style.setProperty('--progress', `${pct}%`);
+            wElem.classList.remove('sung');
           }
         });
       }

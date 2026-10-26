@@ -16,7 +16,6 @@ public sealed partial class LyricsPanel : UserControl
     {
         ViewModel = App.Services.GetRequiredService<LyricsViewModel>();
         this.InitializeComponent();
-        ViewModel.ActiveLyricChanged += OnActiveLyricChanged;
         this.Loaded += (s, e) =>
         {
             UpdatePillState();
@@ -85,6 +84,8 @@ public sealed partial class LyricsPanel : UserControl
         catch { }
     }
 
+    private string _currentEngine = "spicy";
+
     private void PushLyricsToSpicy()
     {
         if (!_isWebViewInitialized) return;
@@ -95,17 +96,70 @@ public sealed partial class LyricsPanel : UserControl
                 text = l.Text,
                 translation = l.TranslatedText,
                 startTimeMs = l.Timestamp.TotalMilliseconds,
-                startSec = l.Timestamp.TotalSeconds
+                startSec = l.Timestamp.TotalSeconds,
+                endTimeMs = l.EndTime.TotalMilliseconds,
+                words = l.Words.Select(w => new
+                {
+                    text = w.Text,
+                    startMs = w.StartTime.TotalMilliseconds,
+                    endMs = w.EndTime.TotalMilliseconds
+                }).ToList()
             }).ToList();
 
-            var payload = JsonSerializer.Serialize(new { type = "lyrics", data = lines });
+            var currentSong = ViewModel.PlaybackService.CurrentSong;
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "lyrics",
+                title = currentSong?.Title ?? "",
+                artist = currentSong?.Artist ?? "",
+                album = currentSong?.Album ?? "",
+                coverUrl = currentSong?.ThumbnailUrl ?? "",
+                data = lines
+            });
             SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(payload);
+
+            if (currentSong != null && !string.IsNullOrEmpty(currentSong.GradientColorStart))
+            {
+                var colorPayload = JsonSerializer.Serialize(new
+                {
+                    type = "colors",
+                    colors = new[] { currentSong.GradientColorStart, currentSong.GradientColorEnd }
+                });
+                SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(colorPayload);
+            }
         }
         catch { }
     }
 
+    private void EngineTab_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string engine)
+        {
+            _currentEngine = engine;
+            UpdateEnginePills();
+            if (_isWebViewInitialized)
+            {
+                var payload = JsonSerializer.Serialize(new { type = "engine", engine = _currentEngine });
+                SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(payload);
+            }
+        }
+    }
+
+    private void UpdateEnginePills()
+    {
+        var activeBg = (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
+        var transBg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
+
+        EngineSpicyBtn.Background = _currentEngine == "spicy" ? activeBg : transBg;
+        EngineSpicyBtn.FontWeight = _currentEngine == "spicy" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+
+        EngineYouLyBtn.Background = _currentEngine == "youly" ? activeBg : transBg;
+        EngineYouLyBtn.FontWeight = _currentEngine == "youly" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+    }
+
     private void UpdatePillState()
     {
+        UpdateEnginePills();
         var mode = ViewModel.SelectedTranslationMode ?? "Original";
         var activeBg = (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
         var transBg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
@@ -121,8 +175,6 @@ public sealed partial class LyricsPanel : UserControl
 
         TransHinglishBtn.Background = mode == "Hinglish" ? activeBg : transBg;
         TransHinglishBtn.FontWeight = mode == "Hinglish" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
-
-        ModeBadgeText.Text = "Spicy Lyrics 🌶️";
     }
 
     private async void TransPill_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -132,31 +184,6 @@ public sealed partial class LyricsPanel : UserControl
             await ViewModel.SetTranslationModeAsync(mode);
             UpdatePillState();
             PushLyricsToSpicy();
-        }
-    }
-
-    private void OnActiveLyricChanged(object? sender, int activeIndex)
-    {
-        if (activeIndex >= 0 && activeIndex < ViewModel.Lyrics.Count)
-        {
-            LyricsListView.UpdateLayout();
-            var item = LyricsListView.ContainerFromIndex(activeIndex);
-            if (item is ListViewItem listViewItem)
-            {
-                listViewItem.StartBringIntoView(new Microsoft.UI.Xaml.BringIntoViewOptions
-                {
-                    AnimationDesired = true,
-                    VerticalAlignmentRatio = 0.35
-                });
-            }
-        }
-    }
-
-    private void LyricsListView_ItemClick(object sender, ItemClickEventArgs e)
-    {
-        if (e.ClickedItem is Models.LyricLine line)
-        {
-            ViewModel.SeekToLine(line);
         }
     }
 }

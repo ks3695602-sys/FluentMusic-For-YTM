@@ -39,7 +39,7 @@
                             Grid.Column="0"
                             Width="32" Height="30" Padding="0"
                             Margin="6,0,0,0"
-                            Background="Transparent" BorderThickness="0" CornerRadius="6"
+                            Background="Transparent" BorderThickness="0" CornerRadius="8"
                             ToolTipService.ToolTip="Hide Sidebar">
                         <Grid Width="16" Height="13">
                             <Border BorderBrush="{ThemeResource TextFillColorSecondaryBrush}"
@@ -49,13 +49,9 @@
                         </Grid>
                     </Button>
 
-                    <!-- Symmetrical FluentMusic Brand Note -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="10,0,0,0" VerticalAlignment="Center">
-                        <Border Width="20" Height="20" CornerRadius="10" Background="{StaticResource AppleAccentGradient}">
-                            <FontIcon Glyph="&#xE8D6;" FontSize="10" Foreground="White"
-                                      HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,0,0,0" />
-                        </Border>
-                        <TextBlock Text="FluentMusic" FontWeight="SemiBold" FontSize="13.5" VerticalAlignment="Center" CharacterSpacing="-20" />
+                    <!-- Clean FluentMusic Brand Typography -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="FluentMusic" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" CharacterSpacing="-15" />
                     </StackPanel>
                 </Grid>
 
@@ -253,149 +249,171 @@
                             <!-- Navigation Content Frame -->
                             <Frame x:Name="ContentFrame" />
 
-                            <!-- Full Stage Now Playing & YouTube Music Video Overlay -->
+                            <!-- Full Stage Apple Music "Now Playing" Experience (Matching Screenshot) -->
                             <Grid x:Name="NowPlayingOverlay"
                                   Visibility="Collapsed"
-                                  Background="#101014"
-                                  CornerRadius="12">
+                                  Background="Transparent">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" /> <!-- Top Header Bar -->
-                                    <RowDefinition Height="*" />    <!-- Content Stage (Song vs Video) -->
+                                    <RowDefinition Height="*" />    <!-- Apple 2-Column Split: Artwork & Controls | Syllable Lyrics -->
                                 </Grid.RowDefinitions>
 
-                                <!-- Live Mesh Gradient Background Layer -->
+                                <!-- Live Mesh Gradient Background Layer with Gaussian Blur -->
                                 <Grid x:Name="NpMeshBackground" Grid.RowSpan="2" IsHitTestVisible="False">
-                                    <Rectangle Fill="#101014" />
+                                    <Rectangle Fill="#0A0A0E" />
                                     <!-- Gradient Mesh Spot 1 (Top Left Ambient Glow) -->
-                                    <Ellipse Width="650" Height="650" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-180,-180,0,0" Opacity="0.45">
+                                    <Ellipse Width="850" Height="850" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-220,-220,0,0" Opacity="0.55">
                                         <Ellipse.Fill>
                                             <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-                                                <GradientStop x:Name="NpMeshStop1" Color="#70FA2D48" Offset="0" />
+                                                <GradientStop x:Name="NpMeshStop1" Color="#80FA2D48" Offset="0" />
                                                 <GradientStop Color="#00000000" Offset="1" />
                                             </RadialGradientBrush>
                                         </Ellipse.Fill>
                                     </Ellipse>
                                     <!-- Gradient Mesh Spot 2 (Bottom Right Ambient Glow) -->
-                                    <Ellipse Width="750" Height="750" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-220,-220" Opacity="0.35">
+                                    <Ellipse Width="950" Height="950" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-260,-260" Opacity="0.45">
                                         <Ellipse.Fill>
                                             <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
-                                                <GradientStop x:Name="NpMeshStop2" Color="#703B82F6" Offset="0" />
+                                                <GradientStop x:Name="NpMeshStop2" Color="#803B82F6" Offset="0" />
                                                 <GradientStop Color="#00000000" Offset="1" />
                                             </RadialGradientBrush>
                                         </Ellipse.Fill>
                                     </Ellipse>
                                     <!-- Soft Translucent Acrylic Veil -->
-                                    <Rectangle Fill="#40101014" />
+                                    <Rectangle Fill="#300A0A0E" />
                                 </Grid>
 
-                                <!-- Now Playing Top Bar -->
-                                <Grid Grid.Row="0" Padding="24,14,24,8">
+                                <!-- Now Playing Top Bar: Minimal Apple Controls -->
+                                <Grid Grid.Row="0" Padding="28,16,28,8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Back / Minimize button -->
+                                    <!-- Apple-style Back to Browse Pill -->
                                     <Button Grid.Column="0" Click="CloseNowPlaying_Click"
-                                            Background="Transparent" BorderThickness="0" CornerRadius="8" Padding="10,6">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon Glyph="&#xE72B;" FontSize="13" />
-                                            <TextBlock Text="Back to Browse" FontSize="13" FontWeight="SemiBold" />
+                                            Background="#28FFFFFF" BorderThickness="1" BorderBrush="#30FFFFFF" CornerRadius="16" Padding="12,6">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <FontIcon Glyph="&#xE72B;" FontSize="12" />
+                                            <TextBlock Text="Browse" FontSize="12" FontWeight="SemiBold" />
                                         </StackPanel>
                                     </Button>
 
-                                    <!-- Mode Toggle: Audio vs Music Video + Audio Source Toggle -->
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-                                        <StackPanel Orientation="Horizontal"
-                                                    Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="18" Padding="3">
-                                            <Button x:Name="NpAudioModeBtn" Click="NpAudioMode_Click"
-                                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                                    BorderThickness="0" CornerRadius="15" Padding="16,6">
-                                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <FontIcon Glyph="&#xEC4F;" FontSize="12" Foreground="{StaticResource AccentRedBrush}" />
-                                                    <TextBlock Text="Audio &amp; Vinyl" FontSize="12" FontWeight="SemiBold" />
-                                                </StackPanel>
-                                            </Button>
-                                            <Button x:Name="NpVideoModeBtn" Click="NpVideoMode_Click"
-                                                    Background="Transparent"
-                                                    BorderThickness="0" CornerRadius="15" Padding="16,6">
-                                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <FontIcon Glyph="&#xE714;" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                    <TextBlock Text="Music Video" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                </StackPanel>
-                                            </Button>
-                                        </StackPanel>
-
-                                        <!-- Video Audio Sync Source Toggle Pill -->
-                                        <ToggleButton x:Name="VideoAudioSyncToggle" IsChecked="True"
-                                                      Click="VideoAudioSyncToggle_Click"
-                                                      CornerRadius="15" Padding="12,5"
-                                                      Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
-                                                      ToolTipService.ToolTip="Toggle audio stream for Music Video: Hi-Res FLAC Synced vs Video Native Audio">
+                                    <!-- Center Mode Pill: Audio vs Video -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center"
+                                                Background="#25000000" CornerRadius="16" Padding="2">
+                                        <Button x:Name="NpAudioModeBtn" Click="NpAudioMode_Click"
+                                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                                BorderThickness="0" CornerRadius="14" Padding="14,5">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <FontIcon x:Name="SyncToggleIcon" Glyph="&#xE8D6;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" />
-                                                <TextBlock x:Name="SyncToggleText" Text="FLAC Synced" FontSize="11" FontWeight="SemiBold" />
+                                                <FontIcon Glyph="&#xEC4F;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" />
+                                                <TextBlock Text="Song &amp; Lyrics" FontSize="11" FontWeight="SemiBold" />
                                             </StackPanel>
-                                        </ToggleButton>
+                                        </Button>
+                                        <Button x:Name="NpVideoModeBtn" Click="NpVideoMode_Click"
+                                                Background="Transparent"
+                                                BorderThickness="0" CornerRadius="14" Padding="14,5">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <FontIcon Glyph="&#xE714;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Text="Music Video" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </StackPanel>
+                                        </Button>
                                     </StackPanel>
 
                                     <!-- Close Button -->
                                     <Button Grid.Column="2" Click="CloseNowPlaying_Click"
-                                            Background="Transparent" BorderThickness="0" CornerRadius="16" Width="32" Height="32" Padding="0">
+                                            Background="#28FFFFFF" BorderThickness="0" CornerRadius="16" Width="32" Height="32" Padding="0">
                                         <FontIcon Glyph="&#xE711;" FontSize="12" />
                                     </Button>
                                 </Grid>
 
-                                <!-- 1. Audio Vinyl & Track Info Mode -->
-                                <Grid x:Name="NpAudioStage" Grid.Row="1" Padding="40,20,40,90">
+                                <!-- 1. Apple Music 2-Column Audio & Syllable Lyrics Stage -->
+                                <Grid x:Name="NpAudioStage" Grid.Row="1" Padding="48,10,48,40">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="420" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Left: Big Album Artwork with Ambient Shadow -->
-                                    <Border Grid.Column="0" Width="360" Height="360" CornerRadius="16"
-                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                                            VerticalAlignment="Center">
-                                        <Image x:Name="NpAlbumImage" Stretch="UniformToFill">
-                                            <Image.Source>
-                                                <BitmapImage x:Name="NpAlbumBitmap" />
-                                            </Image.Source>
-                                        </Image>
-                                    </Border>
+                                    <!-- LEFT COLUMN: Album Art, Track Info, Scrubber & Controls -->
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="18">
+                                        <!-- Big Rounded Album Art with Ambient Drop Shadow -->
+                                        <Border Width="350" Height="350" CornerRadius="18"
+                                                BorderBrush="#30FFFFFF" BorderThickness="1"
+                                                HorizontalAlignment="Center">
+                                            <Image x:Name="NpAlbumImage" Stretch="UniformToFill">
+                                                <Image.Source>
+                                                    <BitmapImage x:Name="NpAlbumBitmap" />
+                                                </Image.Source>
+                                            </Image>
+                                        </Border>
 
-                                    <!-- Right: Track Metadata & Audio Fidelity -->
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="48,0,0,0" Spacing="16">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <!-- Fidelity Badge -->
-                                            <Border x:Name="NpFidelityPill" Background="#30FA2D48" CornerRadius="10" Padding="10,4">
-                                                <TextBlock x:Name="NpFidelityText" Text="Hi-Res Lossless"
-                                                           FontSize="11" FontWeight="Bold" Foreground="{StaticResource AccentRedBrush}" />
-                                            </Border>
+                                        <!-- Track Title & Artist Info + Action Buttons -->
+                                        <Grid Margin="8,4,8,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock x:Name="NpTitleText" Text="Not Playing"
+                                                           FontWeight="Bold" FontSize="22"
+                                                           TextTrimming="CharacterEllipsis" MaxLines="2" />
+                                                <TextBlock x:Name="NpArtistText" Text="Choose a song to start listening"
+                                                           FontSize="15" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                           TextTrimming="CharacterEllipsis" MaxLines="1" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                                <Button Width="36" Height="36" CornerRadius="18" Padding="0" Background="#20FFFFFF" BorderThickness="0">
+                                                    <FontIcon Glyph="&#xE734;" FontSize="14" Foreground="#E0E0E0" />
+                                                </Button>
+                                                <Button Width="36" Height="36" CornerRadius="18" Padding="0" Background="#20FFFFFF" BorderThickness="0">
+                                                    <FontIcon Glyph="&#xE712;" FontSize="14" Foreground="#E0E0E0" />
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
 
-                                            <!-- Bitrate & Codec Pill -->
-                                            <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="10" Padding="10,4">
-                                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <FontIcon Glyph="&#xE8D6;" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                    <TextBlock x:Name="NpQualityText" Text="256 kbps · AAC · Hi-Res"
-                                                               FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                </StackPanel>
-                                            </Border>
+                                        <!-- Scrubber: Elapsed Time - Lossless Pill - Remaining Time -->
+                                        <StackPanel Margin="8,0,8,0" Spacing="4">
+                                            <Slider x:Name="NpPositionSlider"
+                                                    Minimum="0" Maximum="100" Value="0"
+                                                    Margin="0,-6"
+                                                    ValueChanged="NpPositionSlider_ValueChanged" />
+                                            <Grid>
+                                                <TextBlock x:Name="NpPositionText" Text="0:00" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Left" />
+                                                <Border Background="#20FA2D48" CornerRadius="8" Padding="6,2" HorizontalAlignment="Center">
+                                                    <TextBlock x:Name="NpFidelityText" Text="∿ Hi-Res Lossless" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource AccentRedBrush}" />
+                                                </Border>
+                                                <TextBlock x:Name="NpDurationText" Text="0:00" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Right" />
+                                            </Grid>
                                         </StackPanel>
 
-                                        <TextBlock x:Name="NpTitleText" Text="Not Playing"
-                                                   Style="{StaticResource TitleLargeTextBlockStyle}"
-                                                   FontWeight="Bold" FontSize="32"
-                                                   TextWrapping="Wrap" MaxLines="2" />
-
-                                        <TextBlock x:Name="NpArtistText" Text="Choose a song to start listening"
-                                                   FontSize="20" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                   TextWrapping="Wrap" MaxLines="1" />
-
-                                        <TextBlock Text="Streaming with ultra-low latency &amp; lossless audio fidelity"
-                                                   FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                        <!-- Transport Controls Row (Matching Apple Music layout) -->
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="22" Margin="0,4,0,0">
+                                            <Button Click="PlayerShuffle_Click" Width="38" Height="38" CornerRadius="19" Background="Transparent" BorderThickness="0">
+                                                <FontIcon Glyph="&#xE8B1;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </Button>
+                                            <Button Click="PlayerPrev_Click" Width="42" Height="42" CornerRadius="21" Background="Transparent" BorderThickness="0">
+                                                <FontIcon Glyph="&#xE892;" FontSize="18" />
+                                            </Button>
+                                            <Button Click="PlayerPlayPause_Click" Width="54" Height="54" CornerRadius="27" Background="#FA2D48" BorderThickness="0">
+                                                <FontIcon x:Name="NpPlayPauseIcon" Glyph="&#xE768;" FontSize="20" Foreground="White" Margin="2,0,0,0" />
+                                            </Button>
+                                            <Button Click="PlayerNext_Click" Width="42" Height="42" CornerRadius="21" Background="Transparent" BorderThickness="0">
+                                                <FontIcon Glyph="&#xE893;" FontSize="18" />
+                                            </Button>
+                                            <Button Click="PlayerRepeat_Click" Width="38" Height="38" CornerRadius="19" Background="Transparent" BorderThickness="0">
+                                                <FontIcon Glyph="&#xE8EE;" FontSize="14" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </Button>
+                                        </StackPanel>
                                     </StackPanel>
+
+                                    <!-- RIGHT COLUMN: Syllable Lyrics Suite (Spicy Lyrics & YouLy+) -->
+                                    <Border Grid.Column="1" Margin="28,0,0,0"
+                                            Background="#15000000" CornerRadius="20"
+                                            BorderBrush="#18FFFFFF" BorderThickness="1"
+                                            Padding="12">
+                                        <controls:LyricsPanel x:Name="NowPlayingLyricsPanel" />
+                                    </Border>
                                 </Grid>
 
                                 <!-- 2. Music Video Stage (Native WinUI MediaPlayerElement) -->
