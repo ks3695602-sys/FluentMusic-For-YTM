@@ -8,10 +8,12 @@
     :root {
       --accent: #FA2D48;
       --active-text: #FFFFFF;
+      --inactive-text: rgba(255, 255, 255, 0.32);
+      --passed-text: rgba(255, 255, 255, 0.45);
       --font-family: "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-scale: 1.0;
       --bounce-mult: 1.0;
-      --blur-base: 2.8px;
+      --blur-amount: 2.8px;
     }
 
     * {
@@ -44,10 +46,6 @@
       transition: opacity 0.8s ease;
     }
 
-    body.mode-youly #ambient-canvas {
-      opacity: 0.25;
-    }
-
     /* Scroller Container */
     #lyrics-container {
       position: relative;
@@ -56,8 +54,7 @@
       height: 100%;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 130px 32px 280px 32px;
-      scroll-behavior: auto;
+      padding: 140px 32px 280px 32px;
     }
 
     #lyrics-container::-webkit-scrollbar {
@@ -68,23 +65,22 @@
       border-radius: 4px;
     }
 
-    /* Floating Top Action Capsule (Spicy Lyrics, YouLy+, Blur & Translation Controls) */
+    /* Floating Top Action Capsule (Spicy Lyrics & YouLy+ Controls) */
     #view-controls {
       position: fixed;
-      top: 16px;
-      right: 20px;
+      top: 18px;
+      right: 24px;
       z-index: 10;
       display: flex;
       align-items: center;
-      gap: 6px;
-      background: rgba(18, 18, 22, 0.68);
-      backdrop-filter: blur(24px) saturate(1.8);
-      -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      gap: 8px;
+      background: rgba(20, 20, 24, 0.65);
+      backdrop-filter: blur(20px) saturate(1.8);
       border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 10px 26px -4px rgba(0, 0, 0, 0.45);
-      border-radius: 22px;
-      padding: 4px 8px;
-      opacity: 0.88;
+      box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.4);
+      border-radius: 20px;
+      padding: 4px 10px;
+      opacity: 0.85;
       transition: opacity 0.25s ease, transform 0.25s ease;
     }
 
@@ -96,35 +92,30 @@
     .pill-btn {
       background: transparent;
       border: none;
-      color: rgba(255, 255, 255, 0.78);
+      color: rgba(255, 255, 255, 0.8);
       font-size: 11px;
       font-weight: 600;
-      padding: 5px 9px;
+      padding: 5px 10px;
       border-radius: 14px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      transition: background 0.2s, color 0.2s, transform 0.15s;
+      transition: background 0.2s, color 0.2s;
     }
 
     .pill-btn:hover {
       background: rgba(255, 255, 255, 0.15);
       color: #fff;
-      transform: scale(1.02);
-    }
-
-    .pill-btn:active {
-      transform: scale(0.96);
     }
 
     .pill-btn.active {
       background: rgba(250, 45, 72, 0.28);
       color: #FA2D48;
-      border: 1px solid rgba(250, 45, 72, 0.42);
+      border: 1px solid rgba(250, 45, 72, 0.4);
     }
 
-    /* Status Overlay / Synchronizing Shimmer */
+    /* Loading Shimmer / Empty State */
     #status-overlay {
       position: absolute;
       top: 45%;
@@ -156,123 +147,72 @@
     }
 
     /* ==========================================================================
-       LYRIC LINE CORE STYLES (Ultra-Smooth Hardware Accelerated)
+       ENGINE 1: SPICY LYRICS (Dynamic Mesh Glow + Spring Wash)
        ========================================================================== */
-    .lyric-line {
-      display: block;
-      margin: 22px 0;
-      cursor: pointer;
-      transform-origin: left center;
-      will-change: transform, opacity, filter;
-      transition: color 0.3s ease, 
-                  transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), 
-                  filter 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), 
-                  opacity 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-
-    /* Spicy Typography */
     body.mode-spicy .lyric-line {
+      display: block;
+      margin: 20px 0;
       font-size: calc(28px * var(--font-scale));
       font-weight: 800;
       line-height: 1.32;
       letter-spacing: -0.02em;
+      color: var(--inactive-text);
+      cursor: pointer;
+      transform-origin: left center;
+      transition: color 0.28s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
     }
 
-    /* YouLy+ Typography (Apple Music Pure TTML) */
+    body.mode-spicy .lyric-line:hover {
+      color: rgba(255, 255, 255, 0.8);
+      transform: scale(1.02);
+    }
+
+    body.mode-spicy .lyric-line.active {
+      color: var(--active-text);
+      transform: scale(calc(1.04 * var(--bounce-mult)));
+    }
+
+    body.mode-spicy .lyric-line.passed {
+      color: var(--passed-text);
+      transform: scale(1.0);
+    }
+
+    /* ==========================================================================
+       ENGINE 2: YOULY+ (Apple Music Pure TTML with Depth-of-Field Blur)
+       ========================================================================== */
     body.mode-youly .lyric-line {
+      display: block;
+      margin: 22px 0;
       font-size: calc(30px * var(--font-scale));
       font-weight: 700;
-      line-height: 1.36;
+      line-height: 1.35;
       letter-spacing: -0.015em;
+      color: rgba(255, 255, 255, 0.25);
+      cursor: pointer;
+      transform-origin: left center;
+      transition: color 0.4s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.4s ease, opacity 0.4s ease;
+      filter: blur(var(--blur-amount));
+      opacity: 0.35;
     }
 
-    /* Hover Unblur & Lift (Both Modes) */
-    .lyric-line:hover {
-      filter: blur(0px) !important;
-      opacity: 1.0 !important;
-      transform: scale(1.025) !important;
+    body.mode-youly .lyric-line:hover {
+      opacity: 0.85;
+      filter: blur(0.5px);
+      transform: scale(1.015);
     }
 
-    /* ==========================================================================
-       MODE 1: APPLE MUSIC / SPICETIFY DYNAMIC DEPTH-OF-FIELD BLUR
-       ========================================================================== */
-    body.blur-enabled .lyric-line {
-      opacity: 0.25;
-      filter: blur(4.5px);
-      transform: scale(0.94);
-    }
-
-    body.blur-enabled .lyric-line.active {
+    body.mode-youly .lyric-line.active {
       color: #FFFFFF;
-      opacity: 1.0 !important;
-      filter: blur(0px) !important;
-      transform: scale(calc(1.04 * var(--bounce-mult))) !important;
-      text-shadow: 0 0 24px rgba(255, 255, 255, 0.6), 0 0 8px rgba(255, 255, 255, 0.85);
+      opacity: 1.0;
+      transform: scale(1.05);
+      filter: blur(0px);
     }
 
-    body.blur-enabled .lyric-line.dist-1 {
-      opacity: 0.58;
-      filter: blur(1.6px);
-      transform: scale(0.985);
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    body.blur-enabled .lyric-line.dist-2 {
-      opacity: 0.42;
-      filter: blur(3.0px);
-      transform: scale(0.965);
-      color: rgba(255, 255, 255, 0.65);
-    }
-
-    body.blur-enabled .lyric-line.dist-3 {
-      opacity: 0.28;
-      filter: blur(4.8px);
-      transform: scale(0.945);
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    body.blur-enabled .lyric-line.dist-far {
-      opacity: 0.16;
-      filter: blur(7.2px);
-      transform: scale(0.925);
-      color: rgba(255, 255, 255, 0.35);
-    }
-
-    /* ==========================================================================
-       MODE 2: SHARP HIGH-CONTRAST MODE (Zero Blur)
-       ========================================================================== */
-    body.sharp-enabled .lyric-line {
-      filter: none !important;
-      opacity: 0.32;
-      transform: scale(1.0);
-      color: rgba(255, 255, 255, 0.5);
-    }
-
-    body.sharp-enabled .lyric-line.active {
-      color: #FFFFFF;
-      opacity: 1.0 !important;
-      transform: scale(calc(1.04 * var(--bounce-mult))) !important;
-      text-shadow: 0 0 16px rgba(255, 255, 255, 0.5);
-    }
-
-    body.sharp-enabled .lyric-line.dist-1 {
-      opacity: 0.65;
-      color: rgba(255, 255, 255, 0.85);
-    }
-
-    body.sharp-enabled .lyric-line.dist-2 {
-      opacity: 0.48;
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    body.sharp-enabled .lyric-line.dist-3 {
-      opacity: 0.38;
+    body.mode-youly .lyric-line.passed {
       color: rgba(255, 255, 255, 0.55);
-    }
-
-    body.sharp-enabled .lyric-line.dist-far {
-      opacity: 0.25;
-      color: rgba(255, 255, 255, 0.4);
+      opacity: 0.6;
+      filter: blur(0.6px);
+      transform: scale(1.0);
     }
 
     /* ==========================================================================
@@ -293,7 +233,7 @@
     }
 
     .active .word-base {
-      color: rgba(255, 255, 255, 0.45);
+      color: rgba(255, 255, 255, 0.42);
     }
 
     .word-fill {
@@ -327,30 +267,27 @@
       font-size: calc(14px * var(--font-scale));
       font-weight: 500;
       color: rgba(255, 255, 255, 0.48);
-      margin-top: 6px;
-      letter-spacing: 0.04px;
+      margin-top: 5px;
+      letter-spacing: 0.05px;
       line-height: 1.4;
     }
 
     .active .lyric-sub {
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(255, 255, 255, 0.88);
     }
   </style>
 </head>
-<body class="mode-spicy blur-enabled">
+<body class="mode-spicy">
   <!-- Dynamic Ambient Canvas Background -->
   <canvas id="ambient-canvas"></canvas>
 
-  <!-- Top Floating Glass Capsule (Unified Controls) -->
+  <!-- Top Glass Controls Capsule -->
   <div id="view-controls">
-    <button id="engine-btn" class="pill-btn active" title="Switch Engine: Spicy Lyrics vs YouLy+">
+    <button id="engine-btn" class="pill-btn active" title="Switch Engine: Spicy vs YouLy+">
       <span id="engine-icon">🌶️</span> <span id="engine-text">Spicy Lyrics</span>
     </button>
-    <button id="blur-btn" class="pill-btn active" title="Toggle Blur: Apple Dynamic DOF vs Sharp Mode">
-      <span id="blur-icon">✨</span> <span id="blur-text">Blur</span>
-    </button>
-    <button id="trans-btn" class="pill-btn" title="Cycle Translation & Romanization (Original / EN / हिन्दी / Hinglish)">
-      <span id="trans-icon">Aa</span> <span id="trans-text">Original</span>
+    <button id="roman-btn" class="pill-btn" title="Toggle Romanization (Hinglish/Romaji)">
+      <span>Aa</span>
     </button>
   </div>
 
@@ -368,42 +305,23 @@
     const statusText = document.getElementById('status-text');
     const canvas = document.getElementById('ambient-canvas');
     const ctx = canvas.getContext('2d');
-
     const engineBtn = document.getElementById('engine-btn');
     const engineIcon = document.getElementById('engine-icon');
     const engineText = document.getElementById('engine-text');
-
-    const blurBtn = document.getElementById('blur-btn');
-    const blurIcon = document.getElementById('blur-icon');
-    const blurText = document.getElementById('blur-text');
-
-    const transBtn = document.getElementById('trans-btn');
-    const transText = document.getElementById('trans-text');
+    const romanBtn = document.getElementById('roman-btn');
 
     let currentLyrics = [];
     let activeLineIndex = -1;
     let currentEngine = 'spicy'; // 'spicy' or 'youly'
-    let isBlurEnabled = true;
+    let isRomanized = false;
     let trackColors = ['#FA2D48', '#3B82F6', '#8B5CF6', '#F59E0B'];
     let animAngle = 0;
-
-    // Translation Modes cycle
-    const translationModes = ['Original', 'EN', 'HI', 'Hinglish'];
-    let currentTransIndex = 0;
 
     // High-precision clock & smooth inertia scroller
     let lastKnownPlayerTimeMs = 0;
     let lastClockTime = performance.now();
     let isPlaying = false;
     let targetScrollTop = 0;
-
-    // Restore saved settings
-    try {
-      const savedEngine = localStorage.getItem('fluent_lyrics_engine');
-      if (savedEngine === 'youly') setEngine('youly');
-      const savedBlur = localStorage.getItem('fluent_lyrics_blur');
-      if (savedBlur === 'false') setBlurMode(false);
-    } catch { }
 
     // Engine toggle
     engineBtn.addEventListener('click', () => {
@@ -412,8 +330,7 @@
 
     function setEngine(engine) {
       currentEngine = engine;
-      try { localStorage.setItem('fluent_lyrics_engine', engine); } catch {}
-      applyClasses();
+      document.body.className = `mode-${engine}`;
       if (engine === 'spicy') {
         engineIcon.innerText = '🌶️';
         engineText.innerText = 'Spicy Lyrics';
@@ -421,44 +338,14 @@
         engineIcon.innerText = '⚡';
         engineText.innerText = 'YouLy+';
       }
+      renderLyrics();
     }
 
-    // Blur toggle
-    blurBtn.addEventListener('click', () => {
-      setBlurMode(!isBlurEnabled);
-    });
-
-    function setBlurMode(enabled) {
-      isBlurEnabled = enabled;
-      try { localStorage.setItem('fluent_lyrics_blur', enabled ? 'true' : 'false'); } catch {}
-      applyClasses();
-      if (isBlurEnabled) {
-        blurIcon.innerText = '✨';
-        blurText.innerText = 'Blur';
-        blurBtn.classList.add('active');
-      } else {
-        blurIcon.innerText = '⚡';
-        blurText.innerText = 'Sharp';
-        blurBtn.classList.remove('active');
-      }
-      applyLineDistances(activeLineIndex);
-    }
-
-    function applyClasses() {
-      document.body.className = `mode-${currentEngine} ${isBlurEnabled ? 'blur-enabled' : 'sharp-enabled'}`;
-    }
-
-    // Translation button click -> cycle mode and notify WinUI host
-    transBtn.addEventListener('click', () => {
-      currentTransIndex = (currentTransIndex + 1) % translationModes.length;
-      const nextMode = translationModes[currentTransIndex];
-      transText.innerText = nextMode;
-      transBtn.classList.toggle('active', nextMode !== 'Original');
-
-      window.chrome?.webview?.postMessage({
-        type: 'translation',
-        mode: nextMode
-      });
+    // Romanization toggle
+    romanBtn.addEventListener('click', () => {
+      isRomanized = !isRomanized;
+      romanBtn.classList.toggle('active', isRomanized);
+      renderLyrics();
     });
 
     // Ambient Canvas Fluid Mesh Animation
@@ -504,7 +391,7 @@
       // Smooth inertia spring scrolling
       const diffY = targetScrollTop - container.scrollTop;
       if (Math.abs(diffY) > 0.5) {
-        container.scrollTop += diffY * 0.088;
+        container.scrollTop += diffY * 0.085;
       }
 
       requestAnimationFrame(renderFrame);
@@ -535,15 +422,6 @@
         const dot = document.querySelector('.pulse-dot');
         if (dot) dot.style.display = (msg.isLoading === false) ? 'none' : 'block';
         if (statusOverlay) statusOverlay.style.display = msg.text ? 'flex' : 'none';
-      } else if (msg.type === 'translationMode') {
-        if (msg.mode) {
-          const idx = translationModes.indexOf(msg.mode);
-          if (idx >= 0) {
-            currentTransIndex = idx;
-            transText.innerText = msg.mode;
-            transBtn.classList.toggle('active', msg.mode !== 'Original');
-          }
-        }
       } else if (msg.type === 'settings') {
         if (msg.fontScale) document.documentElement.style.setProperty('--font-scale', msg.fontScale);
         if (msg.bounce) document.documentElement.style.setProperty('--bounce-mult', msg.bounce);
@@ -570,7 +448,7 @@
 
       currentLyrics.forEach((line, idx) => {
         const div = document.createElement('div');
-        div.className = 'lyric-line dist-far';
+        div.className = 'lyric-line';
         div.id = `line-${idx}`;
 
         const words = (line.words && line.words.length > 0) ? line.words : generateWordsForLine(line, idx);
@@ -616,36 +494,6 @@
 
         container.appendChild(div);
       });
-
-      applyLineDistances(-1);
-    }
-
-    // Dynamic Distance-Based Depth of Field
-    function applyLineDistances(newActive) {
-      if (!currentLyrics || currentLyrics.length === 0) return;
-
-      const lines = container.getElementsByClassName('lyric-line');
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        line.classList.remove('active', 'dist-1', 'dist-2', 'dist-3', 'dist-far');
-
-        if (newActive < 0) {
-          line.classList.add('dist-far');
-        } else {
-          const d = Math.abs(i - newActive);
-          if (d === 0) {
-            line.classList.add('active');
-          } else if (d === 1) {
-            line.classList.add('dist-1');
-          } else if (d === 2) {
-            line.classList.add('dist-2');
-          } else if (d === 3) {
-            line.classList.add('dist-3');
-          } else {
-            line.classList.add('dist-far');
-          }
-        }
-      }
     }
 
     // Fallback syllable timing generator for line-synced LRC tracks
@@ -684,12 +532,22 @@
       }
 
       if (newIndex !== activeLineIndex) {
+        if (activeLineIndex >= 0) {
+          const oldElem = document.getElementById(`line-${activeLineIndex}`);
+          if (oldElem) {
+            oldElem.classList.remove('active');
+            oldElem.classList.add('passed');
+          }
+        }
+
         activeLineIndex = newIndex;
-        applyLineDistances(activeLineIndex);
 
         if (activeLineIndex >= 0) {
           const activeElem = document.getElementById(`line-${activeLineIndex}`);
           if (activeElem) {
+            activeElem.classList.add('active');
+            activeElem.classList.remove('passed');
+
             // Retarget spring scroller to center active element smoothly
             targetScrollTop = activeElem.offsetTop - (container.clientHeight / 2) + (activeElem.clientHeight / 2);
           }

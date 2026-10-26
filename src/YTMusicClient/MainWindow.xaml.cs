@@ -67,6 +67,25 @@ public sealed partial class MainWindow : Window
         this.Activated += (s, e) => CheckGoogleSignInStatus();
         ContentFrame.Navigated += (s, e) => CheckGoogleSignInStatus();
 
+        // Sync native video player state with media playback service
+        ViewModel.PlaybackService.PlaybackStateChanged += (s, state) =>
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (NpVideoStage.Visibility == Visibility.Visible && _nativeVideoPlayer != null)
+                {
+                    if (state == MediaPlaybackState.Playing && _nativeVideoPlayer.PlaybackSession.PlaybackState != Windows.Media.Playback.MediaPlaybackState.Playing)
+                    {
+                        _nativeVideoPlayer.Play();
+                    }
+                    else if (state == MediaPlaybackState.Paused && _nativeVideoPlayer.PlaybackSession.PlaybackState != Windows.Media.Playback.MediaPlaybackState.Paused)
+                    {
+                        _nativeVideoPlayer.Pause();
+                    }
+                }
+            });
+        };
+
         ViewModel.PlaybackService.PositionChanged += (s, pos) =>
         {
             DispatcherQueue.TryEnqueue(() =>
@@ -150,12 +169,6 @@ public sealed partial class MainWindow : Window
         }
         else
         {
-            // Do not open pitch-black stage when no song is loaded/playing
-            if (ViewModel?.PlaybackService?.CurrentSong == null)
-            {
-                return;
-            }
-
             ContentFrame.Visibility = Visibility.Collapsed;
             FloatingPlayerContainer.Visibility = Visibility.Collapsed;
             NowPlayingOverlay.Visibility = Visibility.Visible;
@@ -337,7 +350,6 @@ public sealed partial class MainWindow : Window
         NpStageSongBtn.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
         NpStageVideoBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         PauseVideoPlayer();
-        ViewModel.PlaybackService.Resume();
     }
 
     private void NpStageVideo_Click(object sender, RoutedEventArgs e)
@@ -346,11 +358,12 @@ public sealed partial class MainWindow : Window
         NpVideoStage.Visibility = Visibility.Visible;
         NpStageVideoBtn.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
         NpStageSongBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-        ViewModel.PlaybackService.Pause();
         LoadCurrentVideo();
     }
 
-    private bool _isNpVideoWebViewInitialized = false;
+    private Windows.Media.Playback.MediaPlayer? _nativeVideoPlayer;
+    private DispatcherTimer? _videoSyncTimer;
+    private bool _isVideoAudioSynced = true;
 
     private async void LoadCurrentVideo()
     {
@@ -380,37 +393,92 @@ public sealed partial class MainWindow : Window
                 }
             }
 
-            if (!_isNpVideoWebViewInitialized)
+            var ytClient = new YoutubeExplode.YoutubeClient();
+            var manifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
+
+            // Prefer high-quality MP4 muxed stream (video + audio)
+            var muxed = manifest.GetMuxedStreams()
+                .Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
+                .OrderByDescending(s => s.VideoQuality)
+                .FirstOrDefault();
+
+            string? videoUrl = muxed?.Url;
+            if (string.IsNullOrEmpty(videoUrl))
             {
-                await NpVideoWebView.EnsureCoreWebView2Async();
-                NpVideoWebView.DefaultBackgroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
-                NpVideoWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
-                _isNpVideoWebViewInitialized = true;
+                var vidOnly = manifest.GetVideoOnlyStreams()
+                    .Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
+                    .OrderByDescending(s => s.VideoQuality)
+                    .FirstOrDefault();
+                videoUrl = vidOnly?.Url ?? manifest.GetMuxedStreams().FirstOrDefault()?.Url;
             }
 
-            var startSec = Math.Max(0, (int)ViewModel.PlaybackService.Position.TotalSeconds);
-            var embedHtml = $@"<!DOCTYPE html>
-<html>
-<head>
-  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-  <style>
-    * {{ margin:0; padding:0; box-sizing:border-box; background: #000; overflow:hidden; }}
-    body, html {{ width:100%; height:100%; }}
-    iframe {{ width:100%; height:100%; border:none; }}
-  </style>
-</head>
-<body>
-  <iframe src='https://www.youtube-nocookie.com/embed/{videoId}?autoplay=1&start={startSec}&enablejsapi=1&rel=0&iv_load_policy=3&modestbranding=1'
-          allow='autoplay; encrypted-media; picture-in-picture' allowfullscreen></iframe>
-</body>
-</html>";
+            if (string.IsNullOrEmpty(videoUrl))
+            {
+                Helpers.AppLogger.Log("No native video stream available for " + videoId);
+                return;
+            }
 
-            NpVideoWebView.CoreWebView2?.NavigateToString(embedHtml);
-            Helpers.AppLogger.Log("NpVideoWebView loaded for videoId: " + videoId);
+            if (_nativeVideoPlayer == null)
+            {
+                _nativeVideoPlayer = new Windows.Media.Playback.MediaPlayer();
+                _nativeVideoPlayer.AudioCategory = Windows.Media.Playback.MediaPlayerAudioCategory.Media;
+                _nativeVideoPlayer.PlaybackSession.PlaybackStateChanged += (sender, args) =>
+                {
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        if (_isVideoAudioSynced)
+                        {
+                            if (sender.PlaybackState == Windows.Media.Playback.MediaPlaybackState.Buffering)
+                            {
+                                ViewModel.PlaybackService.Pause();
+                            }
+                            else if (sender.PlaybackState == Windows.Media.Playback.MediaPlaybackState.Playing && !ViewModel.PlaybackService.IsPlaying)
+                            {
+                                ViewModel.PlaybackService.Resume();
+                            }
+                        }
+                    });
+                };
+                NpVideoPlayer.SetMediaPlayer(_nativeVideoPlayer);
+
+                _videoSyncTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+                _videoSyncTimer.Tick += (s, e) =>
+                {
+                    if (NpVideoStage.Visibility == Visibility.Visible &&
+                        _isVideoAudioSynced &&
+                        _nativeVideoPlayer != null &&
+                        ViewModel.PlaybackService.IsPlaying)
+                    {
+                        var audioPos = ViewModel.PlaybackService.Position;
+                        var videoPos = _nativeVideoPlayer.PlaybackSession.Position;
+                        var drift = Math.Abs((videoPos - audioPos).TotalMilliseconds);
+                        if (drift > 350)
+                        {
+                            _nativeVideoPlayer.PlaybackSession.Position = audioPos;
+                        }
+                    }
+                };
+                _videoSyncTimer.Start();
+            }
+
+            bool muteVideo = _isVideoAudioSynced;
+            _nativeVideoPlayer.IsMuted = muteVideo;
+
+            var mediaProxy = App.Services.GetRequiredService<LocalMediaProxy>();
+            string proxiedUrl = mediaProxy.GetProxiedStreamUrl(videoUrl);
+            _nativeVideoPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(proxiedUrl));
+
+            if (ViewModel.PlaybackService.Position > TimeSpan.Zero)
+            {
+                _nativeVideoPlayer.PlaybackSession.Position = ViewModel.PlaybackService.Position;
+            }
+
+            _nativeVideoPlayer.Play();
+            Helpers.AppLogger.Log("Native video player started for videoId: " + videoId);
         }
         catch (System.Exception ex)
         {
-            Helpers.AppLogger.LogError("LoadCurrentVideo failed", ex);
+            Helpers.AppLogger.LogError("LoadCurrentVideo native player failed", ex);
         }
     }
 
@@ -418,10 +486,7 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            if (_isNpVideoWebViewInitialized)
-            {
-                NpVideoWebView.CoreWebView2?.Navigate("about:blank");
-            }
+            _nativeVideoPlayer?.Pause();
         }
         catch { }
     }

@@ -179,8 +179,6 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                             {
                                 song.ThumbnailUrl = results[0].ThumbnailUrl;
                             }
-                            // Re-notify song change so lyrics and downstream services receive the resolved 11-char videoId immediately
-                            SetCurrentSong(song);
                         }
                     }
                 }

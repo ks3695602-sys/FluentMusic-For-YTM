@@ -226,7 +226,7 @@
                        PanePlacement="Right"
                        OpenPaneLength="420"
                        DisplayMode="Overlay"
-                       PaneBackground="#F2121216">
+                       PaneBackground="{ThemeResource SolidBackgroundFillColorBaseBrush}">
 
                     <!-- Lyrics Drawer Pane -->
                     <SplitView.Pane>
@@ -239,9 +239,8 @@
                             <!-- Navigation Content Frame (Zero Gap, Edge to Edge) -->
                             <Frame x:Name="ContentFrame" />
 
-                            <!-- Full Stage Apple Music "Now Playing" Experience (Always Dark Glass Aesthetic) -->
+                            <!-- Full Stage Apple Music "Now Playing" Experience -->
                             <Grid x:Name="NowPlayingOverlay"
-                                  RequestedTheme="Dark"
                                   Visibility="Collapsed"
                                   Background="Transparent">
                                 <Grid.RowDefinitions>
@@ -407,13 +406,15 @@
                                     </Border>
                                 </Grid>
 
-                                <!-- 2. Music Video Stage (Embedded High-Res YouTube Player in WebView2) -->
+                                <!-- 2. Music Video Stage (Native WinUI MediaPlayerElement) -->
                                 <Grid x:Name="NpVideoStage" Grid.Row="1" Visibility="Collapsed" Padding="20,10,20,90">
-                                    <Border CornerRadius="14"
-                                            BorderBrush="#25FFFFFF" BorderThickness="1"
+                                    <Border CornerRadius="12"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
                                             Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                        <WebView2 x:Name="NpVideoWebView"
-                                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                                        <MediaPlayerElement x:Name="NpVideoPlayer"
+                                                            AreTransportControlsEnabled="False"
+                                                            Stretch="Uniform"
+                                                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                                     </Border>
                                 </Grid>
                             </Grid>
