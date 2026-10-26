@@ -46,7 +46,19 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         }
     }
 
-    public bool IsShuffleEnabled { get; set; }
+    private bool _isShuffleEnabled;
+    public bool IsShuffleEnabled
+    {
+        get => _isShuffleEnabled;
+        set
+        {
+            _isShuffleEnabled = value;
+            if (_isShuffleEnabled)
+            {
+                ShuffleQueue();
+            }
+        }
+    }
     public int RepeatMode { get; set; } // 0 = Off, 1 = Repeat All, 2 = Repeat One
     public double CrossfadeDurationSeconds { get; set; } = 4.0;
     public bool IsVolumeNormalizationEnabled { get; set; } = true;
@@ -91,8 +103,8 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         _smtc.IsPreviousEnabled = true;
         _smtc.ButtonPressed += OnSmtcButtonPressed;
 
-        // Position timer - fires every 250ms to update position
-        _positionTimer = new System.Threading.Timer(OnPositionTimerTick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(250));
+        // High-precision position timer - fires every 40ms (~25 FPS beacon) for silky-smooth lyrics
+        _positionTimer = new System.Threading.Timer(OnPositionTimerTick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(40));
     }
 
     public void SetCurrentSong(Song song)
@@ -245,6 +257,9 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
 
             // Update SMTC display
             await UpdateSmtcDisplayAsync(song);
+
+            // Populate taste-based radio queue dynamically
+            _ = EnsureRadioQueueAsync();
         }
         catch (Exception ex)
         {
@@ -287,6 +302,11 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
 
     public async Task PlayNextAsync()
     {
+        if (UpNext.Count == 0)
+        {
+            await EnsureRadioQueueAsync();
+        }
+
         if (UpNext.Count > 0)
         {
             if (CurrentSong != null)
@@ -376,6 +396,60 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
     public void ClearQueue()
     {
         UpNext.Clear();
+        _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
+    }
+
+    public async Task EnsureRadioQueueAsync()
+    {
+        if (UpNext.Count >= 4 || CurrentSong == null) return;
+        try
+        {
+            var ytService = App.Services.GetService(typeof(IYouTubeMusicService)) as IYouTubeMusicService;
+            if (ytService != null)
+            {
+                var radioTracks = await ytService.GetRadioTracksAsync(CurrentSong.VideoId, CurrentSong.Title, CurrentSong.Artist);
+                if (radioTracks != null && radioTracks.Count > 0)
+                {
+                    _dispatcherQueue.TryEnqueue(() =>
+                    {
+                        foreach (var track in radioTracks)
+                        {
+                            if (track.VideoId != CurrentSong.VideoId && !UpNext.Any(s => s.VideoId == track.VideoId))
+                            {
+                                UpNext.Add(track);
+                            }
+                        }
+                        if (_isShuffleEnabled)
+                        {
+                            ShuffleQueue();
+                        }
+                        QueueChanged?.Invoke(this, EventArgs.Empty);
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("EnsureRadioQueueAsync failed", ex);
+        }
+    }
+
+    public void ShuffleQueue()
+    {
+        if (UpNext.Count <= 1) return;
+        var rng = new Random();
+        int n = UpNext.Count;
+        var list = UpNext.ToList();
+        while (n > 1)
+        {
+            n--;
+            int k = rng.Next(n + 1);
+            var value = list[k];
+            list[k] = list[n];
+            list[n] = value;
+        }
+        UpNext.Clear();
+        foreach (var item in list) UpNext.Add(item);
         _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
     }
 

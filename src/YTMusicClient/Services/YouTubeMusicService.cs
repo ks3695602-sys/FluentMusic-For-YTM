@@ -990,7 +990,21 @@ public class YouTubeMusicService : IYouTubeMusicService
                         flex1.TryGetProperty("text", out var text1) &&
                         text1.TryGetProperty("runs", out var runs1) && runs1.GetArrayLength() > 0)
                     {
-                        artist = runs1[0].GetProperty("text").GetString() ?? string.Empty;
+                        foreach (var r in runs1.EnumerateArray())
+                        {
+                            var txt = r.TryGetProperty("text", out var tProp) ? tProp.GetString()?.Trim() : null;
+                            if (!string.IsNullOrEmpty(txt) && txt != "•" &&
+                                !txt.Equals("Song", StringComparison.OrdinalIgnoreCase) &&
+                                !txt.Equals("Video", StringComparison.OrdinalIgnoreCase) &&
+                                !txt.Equals("Album", StringComparison.OrdinalIgnoreCase) &&
+                                !txt.Equals("Single", StringComparison.OrdinalIgnoreCase) &&
+                                !txt.Contains("views", StringComparison.OrdinalIgnoreCase) &&
+                                !txt.Contains("plays", StringComparison.OrdinalIgnoreCase))
+                            {
+                                artist = txt;
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -1029,7 +1043,21 @@ public class YouTubeMusicService : IYouTubeMusicService
             if (twoRow.TryGetProperty("subtitle", out var sObj) &&
                 sObj.TryGetProperty("runs", out var sRuns) && sRuns.GetArrayLength() > 0)
             {
-                artist = sRuns[0].GetProperty("text").GetString() ?? string.Empty;
+                foreach (var r in sRuns.EnumerateArray())
+                {
+                    var txt = r.TryGetProperty("text", out var tProp) ? tProp.GetString()?.Trim() : null;
+                    if (!string.IsNullOrEmpty(txt) && txt != "•" &&
+                        !txt.Equals("Song", StringComparison.OrdinalIgnoreCase) &&
+                        !txt.Equals("Video", StringComparison.OrdinalIgnoreCase) &&
+                        !txt.Equals("Album", StringComparison.OrdinalIgnoreCase) &&
+                        !txt.Equals("Single", StringComparison.OrdinalIgnoreCase) &&
+                        !txt.Contains("views", StringComparison.OrdinalIgnoreCase) &&
+                        !txt.Contains("plays", StringComparison.OrdinalIgnoreCase))
+                    {
+                        artist = txt;
+                        break;
+                    }
+                }
             }
 
             if (twoRow.TryGetProperty("thumbnailRenderer", out var tr) &&
@@ -1341,7 +1369,21 @@ public class YouTubeMusicService : IYouTubeMusicService
                             flex1.TryGetProperty("text", out var text1) &&
                             text1.TryGetProperty("runs", out var runs1) && runs1.GetArrayLength() > 0)
                         {
-                            artist = runs1[0].GetProperty("text").GetString() ?? string.Empty;
+                            foreach (var r in runs1.EnumerateArray())
+                            {
+                                var txt = r.TryGetProperty("text", out var tProp) ? tProp.GetString()?.Trim() : null;
+                                if (!string.IsNullOrEmpty(txt) && txt != "•" &&
+                                    !txt.Equals("Song", StringComparison.OrdinalIgnoreCase) &&
+                                    !txt.Equals("Video", StringComparison.OrdinalIgnoreCase) &&
+                                    !txt.Equals("Album", StringComparison.OrdinalIgnoreCase) &&
+                                    !txt.Equals("Single", StringComparison.OrdinalIgnoreCase) &&
+                                    !txt.Contains("views", StringComparison.OrdinalIgnoreCase) &&
+                                    !txt.Contains("plays", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    artist = txt;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -1583,5 +1625,44 @@ public class YouTubeMusicService : IYouTubeMusicService
                 ParsePlaylistsRecursive(child, playlists);
             }
         }
+    }
+
+    public async Task<IReadOnlyList<Song>> GetRadioTracksAsync(string videoId, string title, string artist, CancellationToken ct = default)
+    {
+        var songs = new List<Song>();
+        try
+        {
+            string query = !string.IsNullOrWhiteSpace(artist) ? $"{artist} top hits" : $"{title} songs";
+            var results = await SearchAsync(query, ct);
+            if (results != null)
+            {
+                int gradIdx = 0;
+                foreach (var r in results)
+                {
+                    if (r.VideoId == videoId) continue;
+                    var grad = AmbientGradients[gradIdx % AmbientGradients.Length];
+                    gradIdx++;
+
+                    songs.Add(new Song
+                    {
+                        VideoId = r.VideoId,
+                        Title = r.Title,
+                        Artist = r.Artist,
+                        Album = r.Album,
+                        ThumbnailUrl = r.ThumbnailUrl,
+                        Duration = r.Duration,
+                        GradientColorStart = grad.Start,
+                        GradientColorEnd = grad.End
+                    });
+
+                    if (songs.Count >= 15) break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError("GetRadioTracksAsync failed", ex);
+        }
+        return songs;
     }
 }

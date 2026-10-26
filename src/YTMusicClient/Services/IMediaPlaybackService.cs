@@ -43,4 +43,6 @@ public interface IMediaPlaybackService
     void EnqueueNext(Song song);
     void RemoveFromQueue(Song song);
     void ClearQueue();
+    Task EnsureRadioQueueAsync();
+    void ShuffleQueue();
 }

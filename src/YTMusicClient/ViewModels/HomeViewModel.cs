@@ -207,23 +207,37 @@ public partial class HomeViewModel : ObservableObject
             FidelityTier = result.FidelityTier
         };
 
-        if (song.VideoId.StartsWith("query:"))
+        if (song.VideoId.StartsWith("query:") || song.Duration == TimeSpan.FromMinutes(3.5) || string.IsNullOrWhiteSpace(song.Artist) || song.Artist == "YouTube Music")
         {
             try
             {
-                var query = $"{song.Title} {song.Artist}".Trim();
+                var query = song.VideoId.StartsWith("query:")
+                    ? song.VideoId.Substring(6).Replace("|||", " ")
+                    : $"{song.Title} {song.Artist}".Replace("YouTube Music", "").Trim();
+
                 var searchResults = await _musicService.SearchAsync(query);
                 if (searchResults.Count > 0)
                 {
                     var match = searchResults.FirstOrDefault(r => 
-                        string.Equals(r.Title, song.Title, StringComparison.OrdinalIgnoreCase) &&
-                        string.Equals(r.Artist, song.Artist, StringComparison.OrdinalIgnoreCase))
-                        ?? searchResults.FirstOrDefault(r => 
-                            r.Title.Contains(song.Title, StringComparison.OrdinalIgnoreCase) &&
-                            (string.IsNullOrEmpty(song.Artist) || r.Artist.Contains(song.Artist, StringComparison.OrdinalIgnoreCase)))
+                        string.Equals(r.Title, song.Title, StringComparison.OrdinalIgnoreCase))
                         ?? searchResults[0];
 
-                    song.VideoId = match.VideoId;
+                    if (song.VideoId.StartsWith("query:"))
+                    {
+                        song.VideoId = match.VideoId;
+                    }
+                    if (match.Duration > TimeSpan.Zero)
+                    {
+                        song.Duration = match.Duration;
+                    }
+                    if (!string.IsNullOrWhiteSpace(match.Artist) && match.Artist != "YouTube Music")
+                    {
+                        song.Artist = match.Artist;
+                    }
+                    if (!string.IsNullOrWhiteSpace(match.Title))
+                    {
+                        song.Title = match.Title;
+                    }
                     if (string.IsNullOrEmpty(song.ThumbnailUrl))
                     {
                         song.ThumbnailUrl = match.ThumbnailUrl;
@@ -232,7 +246,7 @@ public partial class HomeViewModel : ObservableObject
             }
             catch (Exception ex)
             {
-                AppLogger.LogError("Failed to resolve videoId from query tag", ex);
+                AppLogger.LogError("Failed to resolve metadata from search", ex);
             }
         }
 

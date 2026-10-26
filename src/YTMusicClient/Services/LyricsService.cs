@@ -48,10 +48,16 @@ public class LyricsService : ILyricsService
     {
         var cleanTitle = CleanSongTitle(title);
         var cleanArtist = CleanArtistName(artist);
+        if (!string.IsNullOrEmpty(cleanArtist) && cleanArtist.Equals("YouTube Music", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanArtist = string.Empty;
+        }
+
         var durationSec = (int)Math.Round(duration.TotalSeconds);
+        bool hasValidDuration = durationSec > 0 && durationSec != 210;
 
         // 1. SimpMusic API (Direct YouTube VideoId resolution from ArchiveTune)
-        if (!string.IsNullOrEmpty(videoId))
+        if (!string.IsNullOrEmpty(videoId) && !videoId.StartsWith("query:"))
         {
             try
             {
@@ -75,7 +81,8 @@ public class LyricsService : ILyricsService
             try
             {
                 AppLogger.Log($"LyricsService: Querying Better Lyrics at {betterLyricsUrlBase} for '{cleanTitle}' - '{cleanArtist}'");
-                var betterLyricsUrl = $"{betterLyricsUrlBase}?s={Uri.EscapeDataString(cleanTitle)}&a={Uri.EscapeDataString(cleanArtist)}&d={durationSec}";
+                var durParam = hasValidDuration ? $"&d={durationSec}" : "";
+                var betterLyricsUrl = $"{betterLyricsUrlBase}?s={Uri.EscapeDataString(cleanTitle)}&a={Uri.EscapeDataString(cleanArtist)}{durParam}";
                 var response = await _httpClient.GetAsync(betterLyricsUrl, ct);
 
                 if (response.IsSuccessStatusCode)
@@ -115,7 +122,8 @@ public class LyricsService : ILyricsService
             try
             {
                 AppLogger.Log($"LyricsService: Querying YouLy+ at {youLyBaseUrl} for '{cleanTitle}' - '{cleanArtist}'");
-                var youLyUrl = $"{youLyBaseUrl}?title={Uri.EscapeDataString(cleanTitle)}&artist={Uri.EscapeDataString(cleanArtist)}&duration={durationSec}&source=apple,musixmatch,spotify";
+                var durParam = hasValidDuration ? $"&duration={durationSec}" : "";
+                var youLyUrl = $"{youLyBaseUrl}?title={Uri.EscapeDataString(cleanTitle)}&artist={Uri.EscapeDataString(cleanArtist)}{durParam}&source=apple,musixmatch,spotify";
                 var response = await _httpClient.GetAsync(youLyUrl, ct);
 
                 if (response.IsSuccessStatusCode)
@@ -139,7 +147,7 @@ public class LyricsService : ILyricsService
         try
         {
             AppLogger.Log($"LyricsService: Querying KuGou for '{cleanTitle}' - '{cleanArtist}'");
-            var kugouLines = await FetchKuGouLyricsAsync(cleanTitle, cleanArtist, durationSec, ct);
+            var kugouLines = await FetchKuGouLyricsAsync(cleanTitle, cleanArtist, hasValidDuration ? durationSec : 0, ct);
             if (kugouLines.Count > 0)
             {
                 AppLogger.Log($"KuGou SUCCESS: {kugouLines.Count} lines parsed");
@@ -151,28 +159,32 @@ public class LyricsService : ILyricsService
             AppLogger.Log($"KuGou fetch failed: {ex.Message}");
         }
 
-        // 4. Quaternary Engine: LRCLIB API Fallback (Line-Synced)
+        // 5. Quaternary Engine: LRCLIB API Fallback (Line-Synced)
         try
         {
             AppLogger.Log($"LyricsService: Fallback to LRCLIB for '{cleanTitle}' - '{cleanArtist}'");
-            var url = $"{LrcLibBaseUrl}/get?track_name={Uri.EscapeDataString(cleanTitle)}&artist_name={Uri.EscapeDataString(cleanArtist)}&duration={durationSec}";
-            var response = await _httpClient.GetAsync(url, ct);
-
-            if (response.IsSuccessStatusCode)
+            if (hasValidDuration)
             {
-                var lrcResult = await response.Content.ReadFromJsonAsync<LrcLibResponse>(cancellationToken: ct);
-                if (!string.IsNullOrEmpty(lrcResult?.SyncedLyrics))
+                var url = $"{LrcLibBaseUrl}/get?track_name={Uri.EscapeDataString(cleanTitle)}&artist_name={Uri.EscapeDataString(cleanArtist)}&duration={durationSec}";
+                var response = await _httpClient.GetAsync(url, ct);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    return ParseLrc(lrcResult.SyncedLyrics);
-                }
-                if (!string.IsNullOrEmpty(lrcResult?.PlainLyrics))
-                {
-                    return ParsePlainLyrics(lrcResult.PlainLyrics);
+                    var lrcResult = await response.Content.ReadFromJsonAsync<LrcLibResponse>(cancellationToken: ct);
+                    if (!string.IsNullOrEmpty(lrcResult?.SyncedLyrics))
+                    {
+                        return ParseLrc(lrcResult.SyncedLyrics);
+                    }
+                    if (!string.IsNullOrEmpty(lrcResult?.PlainLyrics))
+                    {
+                        return ParsePlainLyrics(lrcResult.PlainLyrics);
+                    }
                 }
             }
 
             // LRCLIB Search fallback
-            var searchUrl = $"{LrcLibBaseUrl}/search?q={Uri.EscapeDataString($"{cleanTitle} {cleanArtist}")}";
+            var searchParam = string.IsNullOrWhiteSpace(cleanArtist) ? cleanTitle : $"{cleanTitle} {cleanArtist}";
+            var searchUrl = $"{LrcLibBaseUrl}/search?q={Uri.EscapeDataString(searchParam)}";
             var searchResponse = await _httpClient.GetAsync(searchUrl, ct);
 
             if (searchResponse.IsSuccessStatusCode)
@@ -427,7 +439,7 @@ public class LyricsService : ILyricsService
                     if (track.TryGetProperty("syncedLyrics", out var sProp) && !string.IsNullOrWhiteSpace(sProp.GetString()))
                     {
                         int dur = track.TryGetProperty("duration", out var dProp) && dProp.TryGetInt32(out var d) ? d : 0;
-                        int diff = durationSec > 0 ? Math.Abs(dur - durationSec) : 0;
+                        int diff = (durationSec > 0 && durationSec != 210) ? Math.Abs(dur - durationSec) : 0;
                         if (diff < bestDiff)
                         {
                             bestDiff = diff;
@@ -461,7 +473,8 @@ public class LyricsService : ILyricsService
     {
         try
         {
-            var searchUrl = $"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&keyword={Uri.EscapeDataString($"{title} - {artist}")}&duration={durationSec * 1000}";
+            var durParam = (durationSec > 0 && durationSec != 210) ? $"&duration={durationSec * 1000}" : "";
+            var searchUrl = $"https://lyrics.kugou.com/search?ver=1&man=yes&client=pc&keyword={Uri.EscapeDataString($"{title} - {artist}".Trim())}{durParam}";
             var resp = await _httpClient.GetAsync(searchUrl, ct);
             if (!resp.IsSuccessStatusCode) return Array.Empty<LyricLine>();
 
@@ -614,15 +627,39 @@ public class LyricsService : ILyricsService
 
     private static string CleanSongTitle(string title)
     {
-        // Strip official video, ft, etc. for better lyric matching
+        if (string.IsNullOrWhiteSpace(title)) return string.Empty;
         var cleaned = Regex.Replace(title, @"\((feat\.|ft\.|official|video|audio|remix|lyric|lyrics).*\)", "", RegexOptions.IgnoreCase);
         cleaned = Regex.Replace(cleaned, @"\[(feat\.|ft\.|official|video|audio|remix|lyric|lyrics).*\]", "", RegexOptions.IgnoreCase);
+        cleaned = Regex.Replace(cleaned, @" - Single$", "", RegexOptions.IgnoreCase);
+        cleaned = Regex.Replace(cleaned, @" - EP$", "", RegexOptions.IgnoreCase);
         return cleaned.Trim();
     }
 
     private static string CleanArtistName(string artist)
     {
-        var cleaned = Regex.Replace(artist, @"- Topic$", "", RegexOptions.IgnoreCase);
+        if (string.IsNullOrWhiteSpace(artist)) return string.Empty;
+        var cleaned = artist;
+
+        // Strip YouTube Music subtitle metadata like "• 25M views", "• Song", "• 2026"
+        int bulletIdx = cleaned.IndexOf('•');
+        if (bulletIdx > 0)
+        {
+            cleaned = cleaned.Substring(0, bulletIdx);
+        }
+        int pipeIdx = cleaned.IndexOf('|');
+        if (pipeIdx > 0)
+        {
+            cleaned = cleaned.Substring(0, pipeIdx);
+        }
+
+        // Take primary artist if comma/ampersand separated for lyric DB matching
+        int commaIdx = cleaned.IndexOfAny(new[] { ',', '&' });
+        if (commaIdx > 0)
+        {
+            cleaned = cleaned.Substring(0, commaIdx);
+        }
+
+        cleaned = Regex.Replace(cleaned, @"- Topic$", "", RegexOptions.IgnoreCase);
         cleaned = Regex.Replace(cleaned, @"VEVO$", "", RegexOptions.IgnoreCase);
         return cleaned.Trim();
     }

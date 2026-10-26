@@ -26,9 +26,9 @@ public sealed partial class MainWindow : Window
 
         ViewModel = App.Services.GetRequiredService<ShellViewModel>();
 
-        // Zero-titlebar edge-to-edge window shell with draggable stage area
+        // Zero-titlebar edge-to-edge window shell with draggable sidebar area
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(MainStageDragArea);
+        SetTitleBar(SidebarDragArea);
 
         // Make window caption buttons transparent so they seamlessly blend
         ConfigureTransparentCaptionButtons();
@@ -43,6 +43,9 @@ public sealed partial class MainWindow : Window
         // Register navigation frame
         var navService = App.Services.GetRequiredService<INavigationService>();
         navService.Frame = ContentFrame;
+
+        // Ambient mesh animation for Apple Music Now Playing
+        StartAmbientMeshAnimation();
 
         // Wire Localization dynamic updates
         LocalizationService.Instance.LanguageChanged += (s, e) => ApplyLocalization();
@@ -161,11 +164,13 @@ public sealed partial class MainWindow : Window
         {
             NowPlayingOverlay.Visibility = Visibility.Collapsed;
             ContentFrame.Visibility = Visibility.Visible;
+            FloatingPlayerContainer.Visibility = Visibility.Visible;
             PauseVideoPlayer();
         }
         else
         {
             ContentFrame.Visibility = Visibility.Collapsed;
+            FloatingPlayerContainer.Visibility = Visibility.Collapsed;
             NowPlayingOverlay.Visibility = Visibility.Visible;
             UpdateNowPlayingContent();
             if (NpVideoStage.Visibility == Visibility.Visible)
@@ -173,6 +178,11 @@ public sealed partial class MainWindow : Window
                 LoadCurrentVideo();
             }
         }
+    }
+
+    private void NpBackButton_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleNowPlaying();
     }
 
     private bool _isUserSeeking = false;
@@ -271,6 +281,30 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private DispatcherTimer? _ambientMeshTimer;
+    private double _meshAngle = 0;
+
+    private void StartAmbientMeshAnimation()
+    {
+        if (_ambientMeshTimer != null) return;
+        _ambientMeshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+        _ambientMeshTimer.Tick += (s, e) =>
+        {
+            if (NowPlayingOverlay?.Visibility != Visibility.Visible) return;
+            _meshAngle += 0.015;
+            double xOff1 = Math.Cos(_meshAngle) * 60.0;
+            double yOff1 = Math.Sin(_meshAngle) * 50.0;
+            double xOff2 = -Math.Sin(_meshAngle * 0.8) * 70.0;
+            double yOff2 = -Math.Cos(_meshAngle * 0.8) * 60.0;
+
+            if (NpMeshEllipse1 != null)
+                NpMeshEllipse1.Margin = new Thickness(-150 + xOff1, -150 + yOff1, 0, 0);
+            if (NpMeshEllipse2 != null)
+                NpMeshEllipse2.Margin = new Thickness(0, 0, -200 + xOff2, -200 + yOff2);
+        };
+        _ambientMeshTimer.Start();
+    }
+
     private void UpdateMeshGradients(string hex1, string hex2)
     {
         try
@@ -305,6 +339,7 @@ public sealed partial class MainWindow : Window
     {
         NowPlayingOverlay.Visibility = Visibility.Collapsed;
         ContentFrame.Visibility = Visibility.Visible;
+        FloatingPlayerContainer.Visibility = Visibility.Visible;
         PauseVideoPlayer();
     }
 

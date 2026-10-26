@@ -194,8 +194,9 @@ public sealed partial class SettingsPage : Page
             SectionAudio.Visibility = tabIdx == 1 ? Visibility.Visible : Visibility.Collapsed;
             SectionSpicyLyrics.Visibility = tabIdx == 2 ? Visibility.Visible : Visibility.Collapsed;
             SectionYouLy.Visibility = tabIdx == 3 ? Visibility.Visible : Visibility.Collapsed;
-            SectionDownloads.Visibility = tabIdx == 4 ? Visibility.Visible : Visibility.Collapsed;
-            SectionAbout.Visibility = tabIdx == 5 ? Visibility.Visible : Visibility.Collapsed;
+            SectionRadio.Visibility = tabIdx == 4 ? Visibility.Visible : Visibility.Collapsed;
+            SectionDownloads.Visibility = tabIdx == 5 ? Visibility.Visible : Visibility.Collapsed;
+            SectionAbout.Visibility = tabIdx == 6 ? Visibility.Visible : Visibility.Collapsed;
 
             var activeBg = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
             var transBg = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
@@ -212,11 +213,14 @@ public sealed partial class SettingsPage : Page
             TabYouLyBtn.Background = tabIdx == 3 ? activeBg : transBg;
             TabYouLyBtn.FontWeight = tabIdx == 3 ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
 
-            TabDownloadsBtn.Background = tabIdx == 4 ? activeBg : transBg;
-            TabDownloadsBtn.FontWeight = tabIdx == 4 ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+            TabRadioBtn.Background = tabIdx == 4 ? activeBg : transBg;
+            TabRadioBtn.FontWeight = tabIdx == 4 ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
 
-            TabAboutBtn.Background = tabIdx == 5 ? activeBg : transBg;
-            TabAboutBtn.FontWeight = tabIdx == 5 ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+            TabDownloadsBtn.Background = tabIdx == 5 ? activeBg : transBg;
+            TabDownloadsBtn.FontWeight = tabIdx == 5 ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+
+            TabAboutBtn.Background = tabIdx == 6 ? activeBg : transBg;
+            TabAboutBtn.FontWeight = tabIdx == 6 ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
         }
     }
 

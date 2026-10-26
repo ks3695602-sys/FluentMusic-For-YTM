@@ -13,7 +13,7 @@
       --font-family: "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-scale: 1.0;
       --bounce-mult: 1.0;
-      --blur-amount: 3.5px;
+      --blur-amount: 2.8px;
     }
 
     * {
@@ -42,7 +42,6 @@
       height: 100%;
       z-index: 0;
       pointer-events: none;
-      filter: blur(65px) saturate(2.2);
       opacity: 0.65;
       transition: opacity 0.8s ease;
     }
@@ -56,7 +55,6 @@
       overflow-y: auto;
       overflow-x: hidden;
       padding: 140px 32px 280px 32px;
-      scroll-behavior: smooth;
     }
 
     #lyrics-container::-webkit-scrollbar {
@@ -70,8 +68,8 @@
     /* Floating Top Action Capsule (Spicy Lyrics & YouLy+ Controls) */
     #view-controls {
       position: fixed;
-      top: 20px;
-      right: 28px;
+      top: 18px;
+      right: 24px;
       z-index: 10;
       display: flex;
       align-items: center;
@@ -149,63 +147,43 @@
     }
 
     /* ==========================================================================
-       ENGINE 1: SPICY LYRICS (Dynamic Mesh Glow + Syllable Spring Wash)
+       ENGINE 1: SPICY LYRICS (Dynamic Mesh Glow + Spring Wash)
        ========================================================================== */
     body.mode-spicy .lyric-line {
       display: block;
-      margin: 22px 0;
-      font-size: calc(30px * var(--font-scale));
+      margin: 20px 0;
+      font-size: calc(28px * var(--font-scale));
       font-weight: 800;
-      line-height: 1.3;
+      line-height: 1.32;
       letter-spacing: -0.02em;
       color: var(--inactive-text);
       cursor: pointer;
       transform-origin: left center;
       transition: color 0.28s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
-      filter: blur(0.4px);
     }
 
     body.mode-spicy .lyric-line:hover {
-      color: rgba(255, 255, 255, 0.75);
+      color: rgba(255, 255, 255, 0.8);
       transform: scale(1.02);
-      filter: blur(0px);
     }
 
     body.mode-spicy .lyric-line.active {
       color: var(--active-text);
       transform: scale(calc(1.04 * var(--bounce-mult)));
-      filter: blur(0px);
-      text-shadow: 0 0 24px rgba(255, 255, 255, 0.45), 0 0 8px rgba(255, 255, 255, 0.7);
     }
 
     body.mode-spicy .lyric-line.passed {
       color: var(--passed-text);
       transform: scale(1.0);
-      filter: blur(0.3px);
-    }
-
-    body.mode-spicy .syllable-word {
-      display: inline-block;
-      position: relative;
-      margin-right: 0.28em;
-      background: linear-gradient(to right, #FFFFFF var(--progress, 0%), rgba(255, 255, 255, 0.28) var(--progress, 0%));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      transition: transform 0.18s ease;
-    }
-
-    body.mode-spicy .syllable-word.sung {
-      --progress: 100%;
-      -webkit-text-fill-color: #FFFFFF;
     }
 
     /* ==========================================================================
-       ENGINE 2: YOULY+ (Apple Music Pure TTML with Depth-of-Field Gaussian Blur)
+       ENGINE 2: YOULY+ (Apple Music Pure TTML with Depth-of-Field Blur)
        ========================================================================== */
     body.mode-youly .lyric-line {
       display: block;
-      margin: 24px 0;
-      font-size: calc(32px * var(--font-scale));
+      margin: 22px 0;
+      font-size: calc(30px * var(--font-scale));
       font-weight: 700;
       line-height: 1.35;
       letter-spacing: -0.015em;
@@ -228,7 +206,6 @@
       opacity: 1.0;
       transform: scale(1.05);
       filter: blur(0px);
-      text-shadow: 0 0 28px rgba(255, 255, 255, 0.55), 0 0 12px rgba(255, 255, 255, 0.8);
     }
 
     body.mode-youly .lyric-line.passed {
@@ -238,34 +215,65 @@
       transform: scale(1.0);
     }
 
-    body.mode-youly .syllable-word {
+    /* ==========================================================================
+       HARDWARE-ACCELERATED SYLLABLE WIPE (Zero Ghosting / Zero Smear)
+       ========================================================================== */
+    .syllable-word {
       display: inline-block;
-      margin-right: 0.3em;
-      background: linear-gradient(to right, #FFFFFF var(--progress, 0%), rgba(255, 255, 255, 0.35) var(--progress, 0%));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      transition: filter 0.2s ease;
+      position: relative;
+      margin-right: 0.28em;
+      vertical-align: baseline;
+      line-height: inherit;
     }
 
-    body.mode-youly .syllable-word.sung {
-      --progress: 100%;
-      -webkit-text-fill-color: #FFFFFF;
+    .word-base {
+      display: inline;
+      color: rgba(255, 255, 255, 0.35);
+      transition: color 0.2s ease;
+    }
+
+    .active .word-base {
+      color: rgba(255, 255, 255, 0.42);
+    }
+
+    .word-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 0%;
+      overflow: hidden;
+      white-space: nowrap;
+      pointer-events: none;
+      will-change: width;
+    }
+
+    .word-fill-inner {
+      display: inline;
+      color: #FFFFFF;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.75), 0 0 6px rgba(255, 255, 255, 0.9);
+    }
+
+    .syllable-word.sung .word-base {
+      color: #FFFFFF;
+    }
+    .syllable-word.sung .word-fill {
+      width: 100% !important;
     }
 
     /* Subtitle Translation / Romanization */
     .lyric-sub {
       display: block;
-      font-size: calc(15px * var(--font-scale));
+      font-size: calc(14px * var(--font-scale));
       font-weight: 500;
       color: rgba(255, 255, 255, 0.48);
-      margin-top: 6px;
+      margin-top: 5px;
       letter-spacing: 0.05px;
       line-height: 1.4;
     }
 
     .active .lyric-sub {
       color: rgba(255, 255, 255, 0.88);
-      text-shadow: none;
     }
   </style>
 </head>
@@ -309,6 +317,12 @@
     let trackColors = ['#FA2D48', '#3B82F6', '#8B5CF6', '#F59E0B'];
     let animAngle = 0;
 
+    // High-precision clock & smooth inertia scroller
+    let lastKnownPlayerTimeMs = 0;
+    let lastClockTime = performance.now();
+    let isPlaying = false;
+    let targetScrollTop = 0;
+
     // Engine toggle
     engineBtn.addEventListener('click', () => {
       setEngine(currentEngine === 'spicy' ? 'youly' : 'spicy');
@@ -344,12 +358,11 @@
 
     function drawAmbient() {
       if (!ctx) return;
-      animAngle += 0.006;
+      animAngle += 0.005;
       const w = canvas.width;
       const h = canvas.height;
       ctx.clearRect(0, 0, w, h);
 
-      // Rotating flowing mesh gradient
       const cx = w / 2 + Math.cos(animAngle) * (w * 0.25);
       const cy = h / 2 + Math.sin(animAngle) * (h * 0.25);
       const rad = Math.max(w, h) * 0.85;
@@ -367,6 +380,24 @@
     }
     requestAnimationFrame(drawAmbient);
 
+    // Continuous 60/120 FPS Extrapolation Loop & Spring Scroller
+    function renderFrame() {
+      if (isPlaying && currentLyrics && currentLyrics.length > 0) {
+        const delta = performance.now() - lastClockTime;
+        const interpolatedTime = lastKnownPlayerTimeMs + delta;
+        updateTime(interpolatedTime);
+      }
+
+      // Smooth inertia spring scrolling
+      const diffY = targetScrollTop - container.scrollTop;
+      if (Math.abs(diffY) > 0.5) {
+        container.scrollTop += diffY * 0.085;
+      }
+
+      requestAnimationFrame(renderFrame);
+    }
+    requestAnimationFrame(renderFrame);
+
     // Two-way IPC Bridge with WinUI 3
     window.chrome?.webview?.addEventListener('message', (event) => {
       const msg = event.data;
@@ -376,7 +407,10 @@
         currentLyrics = msg.data || [];
         renderLyrics();
       } else if (msg.type === 'timeupdate') {
-        updateTime(msg.timeMs);
+        lastKnownPlayerTimeMs = msg.timeMs || 0;
+        lastClockTime = performance.now();
+        if (msg.isPlaying !== undefined) isPlaying = msg.isPlaying;
+        updateTime(lastKnownPlayerTimeMs);
       } else if (msg.type === 'engine') {
         setEngine(msg.engine);
       } else if (msg.type === 'colors') {
@@ -385,6 +419,8 @@
         }
       } else if (msg.type === 'status') {
         if (statusText) statusText.innerText = msg.text || '';
+        const dot = document.querySelector('.pulse-dot');
+        if (dot) dot.style.display = (msg.isLoading === false) ? 'none' : 'block';
         if (statusOverlay) statusOverlay.style.display = msg.text ? 'flex' : 'none';
       } else if (msg.type === 'settings') {
         if (msg.fontScale) document.documentElement.style.setProperty('--font-scale', msg.fontScale);
@@ -397,7 +433,13 @@
       activeLineIndex = -1;
 
       if (!currentLyrics || currentLyrics.length === 0) {
-        if (statusOverlay) statusOverlay.style.display = 'flex';
+        if (statusOverlay) {
+          statusOverlay.style.display = 'flex';
+          const dot = document.querySelector('.pulse-dot');
+          if (dot && statusText && statusText.innerText !== 'Synchronizing lyrics...') {
+            dot.style.display = 'none';
+          }
+        }
         container.appendChild(statusOverlay);
         return;
       }
@@ -409,14 +451,28 @@
         div.className = 'lyric-line';
         div.id = `line-${idx}`;
 
-        // Word-level / syllable break
         const words = (line.words && line.words.length > 0) ? line.words : generateWordsForLine(line, idx);
 
         words.forEach((w, wIdx) => {
           const span = document.createElement('span');
           span.className = 'syllable-word';
           span.id = `word-${idx}-${wIdx}`;
-          span.innerText = w.text;
+
+          const base = document.createElement('span');
+          base.className = 'word-base';
+          base.innerText = w.text;
+
+          const fill = document.createElement('span');
+          fill.className = 'word-fill';
+          fill.id = `fill-${idx}-${wIdx}`;
+
+          const inner = document.createElement('span');
+          inner.className = 'word-fill-inner';
+          inner.innerText = w.text;
+
+          fill.appendChild(inner);
+          span.appendChild(base);
+          span.appendChild(fill);
           div.appendChild(span);
         });
 
@@ -492,10 +548,8 @@
             activeElem.classList.add('active');
             activeElem.classList.remove('passed');
 
-            activeElem.scrollIntoView({
-              behavior: 'smooth',
-              block: 'center'
-            });
+            // Retarget spring scroller to center active element smoothly
+            targetScrollTop = activeElem.offsetTop - (container.clientHeight / 2) + (activeElem.clientHeight / 2);
           }
         }
       }
@@ -508,19 +562,20 @@
                       : generateWordsForLine(activeLine, activeLineIndex);
 
         words.forEach((w, wIdx) => {
-          const wElem = document.getElementById(`word-${activeLineIndex}-${wIdx}`);
-          if (!wElem) return;
+          const fillElem = document.getElementById(`fill-${activeLineIndex}-${wIdx}`);
+          const wordElem = document.getElementById(`word-${activeLineIndex}-${wIdx}`);
+          if (!fillElem || !wordElem) return;
 
           if (timeMs < w.startMs) {
-            wElem.style.setProperty('--progress', '0%');
-            wElem.classList.remove('sung');
+            fillElem.style.width = '0%';
+            wordElem.classList.remove('sung');
           } else if (timeMs >= w.endMs) {
-            wElem.style.setProperty('--progress', '100%');
-            wElem.classList.add('sung');
+            fillElem.style.width = '100%';
+            wordElem.classList.add('sung');
           } else {
             const pct = Math.min(100, Math.max(0, ((timeMs - w.startMs) / (w.endMs - w.startMs)) * 100));
-            wElem.style.setProperty('--progress', `${pct}%`);
-            wElem.classList.remove('sung');
+            fillElem.style.width = `${pct.toFixed(1)}%`;
+            wordElem.classList.remove('sung');
           }
         });
       }

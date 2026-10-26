@@ -58,6 +58,69 @@ public class DownloadService : IDownloadService
                     }
                 }
             }
+
+            // Real Filesystem Auto-Scanner: Scan disk directories for downloaded songs
+            var scanDirs = new List<string>();
+
+            // 1. App local downloads folder
+            var appDownloads = Path.Combine(localFolder.Path, "Downloads");
+            if (Directory.Exists(appDownloads)) scanDirs.Add(appDownloads);
+
+            // 2. User Music/FluentMusic/Downloads folder
+            var musicFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyMusic);
+            var userDownloads = Path.Combine(musicFolder, "FluentMusic", "Downloads");
+            if (Directory.Exists(userDownloads)) scanDirs.Add(userDownloads);
+
+            var validExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".m4a", ".opus", ".mp3", ".flac", ".webm", ".wav" };
+
+            foreach (var dir in scanDirs)
+            {
+                foreach (var filePath in Directory.GetFiles(dir))
+                {
+                    var ext = Path.GetExtension(filePath);
+                    if (!validExtensions.Contains(ext)) continue;
+
+                    // If not already in list, extract metadata from file name
+                    if (!_downloadedSongs.Any(s => string.Equals(s.LocalFilePath, filePath, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var rawName = Path.GetFileNameWithoutExtension(filePath);
+                        string title = rawName;
+                        string artist = "Offline Audio";
+                        string videoId = "offline_" + Math.Abs(rawName.GetHashCode());
+
+                        // Format: {Artist} - {Title}_{VideoId}
+                        int underIdx = rawName.LastIndexOf('_');
+                        if (underIdx > 0 && underIdx < rawName.Length - 1)
+                        {
+                            videoId = rawName.Substring(underIdx + 1);
+                            rawName = rawName.Substring(0, underIdx);
+                        }
+
+                        int dashIdx = rawName.IndexOf(" - ", StringComparison.Ordinal);
+                        if (dashIdx > 0)
+                        {
+                            artist = rawName.Substring(0, dashIdx).Trim();
+                            title = rawName.Substring(dashIdx + 3).Trim();
+                        }
+
+                        var fileInfo = new FileInfo(filePath);
+                        var sizeMb = fileInfo.Length / (1024.0 * 1024.0);
+
+                        _downloadedSongs.Add(new Song
+                        {
+                            VideoId = videoId,
+                            Title = title,
+                            Artist = artist,
+                            Album = "Downloads",
+                            LocalFilePath = filePath,
+                            FileSizeFormatted = $"{sizeMb:F1} MB · {ext.TrimStart('.').ToUpperInvariant()}",
+                            ThumbnailUrl = "ms-appx:///Assets/StoreLogo.png"
+                        });
+                    }
+                }
+            }
+
+            await SaveManifestAsync();
         }
         catch (Exception ex)
         {

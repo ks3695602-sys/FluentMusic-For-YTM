@@ -16,4 +16,5 @@ public interface IYouTubeMusicService
     Task<IReadOnlyList<Playlist>> GetLibraryPlaylistsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<Song>> GetPlaylistTracksAsync(string playlistId, CancellationToken ct = default);
     Task<HomeFeedResult> GetPersonalizedHomeFeedAsync(string? moodParam = null, CancellationToken ct = default);
+    Task<IReadOnlyList<Song>> GetRadioTracksAsync(string videoId, string title, string artist, CancellationToken ct = default);
 }

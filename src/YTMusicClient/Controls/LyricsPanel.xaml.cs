@@ -28,6 +28,10 @@ public sealed partial class LyricsPanel : UserControl
             {
                 PushLyricsToSpicy();
             }
+            else if (e.PropertyName == nameof(ViewModel.StatusMessage) || e.PropertyName == nameof(ViewModel.IsLoading))
+            {
+                PushStatusToSpicy();
+            }
         };
 
         ViewModel.PlaybackService.PositionChanged += (s, pos) =>
@@ -39,7 +43,26 @@ public sealed partial class LyricsPanel : UserControl
                     try
                     {
                         var timeMs = pos.TotalMilliseconds;
-                        var payload = JsonSerializer.Serialize(new { type = "timeupdate", timeMs });
+                        var isPlaying = ViewModel.PlaybackService.IsPlaying;
+                        var payload = JsonSerializer.Serialize(new { type = "timeupdate", timeMs, isPlaying });
+                        SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(payload);
+                    }
+                    catch { }
+                });
+            }
+        };
+
+        ViewModel.PlaybackService.PlaybackStateChanged += (s, state) =>
+        {
+            if (_isWebViewInitialized)
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    try
+                    {
+                        var timeMs = ViewModel.PlaybackService.Position.TotalMilliseconds;
+                        var isPlaying = ViewModel.PlaybackService.IsPlaying;
+                        var payload = JsonSerializer.Serialize(new { type = "timeupdate", timeMs, isPlaying });
                         SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(payload);
                     }
                     catch { }
@@ -127,8 +150,36 @@ public sealed partial class LyricsPanel : UserControl
                 });
                 SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(colorPayload);
             }
+
+            if (lines.Count == 0)
+            {
+                PushStatusToSpicy();
+            }
         }
         catch { }
+    }
+
+    private void PushStatusToSpicy()
+    {
+        if (!_isWebViewInitialized) return;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            try
+            {
+                var text = ViewModel.IsLoading
+                    ? "Synchronizing lyrics..."
+                    : (!string.IsNullOrEmpty(ViewModel.StatusMessage) ? ViewModel.StatusMessage : "No synced lyrics available");
+
+                var payload = JsonSerializer.Serialize(new
+                {
+                    type = "status",
+                    text = text,
+                    isLoading = ViewModel.IsLoading
+                });
+                SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(payload);
+            }
+            catch { }
+        });
     }
 
     private void EngineTab_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
