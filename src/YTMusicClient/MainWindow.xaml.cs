@@ -343,21 +343,21 @@ public sealed partial class MainWindow : Window
         PauseVideoPlayer();
     }
 
-    private void NpAudioMode_Click(object sender, RoutedEventArgs e)
+    private void NpStageSong_Click(object sender, RoutedEventArgs e)
     {
-        NpAudioStage.Visibility = Visibility.Visible;
+        NpSongStage.Visibility = Visibility.Visible;
         NpVideoStage.Visibility = Visibility.Collapsed;
-        NpAudioModeBtn.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
-        NpVideoModeBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        NpStageSongBtn.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
+        NpStageVideoBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         PauseVideoPlayer();
     }
 
-    private void NpVideoMode_Click(object sender, RoutedEventArgs e)
+    private void NpStageVideo_Click(object sender, RoutedEventArgs e)
     {
-        NpAudioStage.Visibility = Visibility.Collapsed;
+        NpSongStage.Visibility = Visibility.Collapsed;
         NpVideoStage.Visibility = Visibility.Visible;
-        NpVideoModeBtn.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
-        NpAudioModeBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        NpStageVideoBtn.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
+        NpStageSongBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         LoadCurrentVideo();
     }
 
@@ -684,7 +684,7 @@ public sealed partial class MainWindow : Window
     {
         bool isVisible = NavDownloadsBtn.Visibility == Visibility.Visible;
         NavDownloadsBtn.Visibility = isVisible ? Visibility.Collapsed : Visibility.Visible;
-        LibraryChevronIcon.Glyph = isVisible ? "\uE70D" : "\uE70E";
+        NavLibraryChevron.Glyph = isVisible ? "\uE70D" : "\uE70E";
     }
 
     private void NavDownloads_Click(object sender, RoutedEventArgs e)
