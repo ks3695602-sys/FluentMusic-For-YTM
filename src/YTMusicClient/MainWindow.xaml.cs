@@ -328,31 +328,7 @@ public sealed partial class MainWindow : Window
 
     private Windows.Media.Playback.MediaPlayer? _nativeVideoPlayer;
     private DispatcherTimer? _videoSyncTimer;
-
-    private void VideoAudioSyncToggle_Click(object sender, RoutedEventArgs e)
-    {
-        bool isSync = VideoAudioSyncToggle.IsChecked == true;
-        if (isSync)
-        {
-            SyncToggleText.Text = "FLAC Synced";
-            SyncToggleIcon.Glyph = "\uE8D6";
-            if (_nativeVideoPlayer != null)
-            {
-                _nativeVideoPlayer.IsMuted = true;
-            }
-            ViewModel.PlaybackService.Resume();
-        }
-        else
-        {
-            SyncToggleText.Text = "Video Audio";
-            SyncToggleIcon.Glyph = "\uE714";
-            if (_nativeVideoPlayer != null)
-            {
-                _nativeVideoPlayer.IsMuted = false;
-            }
-            ViewModel.PlaybackService.Pause();
-        }
-    }
+    private bool _isVideoAudioSynced = true;
 
     private async void LoadCurrentVideo()
     {
@@ -415,7 +391,7 @@ public sealed partial class MainWindow : Window
                 {
                     DispatcherQueue.TryEnqueue(() =>
                     {
-                        if (VideoAudioSyncToggle.IsChecked == true)
+                        if (_isVideoAudioSynced)
                         {
                             if (sender.PlaybackState == Windows.Media.Playback.MediaPlaybackState.Buffering)
                             {
@@ -434,7 +410,7 @@ public sealed partial class MainWindow : Window
                 _videoSyncTimer.Tick += (s, e) =>
                 {
                     if (NpVideoStage.Visibility == Visibility.Visible &&
-                        VideoAudioSyncToggle.IsChecked == true &&
+                        _isVideoAudioSynced &&
                         _nativeVideoPlayer != null &&
                         ViewModel.PlaybackService.IsPlaying)
                     {
@@ -450,7 +426,7 @@ public sealed partial class MainWindow : Window
                 _videoSyncTimer.Start();
             }
 
-            bool muteVideo = VideoAudioSyncToggle.IsChecked == true;
+            bool muteVideo = _isVideoAudioSynced;
             _nativeVideoPlayer.IsMuted = muteVideo;
 
             var mediaProxy = App.Services.GetRequiredService<LocalMediaProxy>();
