@@ -264,6 +264,13 @@ public sealed partial class MainWindow : Window
             {
                 UpdateMeshGradients(currentSong.GradientColorStart, currentSong.GradientColorEnd);
             }
+
+            if (SidebarNextTitle != null && SidebarNextArtist != null && ViewModel?.PlaybackService?.UpNext != null)
+            {
+                var next = System.Linq.Enumerable.FirstOrDefault(ViewModel.PlaybackService.UpNext);
+                SidebarNextTitle.Text = next?.Title ?? "Auto Radio Mix";
+                SidebarNextArtist.Text = next?.Artist ?? "Based on your listening taste";
+            }
         }
         catch { }
     }

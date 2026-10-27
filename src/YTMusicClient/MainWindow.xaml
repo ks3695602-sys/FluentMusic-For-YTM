@@ -361,9 +361,9 @@
                                                 </Grid>
                                                 <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}" CornerRadius="10" Padding="8,6">
                                                     <StackPanel>
-                                                        <TextBlock Text="{x:Bind ViewModel.PlaybackService.UpNext[0].Title, Mode=OneWay, FallbackValue='Auto Radio Mix'}"
+                                                        <TextBlock x:Name="SidebarNextTitle" Text="Auto Radio Mix"
                                                                    FontSize="11" FontWeight="SemiBold" MaxLines="1" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{x:Bind ViewModel.PlaybackService.UpNext[0].Artist, Mode=OneWay, FallbackValue='Based on your listening taste'}"
+                                                        <TextBlock x:Name="SidebarNextArtist" Text="Based on your listening taste"
                                                                    FontSize="9" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis" />
                                                     </StackPanel>
                                                 </Border>
