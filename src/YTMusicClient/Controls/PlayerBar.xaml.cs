@@ -13,6 +13,7 @@ public sealed partial class PlayerBar : UserControl
 
     public event EventHandler? LyricsToggled;
     public event EventHandler? NowPlayingRequested;
+    public event EventHandler? NowPlayingSidebarToggled;
 
     public PlayerBar()
     {
@@ -28,6 +29,20 @@ public sealed partial class PlayerBar : UserControl
     private void NowPlaying_Click(object sender, RoutedEventArgs e)
     {
         NowPlayingRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void NowPlayingSidebar_Click(object sender, RoutedEventArgs e)
+    {
+        NowPlayingSidebarToggled?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void OpenQueueFlyout()
+    {
+        try
+        {
+            PlayerQueueBtn?.Flyout?.ShowAt(PlayerQueueBtn);
+        }
+        catch { }
     }
 
     private void SpeedItem_Click(object sender, RoutedEventArgs e)

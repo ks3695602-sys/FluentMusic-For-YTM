@@ -18,7 +18,6 @@ public sealed partial class LyricsPanel : UserControl
         this.InitializeComponent();
         this.Loaded += (s, e) =>
         {
-            UpdatePillState();
             InitializeSpicyLyricsAsync();
         };
 
@@ -31,6 +30,10 @@ public sealed partial class LyricsPanel : UserControl
             else if (e.PropertyName == nameof(ViewModel.StatusMessage) || e.PropertyName == nameof(ViewModel.IsLoading))
             {
                 PushStatusToSpicy();
+            }
+            else if (e.PropertyName == nameof(ViewModel.SelectedTranslationMode))
+            {
+                PushTranslationModeToSpicy();
             }
         };
 
@@ -80,16 +83,25 @@ public sealed partial class LyricsPanel : UserControl
             SpicyLyricsWebView.DefaultBackgroundColor = Windows.UI.Color.FromArgb(0, 0, 0, 0);
             SpicyLyricsWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
 
-            SpicyLyricsWebView.CoreWebView2.WebMessageReceived += (s, e) =>
+            SpicyLyricsWebView.CoreWebView2.WebMessageReceived += async (s, e) =>
             {
                 try
                 {
                     using var doc = JsonDocument.Parse(e.WebMessageAsJson);
-                    if (doc.RootElement.TryGetProperty("type", out var type) && type.GetString() == "seek" &&
-                        doc.RootElement.TryGetProperty("timeMs", out var timeMs))
+                    if (doc.RootElement.TryGetProperty("type", out var typeProp))
                     {
-                        var sec = timeMs.GetDouble() / 1000.0;
-                        ViewModel.PlaybackService.Seek(TimeSpan.FromSeconds(sec));
+                        var type = typeProp.GetString();
+                        if (type == "seek" && doc.RootElement.TryGetProperty("timeMs", out var timeMs))
+                        {
+                            var sec = timeMs.GetDouble() / 1000.0;
+                            ViewModel.PlaybackService.Seek(TimeSpan.FromSeconds(sec));
+                        }
+                        else if (type == "translation" && doc.RootElement.TryGetProperty("mode", out var modeProp))
+                        {
+                            var mode = modeProp.GetString() ?? "Original";
+                            await ViewModel.SetTranslationModeAsync(mode);
+                            PushLyricsToSpicy();
+                        }
                     }
                 }
                 catch { }
@@ -103,11 +115,25 @@ public sealed partial class LyricsPanel : UserControl
             }
             _isWebViewInitialized = true;
             PushLyricsToSpicy();
+            PushTranslationModeToSpicy();
         }
         catch { }
     }
 
-    private string _currentEngine = "spicy";
+    private void PushTranslationModeToSpicy()
+    {
+        if (!_isWebViewInitialized) return;
+        try
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                type = "translationMode",
+                mode = ViewModel.SelectedTranslationMode ?? "Original"
+            });
+            SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(payload);
+        }
+        catch { }
+    }
 
     private void PushLyricsToSpicy()
     {
@@ -180,61 +206,5 @@ public sealed partial class LyricsPanel : UserControl
             }
             catch { }
         });
-    }
-
-    private void EngineTab_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is string engine)
-        {
-            _currentEngine = engine;
-            UpdateEnginePills();
-            if (_isWebViewInitialized)
-            {
-                var payload = JsonSerializer.Serialize(new { type = "engine", engine = _currentEngine });
-                SpicyLyricsWebView.CoreWebView2?.PostWebMessageAsJson(payload);
-            }
-        }
-    }
-
-    private void UpdateEnginePills()
-    {
-        var activeBg = (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
-        var transBg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
-
-        EngineSpicyBtn.Background = _currentEngine == "spicy" ? activeBg : transBg;
-        EngineSpicyBtn.FontWeight = _currentEngine == "spicy" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
-
-        EngineYouLyBtn.Background = _currentEngine == "youly" ? activeBg : transBg;
-        EngineYouLyBtn.FontWeight = _currentEngine == "youly" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
-    }
-
-    private void UpdatePillState()
-    {
-        UpdateEnginePills();
-        var mode = ViewModel.SelectedTranslationMode ?? "Original";
-        var activeBg = (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
-        var transBg = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Transparent);
-
-        TransOriginalBtn.Background = mode == "Original" ? activeBg : transBg;
-        TransOriginalBtn.FontWeight = mode == "Original" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
-
-        TransEnBtn.Background = mode == "EN" ? activeBg : transBg;
-        TransEnBtn.FontWeight = mode == "EN" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
-
-        TransHiBtn.Background = mode == "HI" ? activeBg : transBg;
-        TransHiBtn.FontWeight = mode == "HI" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Medium;
-
-        TransHinglishBtn.Background = mode == "Hinglish" ? activeBg : transBg;
-        TransHinglishBtn.FontWeight = mode == "Hinglish" ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
-    }
-
-    private async void TransPill_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is string mode)
-        {
-            await ViewModel.SetTranslationModeAsync(mode);
-            UpdatePillState();
-            PushLyricsToSpicy();
-        }
     }
 }

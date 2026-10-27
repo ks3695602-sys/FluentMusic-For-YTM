@@ -28,7 +28,7 @@ public sealed partial class MainWindow : Window
 
         // Zero-titlebar edge-to-edge window shell with draggable sidebar area
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(SidebarDragArea);
+        SetTitleBar(SidebarMidDragArea);
 
         // Make window caption buttons transparent so they seamlessly blend
         ConfigureTransparentCaptionButtons();
@@ -54,7 +54,36 @@ public sealed partial class MainWindow : Window
         // Wire Floating PlayerBar lyrics and now-playing events
         PlayerBarControl.LyricsToggled += (s, e) =>
         {
-            LyricsSplitView.IsPaneOpen = !LyricsSplitView.IsPaneOpen;
+            if (!LyricsSplitView.IsPaneOpen)
+            {
+                SwitchSidebarTab("lyrics");
+                LyricsSplitView.IsPaneOpen = true;
+            }
+            else if (SidebarLyricsView.Visibility == Visibility.Visible)
+            {
+                LyricsSplitView.IsPaneOpen = false;
+            }
+            else
+            {
+                SwitchSidebarTab("lyrics");
+            }
+        };
+
+        PlayerBarControl.NowPlayingSidebarToggled += (s, e) =>
+        {
+            if (!LyricsSplitView.IsPaneOpen)
+            {
+                SwitchSidebarTab("nowplaying");
+                LyricsSplitView.IsPaneOpen = true;
+            }
+            else if (SidebarNowPlayingView.Visibility == Visibility.Visible)
+            {
+                LyricsSplitView.IsPaneOpen = false;
+            }
+            else
+            {
+                SwitchSidebarTab("nowplaying");
+            }
         };
 
         PlayerBarControl.NowPlayingRequested += (s, e) =>
@@ -67,20 +96,20 @@ public sealed partial class MainWindow : Window
         this.Activated += (s, e) => CheckGoogleSignInStatus();
         ContentFrame.Navigated += (s, e) => CheckGoogleSignInStatus();
 
-        // Sync native video player state with media playback service
+        // Sync video player state with media playback service
         ViewModel.PlaybackService.PlaybackStateChanged += (s, state) =>
         {
             DispatcherQueue.TryEnqueue(() =>
             {
-                if (NpVideoStage.Visibility == Visibility.Visible && _nativeVideoPlayer != null)
+                if (NpVideoStage.Visibility == Visibility.Visible && _isVideoInitialized)
                 {
-                    if (state == MediaPlaybackState.Playing && _nativeVideoPlayer.PlaybackSession.PlaybackState != Windows.Media.Playback.MediaPlaybackState.Playing)
+                    if (state == MediaPlaybackState.Playing)
                     {
-                        _nativeVideoPlayer.Play();
+                        _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}', '*');");
                     }
-                    else if (state == MediaPlaybackState.Paused && _nativeVideoPlayer.PlaybackSession.PlaybackState != Windows.Media.Playback.MediaPlaybackState.Paused)
+                    else if (state == MediaPlaybackState.Paused)
                     {
-                        _nativeVideoPlayer.Pause();
+                        _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');");
                     }
                 }
             });
@@ -169,6 +198,10 @@ public sealed partial class MainWindow : Window
         }
         else
         {
+            if (ViewModel?.PlaybackService?.CurrentSong == null && string.IsNullOrEmpty(ViewModel?.PlayerBar?.Title))
+            {
+                return;
+            }
             ContentFrame.Visibility = Visibility.Collapsed;
             FloatingPlayerContainer.Visibility = Visibility.Collapsed;
             NowPlayingOverlay.Visibility = Visibility.Visible;
@@ -178,6 +211,11 @@ public sealed partial class MainWindow : Window
                 LoadCurrentVideo();
             }
         }
+    }
+
+    private void NowPlaying_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleNowPlaying();
     }
 
     private void NpBackButton_Click(object sender, RoutedEventArgs e)
@@ -350,6 +388,10 @@ public sealed partial class MainWindow : Window
         NpStageSongBtn.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF));
         NpStageVideoBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         PauseVideoPlayer();
+        if (ViewModel?.PlaybackService != null && !ViewModel.PlaybackService.IsPlaying)
+        {
+            ViewModel.PlaybackService.Resume();
+        }
     }
 
     private void NpStageVideo_Click(object sender, RoutedEventArgs e)
@@ -361,13 +403,12 @@ public sealed partial class MainWindow : Window
         LoadCurrentVideo();
     }
 
-    private Windows.Media.Playback.MediaPlayer? _nativeVideoPlayer;
-    private DispatcherTimer? _videoSyncTimer;
-    private bool _isVideoAudioSynced = true;
+    private string? _currentLoadedVideoId;
+    private bool _isVideoInitialized = false;
 
     private async void LoadCurrentVideo()
     {
-        var currentSong = ViewModel.PlaybackService.CurrentSong;
+        var currentSong = ViewModel?.PlaybackService?.CurrentSong;
         if (currentSong == null || string.IsNullOrEmpty(currentSong.VideoId)) return;
 
         try
@@ -389,96 +430,52 @@ public sealed partial class MainWindow : Window
                 }
                 catch (System.Exception ex)
                 {
-                    Helpers.AppLogger.LogError("Failed to resolve YouTube video ID for video mode", ex);
+                    Helpers.AppLogger.LogError("Failed to search YouTube video ID for video mode", ex);
                 }
             }
 
-            var ytClient = new YoutubeExplode.YoutubeClient();
-            var manifest = await ytClient.Videos.Streams.GetManifestAsync(videoId);
-
-            // Prefer high-quality MP4 muxed stream (video + audio)
-            var muxed = manifest.GetMuxedStreams()
-                .Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
-                .OrderByDescending(s => s.VideoQuality)
-                .FirstOrDefault();
-
-            string? videoUrl = muxed?.Url;
-            if (string.IsNullOrEmpty(videoUrl))
+            if (_currentLoadedVideoId == videoId && _isVideoInitialized)
             {
-                var vidOnly = manifest.GetVideoOnlyStreams()
-                    .Where(s => s.Container == YoutubeExplode.Videos.Streams.Container.Mp4)
-                    .OrderByDescending(s => s.VideoQuality)
-                    .FirstOrDefault();
-                videoUrl = vidOnly?.Url ?? manifest.GetMuxedStreams().FirstOrDefault()?.Url;
-            }
-
-            if (string.IsNullOrEmpty(videoUrl))
-            {
-                Helpers.AppLogger.Log("No native video stream available for " + videoId);
+                try
+                {
+                    await NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}', '*');");
+                }
+                catch { }
                 return;
             }
 
-            if (_nativeVideoPlayer == null)
-            {
-                _nativeVideoPlayer = new Windows.Media.Playback.MediaPlayer();
-                _nativeVideoPlayer.AudioCategory = Windows.Media.Playback.MediaPlayerAudioCategory.Media;
-                _nativeVideoPlayer.PlaybackSession.PlaybackStateChanged += (sender, args) =>
-                {
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        if (_isVideoAudioSynced)
-                        {
-                            if (sender.PlaybackState == Windows.Media.Playback.MediaPlaybackState.Buffering)
-                            {
-                                ViewModel.PlaybackService.Pause();
-                            }
-                            else if (sender.PlaybackState == Windows.Media.Playback.MediaPlaybackState.Playing && !ViewModel.PlaybackService.IsPlaying)
-                            {
-                                ViewModel.PlaybackService.Resume();
-                            }
-                        }
-                    });
-                };
-                NpVideoPlayer.SetMediaPlayer(_nativeVideoPlayer);
+            _currentLoadedVideoId = videoId;
 
-                _videoSyncTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
-                _videoSyncTimer.Tick += (s, e) =>
-                {
-                    if (NpVideoStage.Visibility == Visibility.Visible &&
-                        _isVideoAudioSynced &&
-                        _nativeVideoPlayer != null &&
-                        ViewModel.PlaybackService.IsPlaying)
-                    {
-                        var audioPos = ViewModel.PlaybackService.Position;
-                        var videoPos = _nativeVideoPlayer.PlaybackSession.Position;
-                        var drift = Math.Abs((videoPos - audioPos).TotalMilliseconds);
-                        if (drift > 350)
-                        {
-                            _nativeVideoPlayer.PlaybackSession.Position = audioPos;
-                        }
-                    }
-                };
-                _videoSyncTimer.Start();
+            // Pause background audio service so user only hears the music video soundtrack
+            if (ViewModel?.PlaybackService != null && ViewModel.PlaybackService.IsPlaying)
+            {
+                ViewModel.PlaybackService.Pause();
             }
 
-            bool muteVideo = _isVideoAudioSynced;
-            _nativeVideoPlayer.IsMuted = muteVideo;
+            await NpVideoWebView.EnsureCoreWebView2Async();
+            _isVideoInitialized = true;
 
-            var mediaProxy = App.Services.GetRequiredService<LocalMediaProxy>();
-            string proxiedUrl = mediaProxy.GetProxiedStreamUrl(videoUrl);
-            _nativeVideoPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(proxiedUrl));
+            string html = $@"<!DOCTYPE html>
+<html>
+<head>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        html, body {{ width: 100%; height: 100%; overflow: hidden; background-color: #000; }}
+        iframe {{ width: 100%; height: 100%; border: none; }}
+    </style>
+</head>
+<body>
+    <iframe id='ytplayer' src='https://www.youtube.com/embed/{videoId}?autoplay=1&enablejsapi=1&origin=https://www.youtube.com' allow='autoplay; encrypted-media; picture-in-picture' allowfullscreen></iframe>
+</body>
+</html>";
 
-            if (ViewModel.PlaybackService.Position > TimeSpan.Zero)
-            {
-                _nativeVideoPlayer.PlaybackSession.Position = ViewModel.PlaybackService.Position;
-            }
-
-            _nativeVideoPlayer.Play();
-            Helpers.AppLogger.Log("Native video player started for videoId: " + videoId);
+            NpVideoWebView.NavigateToString(html);
+            Helpers.AppLogger.Log("WebView2 video player loaded videoId: " + videoId);
         }
         catch (System.Exception ex)
         {
-            Helpers.AppLogger.LogError("LoadCurrentVideo native player failed", ex);
+            Helpers.AppLogger.LogError("LoadCurrentVideo WebView2 failed", ex);
         }
     }
 
@@ -486,9 +483,80 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            _nativeVideoPlayer?.Pause();
+            if (_isVideoInitialized && NpVideoWebView?.CoreWebView2 != null)
+            {
+                _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');");
+            }
         }
         catch { }
+    }
+
+    private void SidebarTab_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string tag)
+        {
+            SwitchSidebarTab(tag);
+        }
+    }
+
+    private void SwitchSidebarTab(string tab)
+    {
+        if (tab == "lyrics")
+        {
+            SidebarNowPlayingView.Visibility = Visibility.Collapsed;
+            SidebarLyricsView.Visibility = Visibility.Visible;
+            SidebarTabNowPlayingBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            SidebarTabNowPlayingBtn.FontWeight = Microsoft.UI.Text.FontWeights.Normal;
+            SidebarTabLyricsBtn.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
+            SidebarTabLyricsBtn.FontWeight = Microsoft.UI.Text.FontWeights.SemiBold;
+        }
+        else
+        {
+            SidebarLyricsView.Visibility = Visibility.Collapsed;
+            SidebarNowPlayingView.Visibility = Visibility.Visible;
+            SidebarTabLyricsBtn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            SidebarTabLyricsBtn.FontWeight = Microsoft.UI.Text.FontWeights.Normal;
+            SidebarTabNowPlayingBtn.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
+            SidebarTabNowPlayingBtn.FontWeight = Microsoft.UI.Text.FontWeights.SemiBold;
+        }
+    }
+
+    private void SidebarPopout_Click(object sender, RoutedEventArgs e)
+    {
+        LyricsSplitView.IsPaneOpen = false;
+        FloatingMiniPlayerOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void SidebarClose_Click(object sender, RoutedEventArgs e)
+    {
+        LyricsSplitView.IsPaneOpen = false;
+    }
+
+    private void FloatingDockToSidebar_Click(object sender, RoutedEventArgs e)
+    {
+        FloatingMiniPlayerOverlay.Visibility = Visibility.Collapsed;
+        SwitchSidebarTab("nowplaying");
+        LyricsSplitView.IsPaneOpen = true;
+    }
+
+    private void FloatingClose_Click(object sender, RoutedEventArgs e)
+    {
+        FloatingMiniPlayerOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void FloatingMiniPlayer_PointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        FloatingMiniPlayerOverlay.Opacity = 1.0;
+        FloatingTransportRow.Visibility = Visibility.Visible;
+    }
+
+    private void FloatingMiniPlayer_PointerExited(object sender, PointerRoutedEventArgs e)
+    {
+    }
+
+    private void QueueOpen_Click(object sender, RoutedEventArgs e)
+    {
+        PlayerBarControl.OpenQueueFlyout();
     }
 
     private void ConfigureTransparentCaptionButtons()

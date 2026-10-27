@@ -13,14 +13,14 @@
         <converters:StringToUriConverter x:Key="StringToUriConverter" />
     </UserControl.Resources>
 
-    <!-- Floating Capsule Player (Apple Music macOS Liquid Glass style) -->
+    <!-- Floating Liquid Glass Capsule Player (Apple Music macOS HIG Style) -->
     <Border Background="{StaticResource PillAcrylicBrush}"
             BorderBrush="{StaticResource GlassBorderBrush}"
             BorderThickness="1"
-            CornerRadius="24"
-            Width="820"
-            Height="62"
-            Padding="12,8,12,8"
+            CornerRadius="27"
+            Width="780"
+            Height="54"
+            Padding="14,4,14,4"
             HorizontalAlignment="Center">
 
         <Grid VerticalAlignment="Center">
@@ -31,48 +31,55 @@
             </Grid.ColumnDefinitions>
 
             <!-- 1. Left Transport Controls -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
                 <!-- Shuffle Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="12"
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
                         Command="{x:Bind ViewModel.ToggleShuffleCommand}"
                         ToolTipService.ToolTip="Shuffle">
-                    <FontIcon Glyph="&#xE8B1;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <FontIcon Glyph="&#xE8B1;" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Button>
 
                 <!-- Previous Track Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="12"
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
                         Command="{x:Bind ViewModel.PreviousTrackCommand}"
                         ToolTipService.ToolTip="Previous Track">
-                    <FontIcon Glyph="&#xE892;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                    <FontIcon Glyph="&#xE892;" FontSize="13.5" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                 </Button>
 
                 <!-- Play / Pause Button (Apple Music macOS Golden Gate Style with Apple Red Gradient) -->
                 <Button Background="{StaticResource AppleAccentGradient}"
                         BorderThickness="0"
                         Command="{x:Bind ViewModel.TogglePlayPauseCommand}"
-                        Width="36" Height="36" CornerRadius="18"
-                        Padding="0"
+                        Width="34" Height="34" CornerRadius="17"
+                        Padding="0" Margin="2,0"
                         ToolTipService.ToolTip="Play / Pause">
                     <FontIcon Glyph="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource PlayPauseGlyph}}"
-                              FontSize="14" Foreground="White" />
+                              FontSize="13.5" Foreground="White" />
                 </Button>
 
                 <!-- Next Track Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="12"
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
                         Command="{x:Bind ViewModel.NextTrackCommand}"
                         ToolTipService.ToolTip="Next Track">
-                    <FontIcon Glyph="&#xE893;" FontSize="14" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                    <FontIcon Glyph="&#xE893;" FontSize="13.5" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                </Button>
+
+                <!-- Repeat Button -->
+                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Command="{x:Bind ViewModel.ToggleRepeatCommand}"
+                        ToolTipService.ToolTip="Repeat">
+                    <FontIcon Glyph="&#xE8EE;" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Button>
             </StackPanel>
 
             <!-- 2. Center: Dedicated Now-Playing LCD Box (Click to toggle Lyrics/NowPlaying) -->
             <Border Grid.Column="1"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                     BorderBrush="{StaticResource GlassBorderBrush}"
                     BorderThickness="1"
-                    CornerRadius="10"
-                    Padding="8,4"
-                    Margin="12,0"
+                    CornerRadius="14"
+                    Padding="6,3"
+                    Margin="10,0"
                     VerticalAlignment="Center"
                     PointerPressed="CenterLcdPill_PointerPressed">
                 <Grid>
@@ -84,28 +91,28 @@
                     <!-- Top Row: Cover + Info + Quality Badge -->
                     <Grid Grid.Row="0">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="34" />
+                            <ColumnDefinition Width="30" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
                         <!-- Square Album Art -->
-                        <Border CornerRadius="6" Width="34" Height="34" VerticalAlignment="Center">
+                        <Border CornerRadius="5" Width="28" Height="28" VerticalAlignment="Center">
                             <Image Stretch="UniformToFill">
                                 <Image.Source>
                                     <BitmapImage UriSource="{x:Bind ViewModel.ThumbnailUrl, Mode=OneWay, Converter={StaticResource StringToUriConverter}}"
-                                                 DecodePixelWidth="34" />
+                                                 DecodePixelWidth="28" />
                                 </Image.Source>
                             </Image>
                         </Border>
 
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,4,0" Spacing="1">
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="7,0,4,0" Spacing="0">
                             <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                                        FontSize="11" FontWeight="SemiBold"
                                        MaxLines="1" TextTrimming="CharacterEllipsis"
                                        Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                             <TextBlock Text="{x:Bind ViewModel.Artist, Mode=OneWay}"
-                                       FontSize="9.5"
+                                       FontSize="9"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                        MaxLines="1" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
@@ -117,100 +124,27 @@
                                     CornerRadius="4" Padding="5,2" VerticalAlignment="Center"
                                     ToolTipService.ToolTip="Audio Stream Fidelity Tier">
                                 <TextBlock Text="{x:Bind ViewModel.FidelityBadgeText, Mode=OneWay}"
-                                           FontSize="8" FontWeight="Bold"
+                                           FontSize="7.5" FontWeight="Bold"
                                            Foreground="{x:Bind ViewModel.FidelityBadgeForeground, Mode=OneWay}" />
                             </Border>
-
-                            <!-- Functional Stream Info Pill -->
-                            <Button Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                    BorderThickness="0" CornerRadius="4" Padding="5,2" VerticalAlignment="Center"
-                                    ToolTipService.ToolTip="Audio Source &amp; Stream Info">
-                                <TextBlock Text="{x:Bind ViewModel.AudioQualityBadge, Mode=OneWay}"
-                                           FontSize="8" FontWeight="SemiBold"
-                                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                                <Button.Flyout>
-                                    <Flyout Placement="Top">
-                                        <StackPanel Spacing="8" Width="220" Padding="4">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="{StaticResource AccentRedBrush}" />
-                                                <TextBlock Text="Stream Fidelity" FontWeight="Bold" FontSize="13" />
-                                            </StackPanel>
-                                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                                            <Grid ColumnSpacing="8" RowSpacing="4">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Bitrate:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind ViewModel.AudioQualityBadge, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
-
-                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Codec:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind ViewModel.AudioCodec, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
-
-                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Engine:" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind ViewModel.AudioSource, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
-                                            </Grid>
-                                        </StackPanel>
-                                    </Flyout>
-                                </Button.Flyout>
-                            </Button>
                         </StackPanel>
                     </Grid>
 
-                    <!-- Bottom Row: Sleek 2.5px Progress Scrubber -->
+                    <!-- Bottom Row: Sleek 2px Progress Scrubber -->
                     <ProgressBar Grid.Row="1" Minimum="0" Maximum="100"
                                  Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}"
-                                 Height="2.5" Margin="0,3,0,0"
+                                 Height="2" Margin="0,2,0,0"
                                  Foreground="{StaticResource AppleAccentGradient}"
                                  Background="{ThemeResource ControlStrokeColorDefaultBrush}" />
                 </Grid>
             </Border>
 
-            <!-- 3. Right: Equalizer + Repeat + Download + Video + Options + Lyrics + Volume -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="3">
-                <!-- Equalizer waveform icon -->
-                <FontIcon Glyph="&#xE995;" FontSize="12" Foreground="{StaticResource AccentRedBrush}"
-                          VerticalAlignment="Center" Margin="0,0,2,0"
-                          Visibility="{x:Bind ViewModel.IsPlaying, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
-
-                <!-- Repeat Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
-                        Command="{x:Bind ViewModel.ToggleRepeatCommand}"
-                        ToolTipService.ToolTip="Repeat">
-                    <FontIcon Glyph="&#xE8EE;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </Button>
-
-                <!-- Download Track Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
-                        Command="{x:Bind ViewModel.DownloadCurrentSongCommand}"
-                        ToolTipService.ToolTip="{x:Bind ViewModel.DownloadButtonToolTip, Mode=OneWay}">
-                    <Grid>
-                        <FontIcon Glyph="&#xE896;" FontSize="13"
-                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                  Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay, Converter={StaticResource InverseBoolToVisibility}}" />
-                        <ProgressRing IsActive="{x:Bind ViewModel.IsDownloading, Mode=OneWay}"
-                                      Visibility="{x:Bind ViewModel.IsDownloading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
-                                      Width="13" Height="13" />
-                    </Grid>
-                </Button>
-
-                <!-- Video / Now Playing Button -->
-                <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
-                        Click="NowPlaying_Click"
-                        ToolTipService.ToolTip="Now Playing &amp; Music Video">
-                    <FontIcon Glyph="&#xE714;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </Button>
-
-                <!-- Options / Speed Flyout Button -->
+            <!-- 3. Right: Options + Lyrics + Queue + Sidebar Toggle + Volume -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+                <!-- Options Flyout Button (...) -->
                 <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
                         ToolTipService.ToolTip="Playback Options &amp; Speed">
-                    <FontIcon Glyph="&#xE712;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <FontIcon Glyph="&#xE712;" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <Button.Flyout>
                         <MenuFlyout Placement="Top">
                             <MenuFlyoutSubItem Text="Playback Speed">
@@ -228,13 +162,20 @@
                     </Button.Flyout>
                 </Button>
 
-                <!-- Queue / Up Next Button -->
+                <!-- Lyrics Toggle Button (Speech Bubble 💬) -->
                 <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        Click="LyricsButton_Click"
+                        ToolTipService.ToolTip="Lyrics">
+                    <FontIcon Glyph="&#xE8D6;" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Button>
+
+                <!-- Queue / Up Next Button (≡) -->
+                <Button x:Name="PlayerQueueBtn" Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
                         ToolTipService.ToolTip="Up Next &amp; Playing Queue">
-                    <FontIcon Glyph="&#xE90B;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <FontIcon Glyph="&#xE90B;" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <Button.Flyout>
                         <Flyout Placement="Top">
-                            <Grid Width="300" MaxHeight="380" Padding="4">
+                            <Grid Width="280" MaxHeight="360" Padding="4">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
@@ -242,51 +183,51 @@
                                 </Grid.RowDefinitions>
 
                                 <!-- Queue Title -->
-                                <Grid Grid.Row="0" Margin="0,0,0,10">
-                                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                        <FontIcon Glyph="&#xE90B;" FontSize="14" Foreground="{StaticResource AccentRedBrush}" />
-                                        <TextBlock Text="Playing Queue" FontWeight="Bold" FontSize="13" />
+                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE90B;" FontSize="13" Foreground="{StaticResource AccentRedBrush}" />
+                                        <TextBlock Text="Playing Queue" FontWeight="Bold" FontSize="12.5" />
                                     </StackPanel>
                                     <Button HorizontalAlignment="Right" Content="Clear" Click="ClearQueue_Click"
-                                            Padding="8,2" FontSize="11" CornerRadius="6" Background="Transparent" BorderThickness="0" />
+                                            Padding="6,2" FontSize="10.5" CornerRadius="6" Background="Transparent" BorderThickness="0" />
                                 </Grid>
 
                                 <!-- Currently Playing Box -->
                                 <Border Grid.Row="1" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                        CornerRadius="8" Padding="10,8" Margin="0,0,0,10">
+                                        CornerRadius="8" Padding="8,6" Margin="0,0,0,8">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <FontIcon Glyph="&#xE768;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <FontIcon Glyph="&#xE768;" FontSize="10" Foreground="{StaticResource AccentRedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" MaxLines="1" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{x:Bind ViewModel.Artist, Mode=OneWay}" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" FontSize="11.5" FontWeight="SemiBold" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{x:Bind ViewModel.Artist, Mode=OneWay}" FontSize="9.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
-                                        <TextBlock Grid.Column="2" Text="Now" FontSize="10" FontWeight="Bold" Foreground="{StaticResource AccentRedBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="Now" FontSize="9.5" FontWeight="Bold" Foreground="{StaticResource AccentRedBrush}" VerticalAlignment="Center"/>
                                     </Grid>
                                 </Border>
 
                                 <!-- Up Next List -->
                                 <ListView Grid.Row="2" ItemsSource="{x:Bind ViewModel.PlaybackService.UpNext, Mode=OneWay}"
                                           SelectionMode="None" IsItemClickEnabled="True" ItemClick="QueueItem_Click"
-                                          MaxHeight="240">
+                                          MaxHeight="220">
                                     <ListView.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid Padding="4,6">
+                                            <Grid Padding="4,5">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Title}" FontSize="11.5" FontWeight="SemiBold" MaxLines="1" TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{Binding Artist}" FontSize="9.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Title}" FontSize="11" FontWeight="SemiBold" MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Artist}" FontSize="9" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="1" TextTrimming="CharacterEllipsis"/>
                                                 </StackPanel>
                                                 <Button Grid.Column="1" Tag="{Binding VideoId}" Click="RemoveQueueItem_Click"
-                                                        Background="Transparent" BorderThickness="0" Padding="4" CornerRadius="6">
-                                                    <FontIcon Glyph="&#xE711;" FontSize="10" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                                                        Background="Transparent" BorderThickness="0" Padding="3" CornerRadius="4">
+                                                    <FontIcon Glyph="&#xE711;" FontSize="9" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
                                                 </Button>
                                             </Grid>
                                         </DataTemplate>
@@ -297,11 +238,18 @@
                     </Button.Flyout>
                 </Button>
 
-                <!-- Lyrics Toggle Button -->
+                <!-- Spotify-style Now Playing Right Sidebar Toggle Button -->
+                <Button x:Name="NowPlayingSidebarBtn" Click="NowPlayingSidebar_Click"
+                        Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
+                        ToolTipService.ToolTip="Toggle Now Playing Sidebar">
+                    <FontIcon Glyph="&#xE7F4;" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Button>
+
+                <!-- Fullscreen / Stage View Button -->
                 <Button Background="Transparent" BorderThickness="0" Padding="5" CornerRadius="12"
-                        Click="LyricsButton_Click"
-                        ToolTipService.ToolTip="Lyrics">
-                    <FontIcon Glyph="&#xE8D6;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        Click="NowPlaying_Click"
+                        ToolTipService.ToolTip="Full Screen Stage">
+                    <FontIcon Glyph="&#xE740;" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </Button>
 
                 <!-- Volume Mute Button -->
@@ -314,7 +262,7 @@
                 <!-- Compact Volume Slider -->
                 <Slider Minimum="0" Maximum="1"
                         Value="{x:Bind ViewModel.Volume, Mode=TwoWay}"
-                        StepFrequency="0.01" Width="55"
+                        StepFrequency="0.01" Width="52"
                         VerticalAlignment="Center" />
             </StackPanel>
         </Grid>
