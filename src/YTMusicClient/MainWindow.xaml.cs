@@ -105,11 +105,11 @@ public sealed partial class MainWindow : Window
                 {
                     if (state == MediaPlaybackState.Playing)
                     {
-                        _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}', '*');");
+                        _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:''}), '*');");
                     }
                     else if (state == MediaPlaybackState.Paused)
                     {
-                        _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');");
+                        _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:''}), '*');");
                     }
                 }
             });
@@ -240,6 +240,10 @@ public sealed partial class MainWindow : Window
                 if (!string.IsNullOrEmpty(pb.ThumbnailUrl) && Uri.TryCreate(pb.ThumbnailUrl, UriKind.Absolute, out var uri))
                 {
                     NpAlbumBitmap.UriSource = uri;
+                    var bmp = new BitmapImage(uri);
+                    if (SidebarAlbumImage != null) SidebarAlbumImage.Source = bmp;
+                    if (SidebarArtistImage != null) SidebarArtistImage.Source = bmp;
+                    if (FloatingAlbumImage != null) FloatingAlbumImage.Source = bmp;
                 }
 
                 if (NpPlayPauseIcon != null && ViewModel?.PlaybackService != null)
@@ -445,7 +449,7 @@ public sealed partial class MainWindow : Window
             {
                 try
                 {
-                    await NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}', '*');");
+                    await NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:''}), '*');");
                 }
                 catch { }
                 return;
@@ -492,7 +496,7 @@ public sealed partial class MainWindow : Window
         {
             if (_isVideoInitialized && NpVideoWebView?.CoreWebView2 != null)
             {
-                _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');");
+                _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:''}), '*');");
             }
         }
         catch { }

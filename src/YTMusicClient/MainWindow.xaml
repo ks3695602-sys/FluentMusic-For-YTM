@@ -296,7 +296,7 @@
                                         <!-- Large Rounded Album Art Card -->
                                         <Border CornerRadius="16" Width="260" Height="260" HorizontalAlignment="Center"
                                                 BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
-                                            <Image Source="{x:Bind NpAlbumBitmap, Mode=OneWay}" Stretch="UniformToFill" />
+                                            <Image x:Name="SidebarAlbumImage" Stretch="UniformToFill" />
                                         </Border>
 
                                         <!-- Song Info & Like Button -->
@@ -336,7 +336,7 @@
                                                         <ColumnDefinition Width="Auto" />
                                                     </Grid.ColumnDefinitions>
                                                     <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
-                                                        <Image Source="{x:Bind NpAlbumBitmap, Mode=OneWay}" Stretch="UniformToFill" />
+                                                        <Image x:Name="SidebarArtistImage" Stretch="UniformToFill" />
                                                     </Border>
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
                                                         <TextBlock Text="{x:Bind ViewModel.PlayerBar.Artist, Mode=OneWay}" FontWeight="SemiBold" FontSize="11.5" MaxLines="1" TextTrimming="CharacterEllipsis" />
@@ -610,7 +610,7 @@
                                         </Grid.ColumnDefinitions>
 
                                         <Border CornerRadius="8" Width="44" Height="44" BorderBrush="{StaticResource GlassBorderBrush}" BorderThickness="1">
-                                            <Image Source="{x:Bind NpAlbumBitmap, Mode=OneWay}" Stretch="UniformToFill" />
+                                            <Image x:Name="FloatingAlbumImage" Stretch="UniformToFill" />
                                         </Border>
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,8,0">
