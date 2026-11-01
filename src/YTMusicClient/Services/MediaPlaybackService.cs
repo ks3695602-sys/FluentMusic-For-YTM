@@ -552,8 +552,8 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                 var musicService = App.Services.GetService(typeof(IYouTubeMusicService)) as IYouTubeMusicService;
                 if (musicService != null && !string.IsNullOrEmpty(CurrentSong.VideoId))
                 {
-                    var aacUrl = await musicService.GetAudioStreamUrlAsync(CurrentSong.VideoId, "AAC");
-                    if (!string.IsNullOrEmpty(aacUrl) && aacUrl != CurrentSong.StreamUrl)
+                    var aacUrl = await musicService.GetDirectFallbackStreamUrlAsync(CurrentSong.VideoId);
+                    if (!string.IsNullOrEmpty(aacUrl))
                     {
                         AppLogger.Log($"[MediaPlaybackRecovery] AAC Fallback stream acquired. Restarting player.");
                         CurrentSong.StreamUrl = aacUrl;

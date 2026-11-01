@@ -105,11 +105,11 @@ public sealed partial class MainWindow : Window
                 {
                     if (state == MediaPlaybackState.Playing)
                     {
-                        _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:''}), '*');");
+                        _ = NpVideoWebView.ExecuteScriptAsync("document.querySelector('video')?.play(); document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:''}), '*');");
                     }
                     else if (state == MediaPlaybackState.Paused)
                     {
-                        _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:''}), '*');");
+                        _ = NpVideoWebView.ExecuteScriptAsync("document.querySelector('video')?.pause(); document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:''}), '*');");
                     }
                 }
             });
@@ -449,7 +449,7 @@ public sealed partial class MainWindow : Window
             {
                 try
                 {
-                    await NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:''}), '*');");
+                    await NpVideoWebView.ExecuteScriptAsync("document.querySelector('video')?.play(); document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'playVideo',args:''}), '*');");
                 }
                 catch { }
                 return;
@@ -464,24 +464,11 @@ public sealed partial class MainWindow : Window
             }
 
             await NpVideoWebView.EnsureCoreWebView2Async();
+            NpVideoWebView.CoreWebView2.Settings.IsWebMessageEnabled = true;
+            NpVideoWebView.CoreWebView2.Settings.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36";
             _isVideoInitialized = true;
 
-            string html = $@"<!DOCTYPE html>
-<html>
-<head>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        html, body {{ width: 100%; height: 100%; overflow: hidden; background-color: #000; }}
-        iframe {{ width: 100%; height: 100%; border: none; }}
-    </style>
-</head>
-<body>
-    <iframe id='ytplayer' src='https://www.youtube.com/embed/{videoId}?autoplay=1&enablejsapi=1&origin=https://www.youtube.com' allow='autoplay; encrypted-media; picture-in-picture' allowfullscreen></iframe>
-</body>
-</html>";
-
-            NpVideoWebView.NavigateToString(html);
+            NpVideoWebView.CoreWebView2.Navigate($"https://www.youtube-nocookie.com/embed/{videoId}?autoplay=1&playsinline=1&rel=0&iv_load_policy=3");
             Helpers.AppLogger.Log("WebView2 video player loaded videoId: " + videoId);
         }
         catch (System.Exception ex)
@@ -496,7 +483,7 @@ public sealed partial class MainWindow : Window
         {
             if (_isVideoInitialized && NpVideoWebView?.CoreWebView2 != null)
             {
-                _ = NpVideoWebView.ExecuteScriptAsync("document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:''}), '*');");
+                _ = NpVideoWebView.ExecuteScriptAsync("document.querySelector('video')?.pause(); document.getElementById('ytplayer')?.contentWindow?.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:''}), '*');");
             }
         }
         catch { }

@@ -203,6 +203,41 @@ public class YouTubeMusicService : IYouTubeMusicService
         return await GetAudioStreamUrlCoreAsync(videoId, null, null, formatPreference, ct);
     }
 
+    public async Task<string> GetDirectFallbackStreamUrlAsync(string videoId, CancellationToken ct = default)
+    {
+        try
+        {
+            AppLogger.Log($"[DirectFallback] Resolving fallback stream via YoutubeExplode for {videoId}...");
+            var manifest = await _youtube.Videos.Streams.GetManifestAsync(videoId, ct);
+            var audioStreams = manifest.GetAudioOnlyStreams().ToList();
+
+            // Prefer MP4 AAC for universal Windows Media Foundation playback
+            var selectedStream = audioStreams
+                .Where(s => s.Container == Container.Mp4)
+                .OrderByDescending(s => s.Bitrate)
+                .FirstOrDefault()
+                ?? audioStreams.OrderByDescending(s => s.Bitrate).FirstOrDefault();
+
+            if (selectedStream != null)
+            {
+                AppLogger.Log($"[DirectFallback] YoutubeExplode fallback acquired: {selectedStream.Container} (Bitrate: {selectedStream.Bitrate})");
+                return selectedStream.Url;
+            }
+
+            var muxed = manifest.GetMuxedStreams().Where(s => s.Container == Container.Mp4).OrderByDescending(s => s.Bitrate).FirstOrDefault();
+            if (muxed != null)
+            {
+                return muxed.Url;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.LogError($"[DirectFallback] YoutubeExplode fallback failed for {videoId}", ex);
+        }
+
+        return string.Empty;
+    }
+
     private async Task<string> GetAudioStreamUrlCoreAsync(string videoId, string? title, string? artist, string? formatPreference, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(formatPreference))
@@ -464,41 +499,18 @@ public class YouTubeMusicService : IYouTubeMusicService
             }
 
             using var req = new HttpRequestMessage(HttpMethod.Get, "https://music.youtube.com/sw.js_data");
-            req.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+            req.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36");
             using var resp = await _httpClient.SendAsync(req, ct);
             if (resp.IsSuccessStatusCode)
             {
                 var text = await resp.Content.ReadAsStringAsync(ct);
-                int idx = text.IndexOf('[');
-                if (idx >= 0)
+                var match = System.Text.RegularExpressions.Regex.Match(text, @"[""'](Cg[A-Za-z0-9_-]{20,})[""']");
+                if (match.Success)
                 {
-                    var jsonText = text.Substring(idx);
-                    using var doc = JsonDocument.Parse(jsonText);
-                    if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
-                    {
-                        var first = doc.RootElement[0];
-                        if (first.ValueKind == JsonValueKind.Array && first.GetArrayLength() > 2)
-                        {
-                            var third = first[2];
-                            if (third.ValueKind == JsonValueKind.Array)
-                            {
-                                foreach (var item in third.EnumerateArray())
-                                {
-                                    if (item.ValueKind == JsonValueKind.String)
-                                    {
-                                        var val = item.GetString();
-                                        if (val != null && System.Text.RegularExpressions.Regex.IsMatch(val, @"^Cg[ts]"))
-                                        {
-                                            _cachedVisitorData = val;
-                                            _visitorDataExpiration = DateTime.UtcNow.AddHours(12);
-                                            AppLogger.Log($"Acquired Echo-Music visitorData: {val.Substring(0, Math.Min(25, val.Length))}...");
-                                            return _cachedVisitorData;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    _cachedVisitorData = match.Groups[1].Value;
+                    _visitorDataExpiration = DateTime.UtcNow.AddHours(12);
+                    AppLogger.Log($"Acquired Echo-Music visitorData: {_cachedVisitorData.Substring(0, Math.Min(25, _cachedVisitorData.Length))}...");
+                    return _cachedVisitorData;
                 }
             }
         }

@@ -32,8 +32,10 @@ public class LocalMediaProxy : IDisposable
         {
             AllowAutoRedirect = true,
             AutomaticDecompression = DecompressionMethods.All,
-            PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-            MaxConnectionsPerServer = 20
+            PooledConnectionLifetime = TimeSpan.FromSeconds(30),
+            PooledConnectionIdleTimeout = TimeSpan.FromSeconds(5),
+            MaxConnectionsPerServer = 50,
+            EnableMultipleHttp2Connections = true
         };
 
         _httpClient = new HttpClient(handler)
@@ -91,13 +93,10 @@ public class LocalMediaProxy : IDisposable
         string userAgent = "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip";
         string? origin = null;
 
-        if (targetUrl.Contains("c=VISIONOS", StringComparison.OrdinalIgnoreCase))
+        // Priority matching: check ANDROID_VR and ANDROID_MUSIC BEFORE generic ANDROID to prevent substring collision!
+        if (targetUrl.Contains("c=ANDROID_VR", StringComparison.OrdinalIgnoreCase))
         {
-            userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
-        }
-        else if (targetUrl.Contains("c=IOS", StringComparison.OrdinalIgnoreCase))
-        {
-            userAgent = "com.google.ios.youtube/21.26.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)";
+            userAgent = "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip";
         }
         else if (targetUrl.Contains("c=ANDROID_MUSIC", StringComparison.OrdinalIgnoreCase))
         {
@@ -106,6 +105,14 @@ public class LocalMediaProxy : IDisposable
         else if (targetUrl.Contains("c=ANDROID", StringComparison.OrdinalIgnoreCase))
         {
             userAgent = "com.google.android.youtube/21.26.364 (Linux; U; Android 15; en_US; Pixel 9 Pro; Build/AP4A.250205.002; Cronet/132.0.6834.79) gzip";
+        }
+        else if (targetUrl.Contains("c=VISIONOS", StringComparison.OrdinalIgnoreCase))
+        {
+            userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+        }
+        else if (targetUrl.Contains("c=IOS", StringComparison.OrdinalIgnoreCase))
+        {
+            userAgent = "com.google.ios.youtube/21.26.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)";
         }
         else if (targetUrl.Contains("c=WEB_REMIX", StringComparison.OrdinalIgnoreCase))
         {
@@ -146,11 +153,26 @@ public class LocalMediaProxy : IDisposable
                 return;
             }
 
-            var targetUrl = req.QueryString["url"];
-            if (string.IsNullOrEmpty(targetUrl) && req.RawUrl != null && req.RawUrl.Contains("url="))
+            // Robust URL extraction: req.RawUrl preserves full query string including sparams, sig, lsig without truncation at '&'
+            string? targetUrl = null;
+            if (req.RawUrl != null && req.RawUrl.Contains("url="))
             {
                 var idx = req.RawUrl.IndexOf("url=");
-                targetUrl = Uri.UnescapeDataString(req.RawUrl.Substring(idx + 4));
+                var rawParam = req.RawUrl.Substring(idx + 4);
+                if (rawParam.StartsWith("http%3A", StringComparison.OrdinalIgnoreCase) ||
+                    rawParam.StartsWith("https%3A", StringComparison.OrdinalIgnoreCase))
+                {
+                    targetUrl = Uri.UnescapeDataString(rawParam);
+                }
+                else
+                {
+                    targetUrl = rawParam;
+                }
+            }
+
+            if (string.IsNullOrEmpty(targetUrl))
+            {
+                targetUrl = req.QueryString["url"];
             }
 
             if (string.IsNullOrEmpty(targetUrl))
@@ -158,6 +180,12 @@ public class LocalMediaProxy : IDisposable
                 res.StatusCode = 400;
                 res.Close();
                 return;
+            }
+
+            // Double unescape guard if URL parameters still contain percent-encoded ampersands
+            if (targetUrl.Contains("%26") && !targetUrl.Contains("&"))
+            {
+                targetUrl = Uri.UnescapeDataString(targetUrl);
             }
 
             // Parse client requested byte range (e.g. bytes=0-, bytes=0-32767, or bytes=1048576-)
@@ -186,82 +214,135 @@ public class LocalMediaProxy : IDisposable
                 probeEnd = requestedEndByte.Value;
             }
 
-            using var probeReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
-            ApplyHeaders(probeReq, userAgent, origin, $"bytes={startByte}-{probeEnd}");
+            // Probe with multi-attempt resilience (retry with alternate client UA if 403 Forbidden is encountered)
+            HttpResponseMessage? probeResp = null;
+            string activeUserAgent = userAgent;
+            string? activeOrigin = origin;
 
-            using var probeResp = await _httpClient.SendAsync(probeReq, HttpCompletionOption.ResponseHeadersRead);
-            if (!probeResp.IsSuccessStatusCode)
+            for (int attempt = 0; attempt < 3; attempt++)
             {
-                AppLogger.LogError($"[LocalMediaProxy] Upstream probe failed with HTTP {probeResp.StatusCode} for {targetUrl}");
-                res.StatusCode = (int)probeResp.StatusCode;
-                res.Close();
-                return;
-            }
+                var probeReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
+                ApplyHeaders(probeReq, activeUserAgent, activeOrigin, $"bytes={startByte}-{probeEnd}");
 
-            long totalBytes = -1;
-            if (probeResp.Content.Headers.ContentRange != null && probeResp.Content.Headers.ContentRange.Length.HasValue)
-            {
-                totalBytes = probeResp.Content.Headers.ContentRange.Length.Value;
-            }
-
-            long effectiveEndByte = requestedEndByte.HasValue
-                ? (totalBytes > 0 ? Math.Min(requestedEndByte.Value, totalBytes - 1) : requestedEndByte.Value)
-                : (totalBytes > 0 ? totalBytes - 1 : probeEnd);
-
-            long bytesToServe = effectiveEndByte - startByte + 1;
-
-            string contentType = probeResp.Content.Headers.ContentType?.ToString() ?? "audio/mp4";
-
-            res.StatusCode = (int)HttpStatusCode.PartialContent;
-            res.ContentType = contentType;
-            res.Headers["Accept-Ranges"] = "bytes";
-
-            if (totalBytes > 0)
-            {
-                res.Headers["Content-Range"] = $"bytes {startByte}-{effectiveEndByte}/{totalBytes}";
-            }
-            if (bytesToServe > 0)
-            {
-                res.ContentLength64 = bytesToServe;
-            }
-
-            if (req.HttpMethod.Equals("HEAD", StringComparison.OrdinalIgnoreCase))
-            {
-                res.Close();
-                return;
-            }
-
-            // Pipe first chunk to client
-            await probeResp.Content.CopyToAsync(res.OutputStream);
-            await res.OutputStream.FlushAsync();
-
-            if (probeEnd >= effectiveEndByte)
-            {
-                res.Close();
-                return;
-            }
-
-            // Sequentially stream remaining 1MB bounded chunks to keep line-rate unthrottled streaming
-            long currByte = probeEnd + 1;
-            while (currByte <= effectiveEndByte && _isRunning)
-            {
-                long nextEnd = Math.Min(currByte + ChunkSize - 1, effectiveEndByte);
-                using var chunkReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
-                ApplyHeaders(chunkReq, userAgent, origin, $"bytes={currByte}-{nextEnd}");
-
-                using var chunkResp = await _httpClient.SendAsync(chunkReq, HttpCompletionOption.ResponseHeadersRead);
-                if (!chunkResp.IsSuccessStatusCode)
+                try
                 {
-                    break;
+                    var resp = await _httpClient.SendAsync(probeReq, HttpCompletionOption.ResponseHeadersRead);
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        probeResp = resp;
+                        break;
+                    }
+
+                    AppLogger.Log($"[LocalMediaProxy] Upstream probe attempt {attempt + 1} returned {resp.StatusCode}");
+                    resp.Dispose();
+
+                    // Fallback UA strategy on 403 Forbidden or edge node errors
+                    if (attempt == 0)
+                    {
+                        activeUserAgent = activeUserAgent.Contains("vr.oculus")
+                            ? "com.google.android.youtube/21.26.364 (Linux; U; Android 15; en_US; Pixel 9 Pro; Build/AP4A.250205.002; Cronet/132.0.6834.79) gzip"
+                            : "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip";
+                    }
+                    else if (attempt == 1)
+                    {
+                        activeUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+                        activeOrigin = "https://music.youtube.com";
+                    }
+
+                    await Task.Delay(150);
+                }
+                catch (Exception pEx)
+                {
+                    AppLogger.LogError($"[LocalMediaProxy] Upstream probe attempt {attempt + 1} threw exception", pEx);
+                    await Task.Delay(150);
+                }
+            }
+
+            if (probeResp == null || !probeResp.IsSuccessStatusCode)
+            {
+                AppLogger.LogError($"[LocalMediaProxy] All upstream probe attempts exhausted for {targetUrl}");
+                res.StatusCode = (int)(probeResp?.StatusCode ?? HttpStatusCode.Forbidden);
+                res.Close();
+                return;
+            }
+
+            using (probeResp)
+            {
+                long totalBytes = -1;
+                if (probeResp.Content.Headers.ContentRange != null && probeResp.Content.Headers.ContentRange.Length.HasValue)
+                {
+                    totalBytes = probeResp.Content.Headers.ContentRange.Length.Value;
                 }
 
-                await chunkResp.Content.CopyToAsync(res.OutputStream);
+                long effectiveEndByte = requestedEndByte.HasValue
+                    ? (totalBytes > 0 ? Math.Min(requestedEndByte.Value, totalBytes - 1) : requestedEndByte.Value)
+                    : (totalBytes > 0 ? totalBytes - 1 : probeEnd);
+
+                long bytesToServe = effectiveEndByte - startByte + 1;
+                string contentType = probeResp.Content.Headers.ContentType?.ToString() ?? "audio/mp4";
+
+                res.ContentType = contentType;
+                res.Headers["Accept-Ranges"] = "bytes";
+
+                if (string.IsNullOrEmpty(rangeHeader))
+                {
+                    res.StatusCode = (int)HttpStatusCode.OK;
+                    if (totalBytes > 0)
+                    {
+                        res.ContentLength64 = totalBytes;
+                    }
+                }
+                else
+                {
+                    res.StatusCode = (int)HttpStatusCode.PartialContent;
+                    if (totalBytes > 0)
+                    {
+                        res.Headers["Content-Range"] = $"bytes {startByte}-{effectiveEndByte}/{totalBytes}";
+                    }
+                    if (bytesToServe > 0)
+                    {
+                        res.ContentLength64 = bytesToServe;
+                    }
+                }
+
+                if (req.HttpMethod.Equals("HEAD", StringComparison.OrdinalIgnoreCase))
+                {
+                    res.Close();
+                    return;
+                }
+
+                // Pipe first chunk to client
+                await probeResp.Content.CopyToAsync(res.OutputStream);
                 await res.OutputStream.FlushAsync();
 
-                currByte = nextEnd + 1;
-            }
+                if (probeEnd >= effectiveEndByte)
+                {
+                    res.Close();
+                    return;
+                }
 
-            res.Close();
+                // Sequentially stream remaining 1MB bounded chunks to keep line-rate unthrottled streaming
+                long currByte = probeEnd + 1;
+                while (currByte <= effectiveEndByte && _isRunning)
+                {
+                    long nextEnd = Math.Min(currByte + ChunkSize - 1, effectiveEndByte);
+                    using var chunkReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
+                    ApplyHeaders(chunkReq, activeUserAgent, activeOrigin, $"bytes={currByte}-{nextEnd}");
+
+                    using var chunkResp = await _httpClient.SendAsync(chunkReq, HttpCompletionOption.ResponseHeadersRead);
+                    if (!chunkResp.IsSuccessStatusCode)
+                    {
+                        break;
+                    }
+
+                    await chunkResp.Content.CopyToAsync(res.OutputStream);
+                    await res.OutputStream.FlushAsync();
+
+                    currByte = nextEnd + 1;
+                }
+
+                res.Close();
+            }
         }
         catch (Exception)
         {
