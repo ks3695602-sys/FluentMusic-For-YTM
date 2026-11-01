@@ -47,7 +47,7 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.3233" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="YoutubeExplode" Version="6.4.3" />
+    <PackageReference Include="YoutubeExplode" Version="6.6.3" />
   </ItemGroup>
 
 </Project>

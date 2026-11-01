@@ -22,6 +22,11 @@ public static class AppLogger
         catch { }
     }
 
+    public static void LogError(string message)
+    {
+        Log($"[ERROR] {message}");
+    }
+
     public static void LogError(string context, Exception ex)
     {
         Log($"[ERROR] {context}: {ex.GetType().Name} - {ex.Message}{Environment.NewLine}{ex.StackTrace}");

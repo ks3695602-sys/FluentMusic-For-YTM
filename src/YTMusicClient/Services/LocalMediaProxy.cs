@@ -85,6 +85,53 @@ public class LocalMediaProxy : IDisposable
         }
     }
 
+    private (string UserAgent, string? Origin) GetClientIdentity(string targetUrl)
+    {
+        // Default to Oculus VR (unthrottled line-rate audio)
+        string userAgent = "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip";
+        string? origin = null;
+
+        if (targetUrl.Contains("c=VISIONOS", StringComparison.OrdinalIgnoreCase))
+        {
+            userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+        }
+        else if (targetUrl.Contains("c=IOS", StringComparison.OrdinalIgnoreCase))
+        {
+            userAgent = "com.google.ios.youtube/21.26.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)";
+        }
+        else if (targetUrl.Contains("c=ANDROID_MUSIC", StringComparison.OrdinalIgnoreCase))
+        {
+            userAgent = "com.google.android.apps.youtube.music/8.39.42 (Linux; U; Android 15; en_US; Pixel 9 Pro; Build/AP4A.250205.002) gzip";
+        }
+        else if (targetUrl.Contains("c=ANDROID", StringComparison.OrdinalIgnoreCase))
+        {
+            userAgent = "com.google.android.youtube/21.26.364 (Linux; U; Android 15; en_US; Pixel 9 Pro; Build/AP4A.250205.002; Cronet/132.0.6834.79) gzip";
+        }
+        else if (targetUrl.Contains("c=WEB_REMIX", StringComparison.OrdinalIgnoreCase))
+        {
+            userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+            origin = "https://music.youtube.com";
+        }
+        else if (targetUrl.Contains("c=WEB", StringComparison.OrdinalIgnoreCase))
+        {
+            userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+            origin = "https://www.youtube.com";
+        }
+
+        return (userAgent, origin);
+    }
+
+    private void ApplyHeaders(HttpRequestMessage msg, string userAgent, string? origin, string range)
+    {
+        msg.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+        msg.Headers.TryAddWithoutValidation("Range", range);
+        if (!string.IsNullOrEmpty(origin))
+        {
+            msg.Headers.TryAddWithoutValidation("Origin", origin);
+            msg.Headers.TryAddWithoutValidation("Referer", origin + "/");
+        }
+    }
+
     private async Task HandleRequestAsync(HttpListenerContext context)
     {
         var req = context.Request;
@@ -130,12 +177,7 @@ public class LocalMediaProxy : IDisposable
                 }
             }
 
-            // Determine client identity matching for googlevideo URLs
-            string userAgent = "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip";
-            if (targetUrl.Contains("c=IOS", StringComparison.OrdinalIgnoreCase))
-            {
-                userAgent = "com.google.ios.youtube/21.26.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)";
-            }
+            var (userAgent, origin) = GetClientIdentity(targetUrl);
 
             // Upstream probe: request first chunk up to Math.Min(startByte + ChunkSize - 1, requestedEndByte ?? long.MaxValue)
             long probeEnd = startByte + ChunkSize - 1;
@@ -145,8 +187,7 @@ public class LocalMediaProxy : IDisposable
             }
 
             using var probeReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
-            probeReq.Headers.TryAddWithoutValidation("User-Agent", userAgent);
-            probeReq.Headers.TryAddWithoutValidation("Range", $"bytes={startByte}-{probeEnd}");
+            ApplyHeaders(probeReq, userAgent, origin, $"bytes={startByte}-{probeEnd}");
 
             using var probeResp = await _httpClient.SendAsync(probeReq, HttpCompletionOption.ResponseHeadersRead);
             if (!probeResp.IsSuccessStatusCode)
@@ -206,8 +247,7 @@ public class LocalMediaProxy : IDisposable
             {
                 long nextEnd = Math.Min(currByte + ChunkSize - 1, effectiveEndByte);
                 using var chunkReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
-                chunkReq.Headers.TryAddWithoutValidation("User-Agent", userAgent);
-                chunkReq.Headers.TryAddWithoutValidation("Range", $"bytes={currByte}-{nextEnd}");
+                ApplyHeaders(chunkReq, userAgent, origin, $"bytes={currByte}-{nextEnd}");
 
                 using var chunkResp = await _httpClient.SendAsync(chunkReq, HttpCompletionOption.ResponseHeadersRead);
                 if (!chunkResp.IsSuccessStatusCode)
