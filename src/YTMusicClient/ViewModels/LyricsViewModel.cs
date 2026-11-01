@@ -47,6 +47,32 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _selectedTranslationMode = "Original"; // "Original", "EN", "HI", "Hinglish"
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LyricsOffsetDisplay))]
+    private double _lyricsOffsetMs = 0;
+
+    public string LyricsOffsetDisplay
+    {
+        get
+        {
+            if (Math.Abs(LyricsOffsetMs) < 0.1) return "0 ms (Default)";
+            if (LyricsOffsetMs > 0) return $"+{LyricsOffsetMs:F0} ms (Lyrics lead)";
+            return $"{LyricsOffsetMs:F0} ms (Audio leads)";
+        }
+    }
+
+    [ObservableProperty]
+    private string _selectedPreset = "AppleMusicMotion";
+
+    [ObservableProperty]
+    private double _fontSizeScale = 1.0;
+
+    [ObservableProperty]
+    private bool _showTranslations = true;
+
+    [ObservableProperty]
+    private bool _wordByWordEnabled = true;
+
     public ObservableCollection<LyricLine> Lyrics { get; } = new();
 
     public event EventHandler<int>? ActiveLyricChanged;
@@ -83,6 +109,60 @@ public partial class LyricsViewModel : ObservableObject, IDisposable
                 LrcBounceEnabled = lrcBounce;
             if (localSettings.Values["LyricsTranslationMode"] is string transMode && !string.IsNullOrWhiteSpace(transMode))
                 SelectedTranslationMode = transMode;
+            if (localSettings.Values["LyricsOffsetMs"] is double offset)
+                LyricsOffsetMs = offset;
+            if (localSettings.Values["LyricsPreset"] is string preset && !string.IsNullOrWhiteSpace(preset))
+                SelectedPreset = preset;
+            if (localSettings.Values["LyricsFontSizeScale"] is double scale)
+                FontSizeScale = scale;
+            if (localSettings.Values["LyricsShowTranslations"] is bool showTrans)
+                ShowTranslations = showTrans;
+            if (localSettings.Values["LyricsWordByWordEnabled"] is bool wbw)
+                WordByWordEnabled = wbw;
+        }
+        catch { }
+    }
+
+        public void SetOffset(double ms)
+    {
+        LyricsOffsetMs = Math.Clamp(ms, -5000, 5000);
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["LyricsOffsetMs"] = LyricsOffsetMs;
+        }
+        catch { }
+    }
+
+    public void SetPreset(string preset)
+    {
+        SelectedPreset = preset;
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["LyricsPreset"] = preset;
+        }
+        catch { }
+    }
+
+    public void SetFontScale(double scale)
+    {
+        FontSizeScale = Math.Clamp(scale, 0.7, 1.8);
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["LyricsFontSizeScale"] = FontSizeScale;
+        }
+        catch { }
+    }
+
+    public void SetWordByWord(bool enabled)
+    {
+        WordByWordEnabled = enabled;
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            localSettings.Values["LyricsWordByWordEnabled"] = enabled;
         }
         catch { }
     }

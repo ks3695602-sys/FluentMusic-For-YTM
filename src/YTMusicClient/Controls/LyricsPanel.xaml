@@ -11,17 +11,213 @@
         <ResourceDictionary>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
             <converters:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
+
+            <!-- Reusable Lyrics Offset & Settings Flyout -->
+            <Flyout x:Key="LyricsSettingsFlyout" Placement="BottomEdgeAlignedRight">
+                <Flyout.FlyoutPresenterStyle>
+                    <Style TargetType="FlyoutPresenter">
+                        <Setter Property="CornerRadius" Value="16" />
+                        <Setter Property="BorderThickness" Value="1" />
+                        <Setter Property="BorderBrush" Value="#35FFFFFF" />
+                        <Setter Property="Background" Value="#E6181B26" />
+                        <Setter Property="Padding" Value="16" />
+                        <Setter Property="MinWidth" Value="320" />
+                        <Setter Property="MaxWidth" Value="380" />
+                    </Style>
+                </Flyout.FlyoutPresenterStyle>
+                <StackPanel Spacing="14">
+                    <!-- 1. Header -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE916;" FontSize="15" Foreground="{StaticResource AccentRedBrush}" />
+                        <TextBlock Text="Lyrics Sync &amp; Offset" FontWeight="Bold" FontSize="14" />
+                    </StackPanel>
+
+                    <TextBlock Text="Adjust audio offset if lyrics lead or trail the vocals."
+                               FontSize="11.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+
+                    <!-- 2. Offset Readout & Slider -->
+                    <Border Background="#1AFFFFFF" CornerRadius="12" Padding="12,10" BorderThickness="1" BorderBrush="#20FFFFFF">
+                        <StackPanel Spacing="8">
+                            <Grid>
+                                <TextBlock Text="Sync Offset" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <TextBlock Text="{x:Bind ViewModel.LyricsOffsetDisplay, Mode=OneWay}"
+                                           FontSize="12" FontWeight="Bold" Foreground="#38BDF8"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            </Grid>
+
+                            <Slider Minimum="-5000" Maximum="5000" StepFrequency="50" TickFrequency="500"
+                                    SnapsTo="StepValues"
+                                    Value="{x:Bind ViewModel.LyricsOffsetMs, Mode=TwoWay}"
+                                    ValueChanged="OffsetSlider_ValueChanged"
+                                    Margin="0,2,0,0" />
+
+                            <!-- Micro-Nudge Buttons -->
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="1.4*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="-100" FontSize="10.5" Padding="0,4" Margin="1"
+                                        HorizontalAlignment="Stretch" CornerRadius="6" Click="NudgeButton_Click" Tag="-100" />
+                                <Button Grid.Column="1" Content="-50" FontSize="10.5" Padding="0,4" Margin="1"
+                                        HorizontalAlignment="Stretch" CornerRadius="6" Click="NudgeButton_Click" Tag="-50" />
+                                <Button Grid.Column="2" Content="Reset (0ms)" FontSize="10.5" Padding="0,4" Margin="1"
+                                        HorizontalAlignment="Stretch" CornerRadius="6" Click="ResetOffset_Click" />
+                                <Button Grid.Column="3" Content="+50" FontSize="10.5" Padding="0,4" Margin="1"
+                                        HorizontalAlignment="Stretch" CornerRadius="6" Click="NudgeButton_Click" Tag="50" />
+                                <Button Grid.Column="4" Content="+100" FontSize="10.5" Padding="0,4" Margin="1"
+                                        HorizontalAlignment="Stretch" CornerRadius="6" Click="NudgeButton_Click" Tag="100" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Divider -->
+                    <MenuFlyoutSeparator Margin="0,2" />
+
+                    <!-- 3. Engine Settings -->
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Lyrics Engine Preferences" FontWeight="SemiBold" FontSize="12.5" />
+
+                        <!-- Motion Preset -->
+                        <Grid>
+                            <TextBlock Text="Motion Preset" FontSize="11.5" VerticalAlignment="Center" />
+                            <ComboBox SelectedIndex="0" HorizontalAlignment="Right" SelectionChanged="Preset_SelectionChanged">
+                                <ComboBoxItem Content="Apple Music Motion" Tag="AppleMusicMotion" />
+                                <ComboBoxItem Content="Cascade Flow" Tag="Cascade" />
+                                <ComboBoxItem Content="Pulse Rhythm" Tag="Pulse" />
+                                <ComboBoxItem Content="Smooth Drift" Tag="Drift" />
+                            </ComboBox>
+                        </Grid>
+
+                        <!-- Font Size Scale -->
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="Font Scale" FontSize="11.5" VerticalAlignment="Center" />
+                            <Slider Grid.Row="1" Minimum="0.8" Maximum="1.5" StepFrequency="0.05"
+                                    Value="{x:Bind ViewModel.FontSizeScale, Mode=TwoWay}"
+                                    ValueChanged="FontScaleSlider_ValueChanged" Margin="0,2,0,0" />
+                        </Grid>
+
+                        <!-- Syllable Karaoke Toggle -->
+                        <ToggleSwitch Header="Word-by-word Syllable Sweep"
+                                      IsOn="{x:Bind ViewModel.WordByWordEnabled, Mode=TwoWay}"
+                                      Toggled="WordByWord_Toggled" FontSize="11.5" />
+
+                        <!-- Translations Toggle -->
+                        <ToggleSwitch Header="Show Inline Translations"
+                                      IsOn="{x:Bind ViewModel.ShowTranslations, Mode=TwoWay}"
+                                      Toggled="Translations_Toggled" FontSize="11.5" />
+                    </StackPanel>
+                </StackPanel>
+            </Flyout>
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <!-- Transparent Host for Pure SpicyLyrics WebView2 Engine -->
-    <Border Background="Transparent"
-            BorderThickness="0"
-            Padding="0">
-        <Grid>
-            <WebView2 x:Name="SpicyLyricsWebView"
-                      HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch" />
+    <!-- Outer Rounded Glass Box Container with ContextFlyout -->
+    <Border Background="#1815202B"
+            CornerRadius="18"
+            BorderThickness="1"
+            BorderBrush="#30FFFFFF"
+            Margin="6"
+            Padding="8"
+            ContextFlyout="{StaticResource LyricsSettingsFlyout}">
+        <Grid RowDefinitions="Auto,*">
+
+            <!-- Top Header Decoration Bar -->
+            <Grid Grid.Row="0" Margin="4,2,4,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Track Thumbnail & Info -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <Border CornerRadius="8" Width="30" Height="30" Background="#20FFFFFF">
+                        <Image Source="{x:Bind ViewModel.PlaybackService.CurrentSong.ThumbnailUrl, Mode=OneWay}"
+                               Stretch="UniformToFill" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" MaxWidth="170">
+                        <TextBlock Text="{x:Bind ViewModel.PlaybackService.CurrentSong.Title, Mode=OneWay, FallbackValue='Lyrics'}"
+                                   FontWeight="SemiBold" FontSize="12" MaxLines="1" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{x:Bind ViewModel.PlaybackService.CurrentSong.Artist, Mode=OneWay, FallbackValue='Tap ⚙️ for sync offset'}"
+                                   FontSize="10.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   MaxLines="1" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Center/Left Status Pill: Live Sync Indicator -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="14,0,0,0" Spacing="6">
+                    <Border Background="#2510B981" BorderBrush="#4510B981" BorderThickness="1" CornerRadius="12" Padding="7,3">
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                            <Ellipse Width="6" Height="6" Fill="#10B981" />
+                            <TextBlock Text="LIVE SYNC" FontSize="9" FontWeight="Bold" Foreground="#34D399" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Right: Quick Offset Pill & Settings Button -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <!-- Quick Offset Badge / Button -->
+                    <Button Background="#1F38BDF8" BorderBrush="#3538BDF8" BorderThickness="1"
+                            CornerRadius="10" Padding="8,3"
+                            ToolTipService.ToolTip="Click to adjust Lyrics Offset"
+                            Click="OpenSettings_Click">
+                        <TextBlock Text="{x:Bind ViewModel.LyricsOffsetDisplay, Mode=OneWay}"
+                                   FontSize="10" FontWeight="SemiBold" Foreground="#38BDF8" />
+                    </Button>
+
+                    <!-- Settings Button (⚙️) -->
+                    <Button x:Name="LyricsSettingsButton"
+                            Background="Transparent" BorderThickness="0" CornerRadius="12" Padding="6"
+                            ToolTipService.ToolTip="Lyrics Settings &amp; Sync Offset"
+                            Click="OpenSettings_Click">
+                        <FontIcon Glyph="&#xE713;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Inner Rounded Box Container Hosting flutter_lyric WebView2 -->
+            <Border Grid.Row="1"
+                    CornerRadius="14"
+                    BorderThickness="1"
+                    BorderBrush="#18FFFFFF"
+                    Background="Transparent">
+                <Grid>
+                    <!-- Exact flutter_lyric Engine in WebView2 -->
+                    <WebView2 x:Name="LyricsWebView"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+
+                    <!-- Synchronizing / Loading Glass Overlay -->
+                    <Border Background="#A010131A" CornerRadius="14"
+                            Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
+                            <ProgressRing IsActive="True" Width="28" Height="28" Foreground="{StaticResource AccentRedBrush}" />
+                            <TextBlock Text="Synchronizing lyrics..." FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- No Lyrics Fallback Message -->
+                    <Border Background="#7010131A" CornerRadius="14"
+                            Visibility="{x:Bind ViewModel.HasLyrics, Mode=OneWay, Converter={StaticResource InverseBoolToVisibility}}">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8"
+                                    Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource InverseBoolToVisibility}}">
+                            <FontIcon Glyph="&#xE8D6;" FontSize="32" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                                       FontSize="12.5" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 </UserControl>

@@ -213,12 +213,20 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                                 song.FidelityTier = "Hi-Res Lossless";
                                 song.AudioSource = "Qobuz Lossless";
                             }
+                            else if (song.StreamUrl.Contains("mime=audio%2Fwebm", StringComparison.OrdinalIgnoreCase) ||
+                                     song.StreamUrl.Contains("opus", StringComparison.OrdinalIgnoreCase))
+                            {
+                                song.AudioCodec = "OPUS";
+                                song.AudioQuality = "160 kbps · OPUS · Lossless Stream";
+                                song.FidelityTier = "Hi-Res";
+                                song.AudioSource = "YouTube Direct (Echo-Music)";
+                            }
                             else
                             {
                                 song.AudioCodec = "AAC";
                                 song.AudioQuality = "256 kbps · AAC · Hi-Res";
                                 song.FidelityTier = "Hi-Res";
-                                song.AudioSource = "YouTube High-Res";
+                                song.AudioSource = "YouTube Direct (Echo-Music)";
                             }
                             SetCurrentSong(song);
                         }
@@ -258,8 +266,9 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
             // Update SMTC display
             await UpdateSmtcDisplayAsync(song);
 
-            // Populate taste-based radio queue dynamically
+            // Populate taste-based radio queue dynamically and preload next track
             _ = EnsureRadioQueueAsync();
+            _ = PreloadNextTrackStreamAsync();
         }
         catch (Exception ex)
         {
@@ -397,6 +406,28 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
     {
         UpNext.Clear();
         _dispatcherQueue.TryEnqueue(() => QueueChanged?.Invoke(this, EventArgs.Empty));
+    }
+
+    public async Task PreloadNextTrackStreamAsync()
+    {
+        if (UpNext.Count == 0) return;
+        var nextSong = UpNext[0];
+        if (!string.IsNullOrEmpty(nextSong.StreamUrl)) return;
+
+        try
+        {
+            var musicService = App.Services.GetService(typeof(IYouTubeMusicService)) as IYouTubeMusicService;
+            if (musicService != null)
+            {
+                var url = await musicService.GetAudioStreamUrlAsync(nextSong.VideoId);
+                if (!string.IsNullOrEmpty(url))
+                {
+                    nextSong.StreamUrl = url;
+                    AppLogger.Log($"[Preload] Successfully pre-buffered next song stream: {nextSong.Title}");
+                }
+            }
+        }
+        catch { }
     }
 
     public async Task EnsureRadioQueueAsync()

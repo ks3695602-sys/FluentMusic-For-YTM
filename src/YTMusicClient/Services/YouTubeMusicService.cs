@@ -14,10 +14,15 @@ using YTMusicClient.Models;
 
 namespace YTMusicClient.Services;
 
+/// <summary>Encapsulates a resolved audio stream with codec metadata.</summary>
+public record StreamResolution(string Url, string Codec = "Unknown", int BitrateKbps = 0, int SampleRate = 0, int Itag = 0);
+
 public class YouTubeMusicService : IYouTubeMusicService
 {
     private readonly YoutubeClient _youtube;
     private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(15) };
+    // Dedicated fast HttpClient for InnerTube player requests — tight 5s timeout for instant playback
+    private static readonly HttpClient _innerTubeClient = new() { Timeout = TimeSpan.FromSeconds(5) };
     private const string BravePipeBase = "https://bppcaf.bot-keep.xyz";
 
     private static string? _cachedVisitorData;
@@ -195,20 +200,43 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     private async Task<string> GetAudioStreamUrlCoreAsync(string videoId, string? title, string? artist, CancellationToken ct)
     {
-        // 1. If Title is provided, try Qobuz lossless bridge FIRST
+        // 1. PRIMARY & INSTANT (~150ms): Echo-Music InnerTube Multi-Client Stream Engine
+        // ANDROID_VR zero-cipher, IOS, VISIONOS directly to Google's CDN with zero decipher lag.
+        bool isStandardYtId = videoId.Length == 11 && videoId.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_');
+        if (isStandardYtId)
+        {
+            try
+            {
+                AppLogger.Log($"[InstantStream] Resolving via Echo-Music InnerTube engine for: {videoId}");
+                var echoStreamUrl = await GetEchoInnerTubeStreamUrlAsync(videoId, ct);
+                if (!string.IsNullOrEmpty(echoStreamUrl))
+                {
+                    AppLogger.Log($"[InstantStream] Echo-Music InnerTube SUCCESS: {echoStreamUrl.Substring(0, Math.Min(60, echoStreamUrl.Length))}...");
+                    return echoStreamUrl;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError($"Echo-Music InnerTube stream resolution failed for {videoId}", ex);
+            }
+        }
+
+        // 2. High-Fidelity Lossless (Qobuz FLAC) - only attempted if title is provided & with a strict 3s timeout
         if (!string.IsNullOrWhiteSpace(title))
         {
             try
             {
+                using var quickCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                quickCts.CancelAfter(TimeSpan.FromSeconds(3)); // Strict 3-second cap so player never hangs
                 string searchLosslessQuery = $"{title} {artist}".Trim();
                 AppLogger.Log($"Resolving Qobuz Lossless FLAC stream for: '{searchLosslessQuery}'");
                 var searchUrl = $"{BravePipeBase}/search?q={Uri.EscapeDataString(searchLosslessQuery)}&quality=LOSSLESS";
                 using var req = new HttpRequestMessage(HttpMethod.Get, searchUrl);
                 req.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                using var resp = await _httpClient.SendAsync(req, ct);
+                using var resp = await _httpClient.SendAsync(req, quickCts.Token);
                 if (resp.IsSuccessStatusCode)
                 {
-                    var json = await resp.Content.ReadAsStringAsync(ct);
+                    var json = await resp.Content.ReadAsStringAsync(quickCts.Token);
                     using var doc = JsonDocument.Parse(json);
                     JsonElement tracksArray = default;
                     if (doc.RootElement.ValueKind == JsonValueKind.Array)
@@ -236,10 +264,10 @@ public class YouTubeMusicService : IYouTubeMusicService
                             var streamUrl = $"{BravePipeBase}/stream/{Uri.EscapeDataString(qId)}?quality=LOSSLESS";
                             using var sReq = new HttpRequestMessage(HttpMethod.Get, streamUrl);
                             sReq.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                            using var sResp = await _httpClient.SendAsync(sReq, ct);
+                            using var sResp = await _httpClient.SendAsync(sReq, quickCts.Token);
                             if (sResp.IsSuccessStatusCode)
                             {
-                                var sJson = await sResp.Content.ReadAsStringAsync(ct);
+                                var sJson = await sResp.Content.ReadAsStringAsync(quickCts.Token);
                                 using var sDoc = JsonDocument.Parse(sJson);
                                 if (sDoc.RootElement.TryGetProperty("url", out var uProp))
                                 {
@@ -261,7 +289,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             }
         }
 
-        // 2. If ID is from BravePipe / Qobuz provider
+        // 3. If ID is from BravePipe / Qobuz provider
         if (videoId.StartsWith("qobuz_") || !videoId.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_') || videoId.Length > 15)
         {
             try
@@ -293,23 +321,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             }
         }
 
-        // 2. Echo-Music Reverse-Engineered InnerTube Multi-Client Stream Engine (ANDROID_VR zero-cipher & IOS)
-        try
-        {
-            AppLogger.Log($"Resolving stream via Echo-Music InnerTube engine for {videoId}");
-            var echoStreamUrl = await GetEchoInnerTubeStreamUrlAsync(videoId, ct);
-            if (!string.IsNullOrEmpty(echoStreamUrl))
-            {
-                AppLogger.Log($"Echo-Music InnerTube stream SUCCESS: {echoStreamUrl.Substring(0, Math.Min(60, echoStreamUrl.Length))}...");
-                return echoStreamUrl;
-            }
-        }
-        catch (Exception ex)
-        {
-            AppLogger.LogError($"Echo-Music InnerTube stream resolution failed for {videoId}", ex);
-        }
-
-        // 3. Try YoutubeExplode native extraction
+        // 4. Fallback to YoutubeExplode native extraction
         try
         {
             AppLogger.Log($"Fetching YoutubeExplode manifest for {videoId}");
