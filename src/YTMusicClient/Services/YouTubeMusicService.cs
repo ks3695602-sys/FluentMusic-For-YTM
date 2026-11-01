@@ -190,15 +190,20 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     public async Task<string> GetLosslessStreamUrlAsync(string videoId, string title, string artist, CancellationToken ct = default)
     {
-        return await GetAudioStreamUrlCoreAsync(videoId, title, artist, ct);
+        return await GetAudioStreamUrlCoreAsync(videoId, title, artist, null, ct);
     }
 
     public async Task<string> GetAudioStreamUrlAsync(string videoId, CancellationToken ct = default)
     {
-        return await GetAudioStreamUrlCoreAsync(videoId, null, null, ct);
+        return await GetAudioStreamUrlCoreAsync(videoId, null, null, null, ct);
     }
 
-    private async Task<string> GetAudioStreamUrlCoreAsync(string videoId, string? title, string? artist, CancellationToken ct)
+    public async Task<string> GetAudioStreamUrlAsync(string videoId, string? formatPreference = null, CancellationToken ct = default)
+    {
+        return await GetAudioStreamUrlCoreAsync(videoId, null, null, formatPreference, ct);
+    }
+
+    private async Task<string> GetAudioStreamUrlCoreAsync(string videoId, string? title, string? artist, string? formatPreference, CancellationToken ct)
     {
         // 1. PRIMARY & INSTANT (~150ms): Echo-Music InnerTube Multi-Client Stream Engine
         // ANDROID_VR zero-cipher, IOS, VISIONOS directly to Google's CDN with zero decipher lag.
@@ -207,8 +212,8 @@ public class YouTubeMusicService : IYouTubeMusicService
         {
             try
             {
-                AppLogger.Log($"[InstantStream] Resolving via Echo-Music InnerTube engine for: {videoId}");
-                var echoStreamUrl = await GetEchoInnerTubeStreamUrlAsync(videoId, ct);
+                AppLogger.Log($"[InstantStream] Resolving via Echo-Music InnerTube engine for: {videoId} (Pref: {formatPreference ?? "Auto"})");
+                var echoStreamUrl = await GetEchoInnerTubeStreamUrlAsync(videoId, formatPreference, ct);
                 if (!string.IsNullOrEmpty(echoStreamUrl))
                 {
                     AppLogger.Log($"[InstantStream] Echo-Music InnerTube SUCCESS: {echoStreamUrl.Substring(0, Math.Min(60, echoStreamUrl.Length))}...");
@@ -493,7 +498,7 @@ public class YouTubeMusicService : IYouTubeMusicService
         return _cachedVisitorData;
     }
 
-    private async Task<string?> GetEchoInnerTubeStreamUrlAsync(string videoId, CancellationToken ct)
+    private async Task<string?> GetEchoInnerTubeStreamUrlAsync(string videoId, string? formatPreference, CancellationToken ct)
     {
         var visitorData = await GetOrRefreshVisitorDataAsync(ct);
 
@@ -502,7 +507,7 @@ public class YouTubeMusicService : IYouTubeMusicService
         {
             var streamUrl = await QueryInnerTubePlayerAsync(videoId, "ANDROID_VR", "1.65.10", "28",
                 "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
-                visitorData, isAndroidVr: true, ct);
+                visitorData, isAndroidVr: true, ct, formatPreference: formatPreference);
             if (!string.IsNullOrEmpty(streamUrl))
             {
                 AppLogger.Log($"Echo-Music ANDROID_VR direct stream SUCCESS for {videoId}");
@@ -519,7 +524,7 @@ public class YouTubeMusicService : IYouTubeMusicService
         {
             var streamUrl = await QueryInnerTubePlayerAsync(videoId, "IOS", "21.03.1", "5",
                 "com.google.ios.youtube/21.03.1 (iPhone16,2; U; CPU iOS 18_2 like Mac OS X;)",
-                visitorData, isAndroidVr: false, ct);
+                visitorData, isAndroidVr: false, ct, formatPreference: formatPreference);
             if (!string.IsNullOrEmpty(streamUrl))
             {
                 AppLogger.Log($"Echo-Music IOS direct stream SUCCESS for {videoId}");
@@ -536,7 +541,7 @@ public class YouTubeMusicService : IYouTubeMusicService
         {
             var streamUrl = await QueryInnerTubePlayerAsync(videoId, "VISIONOS", "0.1", "101",
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
-                visitorData, isAndroidVr: false, ct);
+                visitorData, isAndroidVr: false, ct, formatPreference: formatPreference);
             if (!string.IsNullOrEmpty(streamUrl))
             {
                 AppLogger.Log($"Echo-Music VISIONOS direct stream SUCCESS for {videoId}");
@@ -557,7 +562,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             {
                 var streamUrl = await QueryInnerTubePlayerAsync(videoId, "WEB_REMIX", "1.20260213.01.00", "67",
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0",
-                    visitorData, isAndroidVr: false, ct, cookies: cookies);
+                    visitorData, isAndroidVr: false, ct, cookies: cookies, formatPreference: formatPreference);
                 if (!string.IsNullOrEmpty(streamUrl))
                 {
                     AppLogger.Log($"Echo-Music WEB_REMIX auth stream SUCCESS for {videoId}");
@@ -582,8 +587,22 @@ public class YouTubeMusicService : IYouTubeMusicService
         string? visitorData,
         bool isAndroidVr,
         CancellationToken ct,
-        string? cookies = null)
+        string? cookies = null,
+        string? formatPreference = null)
     {
+        if (string.IsNullOrEmpty(formatPreference))
+        {
+            try
+            {
+                var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+                formatPreference = localSettings.Values["AudioCodecPreference"] as string ?? "Auto";
+            }
+            catch
+            {
+                formatPreference = "Auto";
+            }
+        }
+
         object clientContext = isAndroidVr
             ? new
             {
@@ -652,33 +671,72 @@ public class YouTubeMusicService : IYouTubeMusicService
             if (streamingData.TryGetProperty("adaptiveFormats", out var adaptiveFormats) &&
                 adaptiveFormats.ValueKind == JsonValueKind.Array)
             {
-                string? bestUrl = null;
-                int highestBitrate = 0;
+                string? bestOpusUrl = null;
+                int highestOpusBitrate = 0;
+                string? bestAacUrl = null;
+                int highestAacBitrate = 0;
+                string? bestAnyUrl = null;
+                int highestAnyBitrate = 0;
 
                 foreach (var fmt in adaptiveFormats.EnumerateArray())
                 {
                     string mime = fmt.TryGetProperty("mimeType", out var m) ? m.GetString() ?? "" : "";
                     if (!mime.Contains("audio", StringComparison.OrdinalIgnoreCase)) continue;
 
+                    int itag = fmt.TryGetProperty("itag", out var itagProp) ? itagProp.GetInt32() : 0;
+                    int bitrate = fmt.TryGetProperty("bitrate", out var b) ? b.GetInt32() : 0;
+
                     if (fmt.TryGetProperty("url", out var urlProp))
                     {
                         var url = urlProp.GetString();
                         if (!string.IsNullOrEmpty(url))
                         {
-                            int bitrate = fmt.TryGetProperty("bitrate", out var b) ? b.GetInt32() : 0;
-                            // Prefer Opus (itag 251) or AAC (itag 140)
-                            if (bitrate > highestBitrate)
+                            bool isOpus = mime.Contains("opus", StringComparison.OrdinalIgnoreCase) ||
+                                          mime.Contains("audio/webm", StringComparison.OrdinalIgnoreCase) ||
+                                          itag is 251 or 250 or 249;
+
+                            bool isAac = mime.Contains("mp4a", StringComparison.OrdinalIgnoreCase) ||
+                                         mime.Contains("audio/mp4", StringComparison.OrdinalIgnoreCase) ||
+                                         itag is 140 or 141;
+
+                            if (isOpus && bitrate > highestOpusBitrate)
                             {
-                                highestBitrate = bitrate;
-                                bestUrl = url;
+                                highestOpusBitrate = bitrate;
+                                bestOpusUrl = url;
+                            }
+                            else if (isAac && bitrate > highestAacBitrate)
+                            {
+                                highestAacBitrate = bitrate;
+                                bestAacUrl = url;
+                            }
+
+                            if (bitrate > highestAnyBitrate)
+                            {
+                                highestAnyBitrate = bitrate;
+                                bestAnyUrl = url;
                             }
                         }
                     }
                 }
 
-                if (!string.IsNullOrEmpty(bestUrl))
+                if (formatPreference.Equals("Opus", StringComparison.OrdinalIgnoreCase))
                 {
-                    return bestUrl;
+                    var chosen = bestOpusUrl ?? bestAacUrl ?? bestAnyUrl;
+                    if (!string.IsNullOrEmpty(chosen))
+                    {
+                        AppLogger.Log($"QueryInnerTubePlayerAsync selected OPUS (Bitrate: {highestOpusBitrate}) [Fallback to AAC: {bestOpusUrl == null}]");
+                        return chosen;
+                    }
+                }
+                else
+                {
+                    // "AAC" or "Auto" (Safe Universal Windows playback)
+                    var chosen = bestAacUrl ?? bestOpusUrl ?? bestAnyUrl;
+                    if (!string.IsNullOrEmpty(chosen))
+                    {
+                        AppLogger.Log($"QueryInnerTubePlayerAsync selected AAC (Bitrate: {highestAacBitrate}) [Fallback to Opus: {bestAacUrl == null}]");
+                        return chosen;
+                    }
                 }
             }
 

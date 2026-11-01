@@ -33,8 +33,23 @@ public partial class HomeViewModel : ObservableObject
     [ObservableProperty]
     private string _activeMoodTitle = "All (सब)";
 
+    [ObservableProperty]
+    private bool _isUserSignedIn;
+
+    [ObservableProperty]
+    private string _userDisplayName = "Guest";
+
+    [ObservableProperty]
+    private string _userAvatarUrl = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasQuickPicks;
+
+    public string AccountStatusDisplay => IsUserSignedIn ? $"● Synced: {UserDisplayName}" : "● Guest Mode";
+
     public ObservableCollection<MoodChip> MoodChips { get; } = new();
     public ObservableCollection<HomeShelf> Shelves { get; } = new();
+    public ObservableCollection<SearchResult> QuickPicks { get; } = new();
 
     public ObservableCollection<SearchResult> TopResults { get; } = new();
     public ObservableCollection<SearchResult> TopArtists { get; } = new();
@@ -52,15 +67,33 @@ public partial class HomeViewModel : ObservableObject
         HasSearchText = !string.IsNullOrWhiteSpace(value);
     }
 
-    private void UpdateGreeting()
+    public void UpdateGreeting()
     {
+        try
+        {
+            var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+            var cookies = localSettings.Values["GoogleAuthCookies"] as string;
+            var name = localSettings.Values["UserDisplayName"] as string;
+            var avatar = localSettings.Values["UserAvatarUrl"] as string;
+
+            IsUserSignedIn = !string.IsNullOrWhiteSpace(cookies);
+            UserDisplayName = !string.IsNullOrWhiteSpace(name) ? name : (IsUserSignedIn ? "Signed In" : "Guest");
+            UserAvatarUrl = avatar ?? string.Empty;
+        }
+        catch { }
+
         var hour = DateTime.Now.Hour;
-        Greeting = hour switch
+        var timeGreeting = hour switch
         {
             < 12 => "Good Morning",
             < 17 => "Good Afternoon",
             _ => "Good Evening"
         };
+
+        Greeting = IsUserSignedIn && !string.IsNullOrWhiteSpace(UserDisplayName) && UserDisplayName != "Guest"
+            ? $"{timeGreeting}, {UserDisplayName}"
+            : timeGreeting;
+        OnPropertyChanged(nameof(AccountStatusDisplay));
     }
 
     [RelayCommand]
@@ -145,12 +178,52 @@ public partial class HomeViewModel : ObservableObject
                 }
             }
 
+            // Sync Account Profile from Feed if present
+            if (!string.IsNullOrWhiteSpace(feed.UserName))
+            {
+                UserDisplayName = feed.UserName;
+                IsUserSignedIn = true;
+            }
+            if (!string.IsNullOrWhiteSpace(feed.UserAvatarUrl))
+            {
+                UserAvatarUrl = feed.UserAvatarUrl;
+            }
+            UpdateGreeting();
+
+            // Extract Quick Picks (Exact Android Parity)
+            QuickPicks.Clear();
+            var quickPickShelf = feed.Shelves.FirstOrDefault(s =>
+                s.Title.Contains("Quick pick", StringComparison.OrdinalIgnoreCase) ||
+                s.Title.Contains("Start radio", StringComparison.OrdinalIgnoreCase) ||
+                s.Title.Contains("Listen again", StringComparison.OrdinalIgnoreCase));
+
+            if (quickPickShelf != null && quickPickShelf.Items.Count > 0)
+            {
+                foreach (var item in quickPickShelf.Items.Take(8))
+                {
+                    QuickPicks.Add(item);
+                }
+            }
+            else if (feed.Shelves.Count > 0 && feed.Shelves[0].Items.Count > 0)
+            {
+                foreach (var item in feed.Shelves[0].Items.Take(8))
+                {
+                    QuickPicks.Add(item);
+                }
+            }
+            HasQuickPicks = QuickPicks.Count > 0;
+
             // Update Shelves
             if (feed.Shelves.Count > 0)
             {
                 Shelves.Clear();
                 foreach (var s in feed.Shelves)
                 {
+                    if (quickPickShelf != null && s == quickPickShelf && s.Title.Contains("Quick pick", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Rendered in dedicated Quick Picks section
+                        continue;
+                    }
                     Shelves.Add(s);
                 }
                 HasPersonalizedShelves = true;
@@ -164,6 +237,13 @@ public partial class HomeViewModel : ObservableObject
                 TopResults.Clear();
                 TrendingSongs.Clear();
                 TopArtists.Clear();
+                QuickPicks.Clear();
+
+                foreach (var r in results.Take(8))
+                {
+                    QuickPicks.Add(r);
+                }
+                HasQuickPicks = QuickPicks.Count > 0;
 
                 foreach (var r in results.Take(6))
                 {

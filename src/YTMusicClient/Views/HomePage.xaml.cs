@@ -155,4 +155,22 @@ public sealed partial class HomePage : Page
             }
         }
     }
+
+    private async void RefreshFeed_Click(object sender, RoutedEventArgs e)
+    {
+        await ViewModel.LoadPersonalizedFeedAsync(null);
+    }
+
+    private async void PlayQuickPicks_Click(object sender, RoutedEventArgs e)
+    {
+        if (ViewModel.QuickPicks.Count > 0)
+        {
+            var first = ViewModel.QuickPicks[0];
+            await ViewModel.PlaySongAsync(first);
+            foreach (var item in System.Linq.Enumerable.Skip(ViewModel.QuickPicks, 1))
+            {
+                ViewModel.EnqueueSong(item, playNext: false);
+            }
+        }
+    }
 }

@@ -90,6 +90,17 @@ public sealed partial class SettingsPage : Page
                 }
             }
 
+            // 4b. Audio Codec Preference (Opus / AAC / Auto)
+            var codecPref = localSettings.Values["AudioCodecPreference"] as string ?? "Auto";
+            for (int i = 0; i < AudioCodecCombo.Items.Count; i++)
+            {
+                if ((AudioCodecCombo.Items[i] as ComboBoxItem)?.Tag?.ToString() == codecPref)
+                {
+                    AudioCodecCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+
             // 5. Crossfade Duration
             if (localSettings.Values["CrossfadeSeconds"] is double cf)
             {
@@ -271,6 +282,16 @@ public sealed partial class SettingsPage : Page
         if (sender is ComboBox combo && combo.SelectedItem is ComboBoxItem item && item.Tag is string tag)
         {
             ApplicationData.Current.LocalSettings.Values["AudioSourceEngine"] = tag;
+        }
+    }
+
+    private void AudioCodecCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+        if (sender is ComboBox combo && combo.SelectedItem is ComboBoxItem item && item.Tag is string tag)
+        {
+            ApplicationData.Current.LocalSettings.Values["AudioCodecPreference"] = tag;
+            YTMusicClient.Helpers.AppLogger.Log($"AudioCodecPreference changed to: {tag}");
         }
     }
 

@@ -107,6 +107,8 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         _positionTimer = new System.Threading.Timer(OnPositionTimerTick, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(40));
     }
 
+    private int _fallbackRetryCount = 0;
+
     public void SetCurrentSong(Song song)
     {
         CurrentSong = song;
@@ -244,19 +246,8 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                 return;
             }
 
+            _fallbackRetryCount = 0;
             string playUrl = song.StreamUrl;
-            if (playUrl.Contains("googlevideo.com", StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    var proxy = App.Services.GetService(typeof(LocalMediaProxy)) as LocalMediaProxy;
-                    if (proxy != null)
-                    {
-                        playUrl = proxy.GetProxiedStreamUrl(playUrl);
-                    }
-                }
-                catch { }
-            }
 
             AppLogger.Log($"PlayAsync: Setting MediaPlayer source to {playUrl.Substring(0, Math.Min(60, playUrl.Length))}...");
             _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(playUrl));
@@ -520,9 +511,46 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         });
     }
 
-    private void OnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
+    private async void OnMediaFailed(MediaPlayer sender, MediaPlayerFailedEventArgs args)
     {
         AppLogger.Log($"MediaPlayer FAILED: {args.Error} - {args.ErrorMessage} (HResult: 0x{args.ExtendedErrorCode:X8})");
+
+        // If an Opus stream or direct stream fails (e.g. 0xC00D36C4 unsupported bytestream on stock Windows),
+        // fallback instantly to standard MP4 AAC stream which is 100% supported by Windows Media Foundation!
+        if (CurrentSong != null && _fallbackRetryCount == 0)
+        {
+            _fallbackRetryCount++;
+            try
+            {
+                AppLogger.Log($"[MediaPlaybackRecovery] Attempting automatic AAC fallback recovery for: {CurrentSong.Title} ({CurrentSong.VideoId})");
+                var musicService = App.Services.GetService(typeof(IYouTubeMusicService)) as IYouTubeMusicService;
+                if (musicService != null && !string.IsNullOrEmpty(CurrentSong.VideoId))
+                {
+                    var aacUrl = await musicService.GetAudioStreamUrlAsync(CurrentSong.VideoId, "AAC");
+                    if (!string.IsNullOrEmpty(aacUrl) && aacUrl != CurrentSong.StreamUrl)
+                    {
+                        AppLogger.Log($"[MediaPlaybackRecovery] AAC Fallback stream acquired. Restarting player.");
+                        CurrentSong.StreamUrl = aacUrl;
+                        CurrentSong.AudioCodec = "AAC";
+                        CurrentSong.AudioQuality = "256 kbps · AAC (Safe Fallback)";
+                        SetCurrentSong(CurrentSong);
+
+                        _dispatcherQueue.TryEnqueue(() =>
+                        {
+                            _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(aacUrl));
+                            _mediaPlayer.Play();
+                        });
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError("[MediaPlaybackRecovery] AAC Fallback attempt failed", ex);
+            }
+        }
+
+        _fallbackRetryCount = 0;
     }
 
     private void OnPlaybackStateChanged(MediaPlaybackSession sender, object args)

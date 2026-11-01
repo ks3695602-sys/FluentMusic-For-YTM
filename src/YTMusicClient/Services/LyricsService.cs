@@ -30,6 +30,11 @@ public class LyricsService : ILyricsService
         "https://lyricsplus.prjktla.my.id/v2/lyrics/get",
         "https://lyricsplus.atomix.one/v2/lyrics/get"
     };
+    private static readonly string[] PaxsenixEndpoints = new[]
+    {
+        "https://spotify-lyrics-api.vercel.app/api/lyrics",
+        "https://spotify-lyrics-api-pi.vercel.app/api/lyrics"
+    };
     private const string LrcLibBaseUrl = "https://lrclib.net/api";
     private const string SimpMusicBaseUrl = "https://api-lyrics.simpmusic.org/v1";
 
@@ -56,31 +61,39 @@ public class LyricsService : ILyricsService
         var durationSec = (int)Math.Round(duration.TotalSeconds);
         bool hasValidDuration = durationSec > 0 && durationSec != 210;
 
-        // 1. SimpMusic API (Direct YouTube VideoId resolution from ArchiveTune)
-        if (!string.IsNullOrEmpty(videoId) && !videoId.StartsWith("query:"))
+        // 1. YouLyPlus / LyricsPlus Engine (Multi-Source Word-by-Word Apple/Spotify/Musixmatch)
+        foreach (var youLyBaseUrl in YouLyPlusEndpoints)
         {
             try
             {
-                AppLogger.Log($"LyricsService: Querying SimpMusic for videoId '{videoId}'");
-                var simpLines = await FetchSimpMusicLyricsAsync(videoId, durationSec, ct);
-                if (simpLines.Count > 0)
+                AppLogger.Log($"LyricsService: [1. YouLyPlus] Querying at {youLyBaseUrl} for '{cleanTitle}' - '{cleanArtist}'");
+                var durParam = hasValidDuration ? $"&duration={durationSec}" : "";
+                var youLyUrl = $"{youLyBaseUrl}?title={Uri.EscapeDataString(cleanTitle)}&artist={Uri.EscapeDataString(cleanArtist)}{durParam}&source=apple,musixmatch,spotify";
+                var response = await _httpClient.GetAsync(youLyUrl, ct);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    AppLogger.Log($"SimpMusic SUCCESS: {simpLines.Count} lines parsed");
-                    return simpLines;
+                    var json = await response.Content.ReadAsStringAsync(ct);
+                    var parsed = ParseYouLyPlusJson(json);
+                    if (parsed.Count > 0)
+                    {
+                        AppLogger.Log($"YouLyPlus SUCCESS: {parsed.Count} lines (Word/Line Synced)");
+                        return parsed;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                AppLogger.Log($"SimpMusic fetch failed: {ex.Message}");
+                AppLogger.Log($"YouLyPlus fetch failed from {youLyBaseUrl}: {ex.Message}");
             }
         }
 
-        // 2. Primary Engine: Better Lyrics API (Word-by-Word TTML from ArchiveTune)
+        // 2. Better Lyrics Engine (Word-by-Word TTML Apple Music Architecture)
         foreach (var betterLyricsUrlBase in BetterLyricsEndpoints)
         {
             try
             {
-                AppLogger.Log($"LyricsService: Querying Better Lyrics at {betterLyricsUrlBase} for '{cleanTitle}' - '{cleanArtist}'");
+                AppLogger.Log($"LyricsService: [2. Better Lyrics] Querying at {betterLyricsUrlBase} for '{cleanTitle}' - '{cleanArtist}'");
                 var durParam = hasValidDuration ? $"&d={durationSec}" : "";
                 var betterLyricsUrl = $"{betterLyricsUrlBase}?s={Uri.EscapeDataString(cleanTitle)}&a={Uri.EscapeDataString(cleanArtist)}{durParam}";
                 var response = await _httpClient.GetAsync(betterLyricsUrl, ct);
@@ -116,47 +129,20 @@ public class LyricsService : ILyricsService
             }
         }
 
-        // 3. Secondary Engine: YouLy+ / LyricsPlus API (Multi-Source Apple/Spotify/Musixmatch from ArchiveTune)
-        foreach (var youLyBaseUrl in YouLyPlusEndpoints)
-        {
-            try
-            {
-                AppLogger.Log($"LyricsService: Querying YouLy+ at {youLyBaseUrl} for '{cleanTitle}' - '{cleanArtist}'");
-                var durParam = hasValidDuration ? $"&duration={durationSec}" : "";
-                var youLyUrl = $"{youLyBaseUrl}?title={Uri.EscapeDataString(cleanTitle)}&artist={Uri.EscapeDataString(cleanArtist)}{durParam}&source=apple,musixmatch,spotify";
-                var response = await _httpClient.GetAsync(youLyUrl, ct);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync(ct);
-                    var parsed = ParseYouLyPlusJson(json);
-                    if (parsed.Count > 0)
-                    {
-                        AppLogger.Log($"YouLy+ SUCCESS: {parsed.Count} lines parsed");
-                        return parsed;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                AppLogger.Log($"YouLy+ fetch failed from {youLyBaseUrl}: {ex.Message}");
-            }
-        }
-
-        // 4. KuGou Music Lyrics Engine (Direct from ArchiveTune)
+        // 3. Paxsenix Spotify-Lyrics-API Engine
         try
         {
-            AppLogger.Log($"LyricsService: Querying KuGou for '{cleanTitle}' - '{cleanArtist}'");
-            var kugouLines = await FetchKuGouLyricsAsync(cleanTitle, cleanArtist, hasValidDuration ? durationSec : 0, ct);
-            if (kugouLines.Count > 0)
+            AppLogger.Log($"LyricsService: [3. Paxsenix] Querying Spotify-Lyrics-API for '{cleanTitle}' - '{cleanArtist}'");
+            var paxsenixLines = await FetchPaxsenixLyricsAsync(cleanTitle, cleanArtist, ct);
+            if (paxsenixLines.Count > 0)
             {
-                AppLogger.Log($"KuGou SUCCESS: {kugouLines.Count} lines parsed");
-                return kugouLines;
+                AppLogger.Log($"Paxsenix SUCCESS: {paxsenixLines.Count} lines parsed");
+                return paxsenixLines;
             }
         }
         catch (Exception ex)
         {
-            AppLogger.Log($"KuGou fetch failed: {ex.Message}");
+            AppLogger.Log($"Paxsenix fetch failed: {ex.Message}");
         }
 
         // 5. Quaternary Engine: LRCLIB API Fallback (Line-Synced)
@@ -205,6 +191,100 @@ public class LyricsService : ILyricsService
         catch (Exception ex)
         {
             AppLogger.Log($"LRCLIB fetch failed: {ex.Message}");
+        }
+
+        // 5. Fallback Engines: KuGou & SimpMusic
+        try
+        {
+            AppLogger.Log($"LyricsService: [5. Fallback - KuGou] Querying KuGou for '{cleanTitle}' - '{cleanArtist}'");
+            var kugouLines = await FetchKuGouLyricsAsync(cleanTitle, cleanArtist, hasValidDuration ? durationSec : 0, ct);
+            if (kugouLines.Count > 0)
+            {
+                AppLogger.Log($"KuGou SUCCESS: {kugouLines.Count} lines parsed");
+                return kugouLines;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Log($"KuGou fetch failed: {ex.Message}");
+        }
+
+        if (!string.IsNullOrEmpty(videoId) && !videoId.StartsWith("query:"))
+        {
+            try
+            {
+                AppLogger.Log($"LyricsService: [5. Fallback - SimpMusic] Querying for videoId '{videoId}'");
+                var simpLines = await FetchSimpMusicLyricsAsync(videoId, durationSec, ct);
+                if (simpLines.Count > 0)
+                {
+                    AppLogger.Log($"SimpMusic SUCCESS: {simpLines.Count} lines parsed");
+                    return simpLines;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log($"SimpMusic fetch failed: {ex.Message}");
+            }
+        }
+
+        return Array.Empty<LyricLine>();
+    }
+
+    private async Task<IReadOnlyList<LyricLine>> FetchPaxsenixLyricsAsync(string cleanTitle, string cleanArtist, CancellationToken ct)
+    {
+        foreach (var endpoint in PaxsenixEndpoints)
+        {
+            try
+            {
+                var url = $"{endpoint}?name={Uri.EscapeDataString(cleanTitle)}&artist={Uri.EscapeDataString(cleanArtist)}&format=json";
+                using var resp = await _httpClient.GetAsync(url, ct);
+                if (resp.IsSuccessStatusCode)
+                {
+                    var json = await resp.Content.ReadAsStringAsync(ct);
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.True) continue;
+
+                    if (root.TryGetProperty("lines", out var linesArr) && linesArr.ValueKind == JsonValueKind.Array)
+                    {
+                        var result = new List<LyricLine>();
+                        foreach (var item in linesArr.EnumerateArray())
+                        {
+                            var words = item.TryGetProperty("words", out var w) ? w.GetString() ?? "" : "";
+                            long startMs = 0;
+                            if (item.TryGetProperty("startTimeMs", out var sProp))
+                            {
+                                if (sProp.ValueKind == JsonValueKind.String)
+                                {
+                                    long.TryParse(sProp.GetString(), out startMs);
+                                }
+                                else if (sProp.ValueKind == JsonValueKind.Number)
+                                {
+                                    startMs = sProp.GetInt64();
+                                }
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(words))
+                            {
+                                result.Add(new LyricLine
+                                {
+                                    Timestamp = TimeSpan.FromMilliseconds(startMs),
+                                    Text = words.Trim()
+                                });
+                            }
+                        }
+
+                        if (result.Count > 0)
+                        {
+                            return result;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Log($"Paxsenix fetch failed from {endpoint}: {ex.Message}");
+            }
         }
 
         return Array.Empty<LyricLine>();

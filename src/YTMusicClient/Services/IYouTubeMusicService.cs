@@ -9,7 +9,7 @@ public interface IYouTubeMusicService
 {
     Task<IReadOnlyList<SearchResult>> SearchAsync(string query, CancellationToken ct = default);
     Task<Song> GetSongDetailsAsync(string videoId, CancellationToken ct = default);
-    Task<string> GetAudioStreamUrlAsync(string videoId, CancellationToken ct = default);
+    Task<string> GetAudioStreamUrlAsync(string videoId, string? formatPreference = null, CancellationToken ct = default);
     Task<string> GetLosslessStreamUrlAsync(string videoId, string title, string artist, CancellationToken ct = default);
     Task<IReadOnlyList<SearchResult>> GetTrendingAsync(CancellationToken ct = default);
     Task<IReadOnlyList<Song>> GetLikedSongsAsync(CancellationToken ct = default);

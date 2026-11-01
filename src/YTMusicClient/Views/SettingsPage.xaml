@@ -129,6 +129,28 @@
 
                             <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
 
+                            <!-- Audio Codec Preference (Opus / AAC / Auto) -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Audio Codec &amp; Format" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock Text="Select between Opus (160k WebM) or universal AAC (Windows native fallback)"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               Style="{StaticResource CaptionTextBlockStyle}" />
+                                </StackPanel>
+                                <ComboBox x:Name="AudioCodecCombo" Grid.Column="1" SelectedIndex="0" Width="180" CornerRadius="8"
+                                          SelectionChanged="AudioCodecCombo_SelectionChanged">
+                                    <ComboBoxItem Content="Auto (Universal Compatible)" Tag="Auto" />
+                                    <ComboBoxItem Content="Opus (160 kbps High Quality)" Tag="Opus" />
+                                    <ComboBoxItem Content="AAC (128-256 kbps Universal)" Tag="AAC" />
+                                </ComboBox>
+                            </Grid>
+
+                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,4" />
+
                             <!-- Crossfade -->
                             <Grid>
                                 <Grid.ColumnDefinitions>

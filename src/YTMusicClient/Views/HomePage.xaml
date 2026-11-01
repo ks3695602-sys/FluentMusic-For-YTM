@@ -21,17 +21,37 @@
             <RowDefinition Height="*" />    <!-- Main Scrollable Content -->
         </Grid.RowDefinitions>
 
-        <!-- 1. Top Header: macOS Apple Music Style Header & Search Pill -->
+        <!-- 1. Top Header: macOS Apple Music / FluentMusic Android Style Header & Search Pill -->
         <Grid Grid.Row="0" Padding="32,20,32,14">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Hero Header Title (Apple HIG Typography) -->
-            <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="2">
-                <TextBlock x:Name="HomeHeaderTitle" Text="Listen Now" FontSize="28" FontWeight="Bold" CharacterSpacing="-30" />
-                <TextBlock x:Name="HomeHeaderSubtitle" Text="Top picks, personalized mixes, and lossless studio masters"
+            <!-- Hero Header Title & Account Sync Pill -->
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <TextBlock x:Name="HomeHeaderTitle" Text="{x:Bind ViewModel.Greeting, Mode=OneWay}" FontSize="28" FontWeight="Bold" CharacterSpacing="-30" />
+                    
+                    <!-- Account Synced Status Pill -->
+                    <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                            CornerRadius="14" Padding="10,4" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Ellipse Width="7" Height="7" Fill="#10B981" />
+                            <TextBlock Text="{x:Bind ViewModel.AccountStatusDisplay, Mode=OneWay}"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Refresh Feed Button -->
+                    <Button Click="RefreshFeed_Click" ToolTipService.ToolTip="Refresh Home Feed"
+                            Background="Transparent" BorderThickness="0" Padding="6" CornerRadius="12">
+                        <FontIcon Glyph="&#xE72C;" FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Button>
+                </StackPanel>
+                <TextBlock x:Name="HomeHeaderSubtitle" Text="Quick picks, personalized mixes, and lossless studio masters synced with your library"
                            FontSize="13" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
 
@@ -82,6 +102,116 @@
                 <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
                               Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}"
                               HorizontalAlignment="Center" Width="36" Height="36" />
+
+                <!-- QUICK PICKS (4x2 Responsive Grid - FluentMusic Android Parity) -->
+                <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.HasQuickPicks, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="START RADIO FROM A SONG" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" CharacterSpacing="50" />
+                            <TextBlock Text="Quick Picks" FontSize="22" FontWeight="Bold" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Click="PlayQuickPicks_Click"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}" BorderThickness="0"
+                                CornerRadius="14" Padding="14,6">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE768;" FontSize="11" Foreground="{StaticResource AccentRedBrush}" />
+                                <TextBlock Text="Play All" FontSize="11.5" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <!-- 4x2 Grid of Quick Picks Tiles -->
+                    <GridView ItemsSource="{x:Bind ViewModel.QuickPicks, Mode=OneWay}"
+                              SelectionMode="None" IsItemClickEnabled="True"
+                              ItemClick="ShelfItem_Click">
+                        <GridView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4" />
+                            </ItemsPanelTemplate>
+                        </GridView.ItemsPanel>
+                        <GridView.ItemTemplate>
+                            <DataTemplate x:DataType="models:SearchResult">
+                                <Border Width="280" Height="64" CornerRadius="10"
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        Padding="8" Margin="0,0,10,10">
+                                    <Border.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="Play Now" Click="MenuPlayNow_Click">
+                                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE768;" /></MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutItem Text="Play Next" Click="MenuPlayNext_Click">
+                                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE893;" /></MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutItem Text="Add to Queue" Click="MenuAddToQueue_Click">
+                                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="Download FLAC / Lossless" Click="MenuDownload_Click">
+                                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE896;" /></MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                        </MenuFlyout>
+                                    </Border.ContextFlyout>
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="48" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Album Artwork with Hover Play -->
+                                        <Border Grid.Column="0" CornerRadius="6">
+                                            <Grid>
+                                                <Image Stretch="UniformToFill">
+                                                    <Image.Source>
+                                                        <BitmapImage UriSource="{x:Bind ThumbnailUrl, Converter={StaticResource StringToUriConverter}}"
+                                                                     DecodePixelWidth="48" />
+                                                    </Image.Source>
+                                                </Image>
+                                                <Border Width="24" Height="24" CornerRadius="12"
+                                                        Background="{StaticResource AccentRedBrush}"
+                                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                        Opacity="0.85">
+                                                    <FontIcon Glyph="&#xE768;" FontSize="10" Foreground="White"
+                                                              HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1,0,0,0" />
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Song Title & Artist -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                            <TextBlock Text="{x:Bind Title}" FontSize="12.5" FontWeight="SemiBold"
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Artist}" FontSize="11"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                       MaxLines="1" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+
+                                        <!-- Audio Tier Pill Badge -->
+                                        <Border Grid.Column="2" VerticalAlignment="Center"
+                                                Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                                CornerRadius="4" Padding="6,2">
+                                            <TextBlock Text="LOSSLESS" FontSize="9" FontWeight="Bold"
+                                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                        <GridView.ItemContainerStyle>
+                            <Style TargetType="GridViewItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="MinHeight" Value="0" />
+                            </Style>
+                        </GridView.ItemContainerStyle>
+                    </GridView>
+                </StackPanel>
 
                 <!-- VIEW A: Personalized Dynamic YouTube Music Shelves (Listen again, Quick picks, Forgotten favorites, etc.) -->
                 <ItemsControl ItemsSource="{x:Bind ViewModel.Shelves, Mode=OneWay}"
