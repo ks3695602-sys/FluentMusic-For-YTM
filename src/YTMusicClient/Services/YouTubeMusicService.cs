@@ -205,24 +205,79 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     private async Task<string> GetAudioStreamUrlCoreAsync(string videoId, string? title, string? artist, string? formatPreference, CancellationToken ct)
     {
-        // 1. PRIMARY & INSTANT (~150ms): Echo-Music InnerTube Multi-Client Stream Engine
-        // ANDROID_VR zero-cipher, IOS, VISIONOS directly to Google's CDN with zero decipher lag.
+        if (string.IsNullOrEmpty(formatPreference))
+        {
+            try
+            {
+                var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+                formatPreference = localSettings.Values["AudioCodecPreference"] as string ?? "Auto";
+            }
+            catch { formatPreference = "Auto"; }
+        }
+
         bool isStandardYtId = videoId.Length == 11 && videoId.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_');
+
+        // 1. PRIMARY & ROCK SOLID (YoutubeExplode Native Extraction):
+        // Automatically deciphers signature ciphers and n-parameter transforms, returning direct progressive stream URLs
+        // (AAC M4A or WebM Opus) that Windows MediaPlayer streams natively with zero buffering and zero 403 Forbidden errors.
         if (isStandardYtId)
         {
             try
             {
-                AppLogger.Log($"[InstantStream] Resolving via Echo-Music InnerTube engine for: {videoId} (Pref: {formatPreference ?? "Auto"})");
-                var echoStreamUrl = await GetEchoInnerTubeStreamUrlAsync(videoId, formatPreference, ct);
-                if (!string.IsNullOrEmpty(echoStreamUrl))
+                AppLogger.Log($"[InstantStream:YoutubeExplode] Resolving audio stream for {videoId} (Pref: {formatPreference})...");
+                var manifest = await _youtube.Videos.Streams.GetManifestAsync(videoId, ct);
+                var audioStreams = manifest.GetAudioOnlyStreams().ToList();
+
+                IStreamInfo? selectedStream = null;
+
+                if (formatPreference.Equals("OPUS", StringComparison.OrdinalIgnoreCase))
                 {
-                    AppLogger.Log($"[InstantStream] Echo-Music InnerTube SUCCESS: {echoStreamUrl.Substring(0, Math.Min(60, echoStreamUrl.Length))}...");
-                    return echoStreamUrl;
+                    // User explicitly preferred OPUS (WebM container)
+                    selectedStream = audioStreams
+                        .Where(s => s.Container == Container.WebM)
+                        .OrderByDescending(s => s.Bitrate)
+                        .FirstOrDefault();
+
+                    // Fallback to MP4 AAC if Opus is not available
+                    selectedStream ??= audioStreams
+                        .Where(s => s.Container == Container.Mp4)
+                        .OrderByDescending(s => s.Bitrate)
+                        .FirstOrDefault();
+                }
+                else
+                {
+                    // AAC or Auto (Default): MP4 AAC is 100% native hardware accelerated in Windows MediaPlayer without codec errors
+                    selectedStream = audioStreams
+                        .Where(s => s.Container == Container.Mp4)
+                        .OrderByDescending(s => s.Bitrate)
+                        .FirstOrDefault();
+
+                    // Fallback to Opus WebM if AAC is not available
+                    selectedStream ??= audioStreams
+                        .Where(s => s.Container == Container.WebM)
+                        .OrderByDescending(s => s.Bitrate)
+                        .FirstOrDefault();
+                }
+
+                // Final fallback to any audio stream or muxed stream
+                selectedStream ??= audioStreams.OrderByDescending(s => s.Bitrate).FirstOrDefault();
+                if (selectedStream == null)
+                {
+                    selectedStream = manifest.GetMuxedStreams()
+                        .Where(s => s.Container == Container.Mp4)
+                        .OrderByDescending(s => s.Bitrate)
+                        .FirstOrDefault();
+                }
+
+                if (selectedStream != null && !string.IsNullOrEmpty(selectedStream.Url))
+                {
+                    AppLogger.Log($"[InstantStream:YoutubeExplode] SUCCESS for {videoId}: {selectedStream.Container.Name} | {selectedStream.Bitrate} bps");
+                    return selectedStream.Url;
                 }
             }
             catch (Exception ex)
             {
-                AppLogger.LogError($"Echo-Music InnerTube stream resolution failed for {videoId}", ex);
+                AppLogger.LogError($"[InstantStream:YoutubeExplode] Manifest retrieval failed for {videoId}", ex);
             }
         }
 
@@ -294,6 +349,25 @@ public class YouTubeMusicService : IYouTubeMusicService
             }
         }
 
+        // 3. Fallback: Echo-Music InnerTube Multi-Client Stream Engine
+        if (isStandardYtId)
+        {
+            try
+            {
+                AppLogger.Log($"[InstantStream] Fallback to Echo-Music InnerTube engine for: {videoId} (Pref: {formatPreference ?? "Auto"})");
+                var echoStreamUrl = await GetEchoInnerTubeStreamUrlAsync(videoId, formatPreference, ct);
+                if (!string.IsNullOrEmpty(echoStreamUrl))
+                {
+                    AppLogger.Log($"[InstantStream] Echo-Music InnerTube SUCCESS: {echoStreamUrl.Substring(0, Math.Min(60, echoStreamUrl.Length))}...");
+                    return echoStreamUrl;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogError($"Echo-Music InnerTube stream resolution failed for {videoId}", ex);
+            }
+        }
+
         // 3. If ID is from BravePipe / Qobuz provider
         if (videoId.StartsWith("qobuz_") || !videoId.All(c => char.IsLetterOrDigit(c) || c == '-' || c == '_') || videoId.Length > 15)
         {
@@ -326,51 +400,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             }
         }
 
-        // 4. Fallback to YoutubeExplode native extraction
-        try
-        {
-            AppLogger.Log($"Fetching YoutubeExplode manifest for {videoId}");
-            var manifest = await _youtube.Videos.Streams.GetManifestAsync(videoId, ct);
-
-            // Prefer MP4 AAC stream
-            var audioStream = manifest.GetAudioOnlyStreams()
-                .Where(s => s.Container == Container.Mp4)
-                .OrderByDescending(s => s.Bitrate)
-                .FirstOrDefault();
-
-            if (audioStream != null)
-            {
-                AppLogger.Log($"Selected YoutubeExplode MP4 stream: {audioStream.Bitrate} bps");
-                return audioStream.Url;
-            }
-
-            // Fallback muxed MP4
-            var muxedStream = manifest.GetMuxedStreams()
-                .Where(s => s.Container == Container.Mp4)
-                .OrderByDescending(s => s.Bitrate)
-                .FirstOrDefault();
-
-            if (muxedStream != null)
-            {
-                return muxedStream.Url;
-            }
-
-            // Fallback any stream
-            var fallbackStream = manifest.GetAudioOnlyStreams()
-                .OrderByDescending(s => s.Bitrate)
-                .FirstOrDefault();
-
-            if (fallbackStream != null)
-            {
-                return fallbackStream.Url;
-            }
-        }
-        catch (Exception ex)
-        {
-            AppLogger.LogError($"YoutubeExplode failed for {videoId}", ex);
-        }
-
-        // 3. Fallback to BravePipe YouTube stream bridge
+        // 4. Fallback to BravePipe YouTube stream bridge
         try
         {
             var bridgeUrl = $"{BravePipeBase}/stream/{Uri.EscapeDataString(videoId)}?quality=HIGH";
