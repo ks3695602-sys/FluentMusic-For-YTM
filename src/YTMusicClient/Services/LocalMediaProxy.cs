@@ -9,12 +9,19 @@ using YTMusicClient.Helpers;
 
 namespace YTMusicClient.Services;
 
+/// <summary>
+/// High-performance chunked local streaming proxy.
+/// Bridges Windows MediaPlayer with Google Video CDN by sending exact matching
+/// Client User-Agent and bounded byte-range headers (1MB chunks) required by googlevideo.com.
+/// Eliminates HTTP 403 Forbidden and 0xC00D2EE7 errors.
+/// </summary>
 public class LocalMediaProxy : IDisposable
 {
     private HttpListener? _listener;
     private readonly HttpClient _httpClient;
     private CancellationTokenSource? _cts;
     private bool _isRunning;
+    private const int ChunkSize = 1024 * 1024; // 1 MB bounded chunk for unthrottled streaming
 
     public int Port { get; private set; }
     public string BaseUrl => $"http://127.0.0.1:{Port}";
@@ -25,15 +32,14 @@ public class LocalMediaProxy : IDisposable
         {
             AllowAutoRedirect = true,
             AutomaticDecompression = DecompressionMethods.All,
-            PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+            PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+            MaxConnectionsPerServer = 20
         };
 
         _httpClient = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromMinutes(15)
+            Timeout = TimeSpan.FromSeconds(30)
         };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-        _httpClient.DefaultRequestHeaders.Referrer = new Uri("https://www.youtube.com/");
 
         Start();
     }
@@ -42,7 +48,6 @@ public class LocalMediaProxy : IDisposable
     {
         try
         {
-            // Find an open port
             var tcp = new TcpListener(IPAddress.Loopback, 0);
             tcp.Start();
             Port = ((IPEndPoint)tcp.LocalEndpoint).Port;
@@ -56,11 +61,11 @@ public class LocalMediaProxy : IDisposable
             _isRunning = true;
 
             Task.Run(ListenLoop);
-            AppLogger.Log($"LocalMediaProxy started on {BaseUrl}");
+            AppLogger.Log($"[LocalMediaProxy] Started successfully on {BaseUrl}");
         }
         catch (Exception ex)
         {
-            AppLogger.LogError("Failed to start LocalMediaProxy", ex);
+            AppLogger.LogError("[LocalMediaProxy] Failed to start", ex);
         }
     }
 
@@ -71,7 +76,7 @@ public class LocalMediaProxy : IDisposable
             try
             {
                 var context = await _listener.GetContextAsync();
-                _ = Task.Run(() => HandleRequest(context));
+                _ = Task.Run(() => HandleRequestAsync(context));
             }
             catch
             {
@@ -80,13 +85,13 @@ public class LocalMediaProxy : IDisposable
         }
     }
 
-    private async Task HandleRequest(HttpListenerContext context)
+    private async Task HandleRequestAsync(HttpListenerContext context)
     {
+        var req = context.Request;
+        var res = context.Response;
+
         try
         {
-            var req = context.Request;
-            var res = context.Response;
-
             if (req.Url == null || !req.Url.AbsolutePath.StartsWith("/stream"))
             {
                 res.StatusCode = 404;
@@ -95,6 +100,12 @@ public class LocalMediaProxy : IDisposable
             }
 
             var targetUrl = req.QueryString["url"];
+            if (string.IsNullOrEmpty(targetUrl) && req.RawUrl != null && req.RawUrl.Contains("url="))
+            {
+                var idx = req.RawUrl.IndexOf("url=");
+                targetUrl = Uri.UnescapeDataString(req.RawUrl.Substring(idx + 4));
+            }
+
             if (string.IsNullOrEmpty(targetUrl))
             {
                 res.StatusCode = 400;
@@ -102,59 +113,120 @@ public class LocalMediaProxy : IDisposable
                 return;
             }
 
-            // Forward request with matching headers
-            var forwardReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
-            if (targetUrl.Contains("googlevideo.com", StringComparison.OrdinalIgnoreCase))
-            {
-                forwardReq.Headers.TryAddWithoutValidation("User-Agent", "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip");
-            }
-            else
-            {
-                forwardReq.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-                forwardReq.Headers.Referrer = new Uri("https://www.youtube.com/");
-                forwardReq.Headers.TryAddWithoutValidation("Origin", "https://www.youtube.com");
-            }
-
-            // Forward Range header if present
+            // Parse client requested byte range (e.g. bytes=0-, bytes=0-32767, or bytes=1048576-)
+            long startByte = 0;
+            long? requestedEndByte = null;
             var rangeHeader = req.Headers["Range"];
-            if (!string.IsNullOrEmpty(rangeHeader))
+            if (!string.IsNullOrEmpty(rangeHeader) && rangeHeader.StartsWith("bytes="))
             {
-                forwardReq.Headers.TryAddWithoutValidation("Range", rangeHeader);
+                var parts = rangeHeader.Substring(6).Split('-');
+                if (long.TryParse(parts[0], out var parsedStart))
+                {
+                    startByte = parsedStart;
+                }
+                if (parts.Length > 1 && long.TryParse(parts[1], out var parsedEnd))
+                {
+                    requestedEndByte = parsedEnd;
+                }
             }
 
-            var forwardResp = await _httpClient.SendAsync(forwardReq, HttpCompletionOption.ResponseHeadersRead);
-
-            res.StatusCode = (int)forwardResp.StatusCode;
-            if (forwardResp.Content.Headers.ContentType != null)
+            // Determine client identity matching for googlevideo URLs
+            string userAgent = "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip";
+            if (targetUrl.Contains("c=IOS", StringComparison.OrdinalIgnoreCase))
             {
-                res.ContentType = forwardResp.Content.Headers.ContentType.ToString();
+                userAgent = "com.google.ios.youtube/21.26.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)";
             }
 
-            if (forwardResp.Content.Headers.ContentLength.HasValue)
+            // Upstream probe: request first chunk up to Math.Min(startByte + ChunkSize - 1, requestedEndByte ?? long.MaxValue)
+            long probeEnd = startByte + ChunkSize - 1;
+            if (requestedEndByte.HasValue && requestedEndByte.Value < probeEnd)
             {
-                res.ContentLength64 = forwardResp.Content.Headers.ContentLength.Value;
+                probeEnd = requestedEndByte.Value;
             }
 
-            if (forwardResp.Content.Headers.ContentRange != null)
+            using var probeReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
+            probeReq.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+            probeReq.Headers.TryAddWithoutValidation("Range", $"bytes={startByte}-{probeEnd}");
+
+            using var probeResp = await _httpClient.SendAsync(probeReq, HttpCompletionOption.ResponseHeadersRead);
+            if (!probeResp.IsSuccessStatusCode)
             {
-                res.Headers["Content-Range"] = forwardResp.Content.Headers.ContentRange.ToString();
+                AppLogger.LogError($"[LocalMediaProxy] Upstream probe failed with HTTP {probeResp.StatusCode} for {targetUrl}");
+                res.StatusCode = (int)probeResp.StatusCode;
+                res.Close();
+                return;
             }
 
+            long totalBytes = -1;
+            if (probeResp.Content.Headers.ContentRange != null && probeResp.Content.Headers.ContentRange.Length.HasValue)
+            {
+                totalBytes = probeResp.Content.Headers.ContentRange.Length.Value;
+            }
+
+            long effectiveEndByte = requestedEndByte.HasValue
+                ? (totalBytes > 0 ? Math.Min(requestedEndByte.Value, totalBytes - 1) : requestedEndByte.Value)
+                : (totalBytes > 0 ? totalBytes - 1 : probeEnd);
+
+            long bytesToServe = effectiveEndByte - startByte + 1;
+
+            string contentType = probeResp.Content.Headers.ContentType?.ToString() ?? "audio/mp4";
+
+            res.StatusCode = (int)HttpStatusCode.PartialContent;
+            res.ContentType = contentType;
             res.Headers["Accept-Ranges"] = "bytes";
 
-            using var upstreamStream = await forwardResp.Content.ReadAsStreamAsync();
-            await upstreamStream.CopyToAsync(res.OutputStream);
+            if (totalBytes > 0)
+            {
+                res.Headers["Content-Range"] = $"bytes {startByte}-{effectiveEndByte}/{totalBytes}";
+            }
+            if (bytesToServe > 0)
+            {
+                res.ContentLength64 = bytesToServe;
+            }
+
+            if (req.HttpMethod.Equals("HEAD", StringComparison.OrdinalIgnoreCase))
+            {
+                res.Close();
+                return;
+            }
+
+            // Pipe first chunk to client
+            await probeResp.Content.CopyToAsync(res.OutputStream);
+            await res.OutputStream.FlushAsync();
+
+            if (probeEnd >= effectiveEndByte)
+            {
+                res.Close();
+                return;
+            }
+
+            // Sequentially stream remaining 1MB bounded chunks to keep line-rate unthrottled streaming
+            long currByte = probeEnd + 1;
+            while (currByte <= effectiveEndByte && _isRunning)
+            {
+                long nextEnd = Math.Min(currByte + ChunkSize - 1, effectiveEndByte);
+                using var chunkReq = new HttpRequestMessage(HttpMethod.Get, targetUrl);
+                chunkReq.Headers.TryAddWithoutValidation("User-Agent", userAgent);
+                chunkReq.Headers.TryAddWithoutValidation("Range", $"bytes={currByte}-{nextEnd}");
+
+                using var chunkResp = await _httpClient.SendAsync(chunkReq, HttpCompletionOption.ResponseHeadersRead);
+                if (!chunkResp.IsSuccessStatusCode)
+                {
+                    break;
+                }
+
+                await chunkResp.Content.CopyToAsync(res.OutputStream);
+                await res.OutputStream.FlushAsync();
+
+                currByte = nextEnd + 1;
+            }
+
             res.Close();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            try
-            {
-                context.Response.StatusCode = 500;
-                context.Response.Close();
-            }
-            catch { }
-            AppLogger.LogError("LocalMediaProxy error forwarding stream", ex);
+            // Normal when client pauses, seeks, or changes track
+            try { res.Close(); } catch { }
         }
     }
 

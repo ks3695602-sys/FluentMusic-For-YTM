@@ -119,6 +119,32 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
         });
     }
 
+        private string GetPlayableUrl(string rawUrl)
+    {
+        if (string.IsNullOrEmpty(rawUrl)) return rawUrl;
+
+        if (rawUrl.StartsWith("http://127.0.0.1:", StringComparison.OrdinalIgnoreCase))
+        {
+            return rawUrl;
+        }
+
+        // If it is a YouTube/GoogleVideo CDN stream, route through chunked LocalMediaProxy
+        // to prevent 403 Forbidden caused by Windows Media Player missing client headers / unbounded ranges
+        if (rawUrl.Contains("googlevideo.com", StringComparison.OrdinalIgnoreCase) ||
+            rawUrl.Contains("youtube.com", StringComparison.OrdinalIgnoreCase))
+        {
+            var proxy = App.Services.GetService(typeof(LocalMediaProxy)) as LocalMediaProxy;
+            if (proxy != null)
+            {
+                var proxied = proxy.GetProxiedStreamUrl(rawUrl);
+                AppLogger.Log($"[MediaPlaybackService] Routing through LocalMediaProxy: {proxied.Substring(0, Math.Min(60, proxied.Length))}...");
+                return proxied;
+            }
+        }
+
+        return rawUrl;
+    }
+
     public async Task PlayAsync(Song song)
     {
         try
@@ -247,7 +273,7 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
             }
 
             _fallbackRetryCount = 0;
-            string playUrl = song.StreamUrl;
+            string playUrl = GetPlayableUrl(song.StreamUrl);
 
             AppLogger.Log($"PlayAsync: Setting MediaPlayer source to {playUrl.Substring(0, Math.Min(60, playUrl.Length))}...");
             _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(playUrl));
@@ -535,9 +561,10 @@ public class MediaPlaybackService : IMediaPlaybackService, IDisposable
                         CurrentSong.AudioQuality = "256 kbps · AAC (Safe Fallback)";
                         SetCurrentSong(CurrentSong);
 
+                        string playAacUrl = GetPlayableUrl(aacUrl);
                         _dispatcherQueue.TryEnqueue(() =>
                         {
-                            _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(aacUrl));
+                            _mediaPlayer.Source = Windows.Media.Core.MediaSource.CreateFromUri(new Uri(playAacUrl));
                             _mediaPlayer.Play();
                         });
                         return;
